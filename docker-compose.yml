@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # --- Database Service ---
+  db:
+    image: postgres:15-alpine
+    container_name: stayhub-db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: stayhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - stayhub-network
+
+  # --- Backend Service (Express) ---
+  backend:
+    build:
+      context: ./Backend/stayhub-be
+      dockerfile: Dockerfile
+    container_name: stayhub-backend
+    ports:
+      - "4000:4000" # Maps localhost:4000 to container:4000
+    environment:
+      - PORT=4000
+      - DB_HOST=db # Must match the service name 'db' above
+      - DB_USER=admin
+      - DB_PASSWORD=admin
+      - DB_NAME=stayhub
+      - DB_PORT=5432
+    volumes:
+      - ./Backend/stayhub-be:/app # Syncs local code to container for Hot Reload
+      - /app/node_modules # Prevents local node_modules from overwriting container's
+    depends_on:
+      - db
+    networks:
+      - stayhub-network
+
+  # --- Frontend Service (Next.js) ---
+  frontend:
+    build:
+      context: ./Frontend/stayhub-fe
+      dockerfile: Dockerfile
+    container_name: stayhub-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Use the service name 'backend' to talk to the API server side
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./Frontend/stayhub-fe:/app # Syncs local code for Hot Reload
+      - /app/node_modules # Prevents local node_modules from overwriting container's
+      - /app/.next # Persist build cache for speed
+    depends_on:
+      - backend
+    networks:
+      - stayhub-network
+
+volumes:
+  postgres_data:
+
+networks:
+  stayhub-network:
+    driver: bridge
