@@ -51,7 +51,7 @@ services:
     environment:
       # Use the service name 'backend' to talk to the API server side
       - NEXT_PUBLIC_API_URL=http://localhost:4000
-      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     volumes:
       - ./Frontend/stayhub-fe:/app # Syncs local code for Hot Reload
       - /app/node_modules # Prevents local node_modules from overwriting container's
