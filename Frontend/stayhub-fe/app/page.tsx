@@ -52,7 +52,7 @@ export default function Home() {
   return (
 <div className="flex flex-col justify-center items-center w-screen h-screen">
   <p className="text-blue-500 text-6xl">Hello world</p>
-  <p className="text-blue-500 text-4xl">Nhập tên của bạn: </p>
+  <p className="text-blue-500 text-4xl">Nhập tên của bạn: ABC</p>
   <div className="flex-col justify-evenly">
     {nameList.map((value: HelloName) => (
       <Name key={value.id} name={value.name} />
