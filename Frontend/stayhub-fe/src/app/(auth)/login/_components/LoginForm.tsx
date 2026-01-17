@@ -1,15 +1,57 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { redirect, useRouter } from "next/navigation";
+import { FormEventHandler, useEffect, useState } from "react";
 import { FaEye, FaEyeSlash, FaLock, FaUser } from "react-icons/fa";
 import { FiLogIn } from "react-icons/fi";
 
 const LoginForm = () => {
   const router = useRouter();
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+
+    const init = async () => {
+      const request = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/auth`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (request.status == 200) {
+        const response = await request.json();
+        console.log(`Logged in as ${JSON.stringify(response)}!`);
+        redirect("/");
+      }
+    }
+
+    init();
+  }, [])
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+
+        },
+        body: JSON.stringify({username: username, password: password}),
+      })
+      console.log(response);
+      if (response.status == 200) {
+
+        console.log("Login completed!");
+        const result = await response.json();
+        console.log(result);
+
+        //window.location.href = "/";
+        //window.location.reload();
+      } else {
+        console.log("Incorrect")
+      }
+  }
   const togglePassword = () => setShowPassword((prev) => !prev);
   return (
     <div className="text-stone-600">
@@ -28,11 +70,13 @@ const LoginForm = () => {
         Đăng nhập để tiếp tục
       </p>
 
-      <form className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4">
         <div className="relative">
           <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
           <input
             placeholder="Username"
+            value={username}
+            onChange={e=>setUsername(e.target.value)}
             className="w-full pl-10 pr-10 py-3 border-2 rounded-lg
                        outline-none focus:ring focus:ring-stone-300
                        border-gray-300 bg-gray-100"
@@ -45,6 +89,8 @@ const LoginForm = () => {
           <input
             placeholder="Password"
             type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
             className="w-full pl-10 pr-10 py-3 border-2 rounded-lg 
                        outline-none focus:ring focus:ring-stone-300
                        border-gray-300 bg-gray-100"
