@@ -26,6 +26,7 @@ services:
     environment:
       - PORT=4000
       - SESSION_KEY=st@yI-IubBNVTHVADu~ng
+      - FRONTEND_URL=http://localhost:3000
       - DB_HOST=db # Must match the service name 'db' above
       - DB_USER=admin
       - DB_PASSWORD=admin
