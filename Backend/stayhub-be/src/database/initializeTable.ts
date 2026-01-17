@@ -17,13 +17,24 @@ const tables = {
             hash        BYTEA        NOT NULL,
             roles       VARCHAR(100)[]  NOT NULL    DEFAULT '{ROLE_USER}'
         );
+    `,
+    session: `
+CREATE TABLE IF NOT EXISTS "session" (
+  "sid" varchar NOT NULL COLLATE "default",
+  "sess" json NOT NULL,
+  "expire" timestamp(6) NOT NULL,
+  CONSTRAINT session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE
+)
+WITH (OIDS=FALSE);
+
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" USING BTREE ("expire");
     `
 }
 export default async function initializeTable() {
     // Initialize tables
     for (const [name, table] of Object.entries(tables)) {
         try {
-        await db.none(table);
+        await db.multi(table);
         console.log(`Table ${name} initialized!`);
         } catch (err) {
             if (err instanceof Error) {

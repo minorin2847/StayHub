@@ -22,7 +22,7 @@ passport.use(new local.Strategy(function verifyPassword(username, password, cb) 
         const user = new User(row);
         crypto.pbkdf2(password, user.salt, 310000, 32, 'sha256', (err, hashed) => {
             if (err) return cb(err);
-            if (!crypto.timingSafeEqual((new TextEncoder()).encode(user.hash), hashed)) {
+            if (!crypto.timingSafeEqual(Buffer.alloc(32, user.hash), hashed)) {
                 return cb(null, false, {message: "Incorrect username or password"});
             }
             return cb(null, user);
@@ -39,7 +39,12 @@ export function initializeSession() {
         store: new pgSession({
             conString: connectionString,
             tableName: 'session'
-        })
+        }),
+        cookie: {
+            secure: false,
+            httpOnly: false,
+            maxAge: 24 * 60 * 60 * 1000
+        }
     });
 }
 
