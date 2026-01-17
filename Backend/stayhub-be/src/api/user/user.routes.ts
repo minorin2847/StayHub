@@ -1,5 +1,5 @@
-import { login, logout, signUp, checkRole } from "@/auth/auth.js";
-import express from 'express';
+import { login, logout, signUp, checkRole, isLoggedIn } from "@/auth/auth.js";
+import express, { type NextFunction, type Request, type Response } from 'express';
 import { UserRole } from "./user.enum.js";
 
 const router = express.Router();
@@ -9,10 +9,10 @@ const router = express.Router();
 //  username,
 //  password
 // }
-router.post("/login", login("/", "/login"));
+router.post("/login", login);
 
 // POST /user/dashboard/login
-router.post("/dashboard/login", checkRole([UserRole.ROLE_ADMIN]), login("/dashboard", "/dashboard/login"));
+router.post("/dashboard/login", checkRole([UserRole.ROLE_ADMIN]), login);
 
 // POST /user/logout
 router.post("/logout", logout);
@@ -23,6 +23,11 @@ router.post("/logout", logout);
 //  password
 // }
 router.post("/signup", signUp);
+
+// GET /user/auth
+router.get("/auth", isLoggedIn, (req: Request, res: Response, next: NextFunction) => {
+    res.status(200).json(req.user);
+});
 
 
 export default router;

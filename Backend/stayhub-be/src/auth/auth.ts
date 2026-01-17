@@ -5,30 +5,31 @@ import crypto from 'node:crypto';
 
 import User from "@/api/user/user.js";
 import type { UserRole } from '@/api/user/user.enum.js';
-export function login(redirectSuccess: string, redirectFailed: string) {
-    return passport.authenticate('local', {
-        successRedirect: redirectSuccess,
-        successMessage: "Login successful",
-        failureRedirect: redirectFailed,
-        failureMessage: "Incorrect username or password"
-    })
+export function login(req: Request, res: Response, next: NextFunction) {
+    return passport.authenticate('local', (err: any, user: any, info: any, status: any) => {
+        if (err) return next(err);
+        if (!user) res.status(404).send("Incorrect username or password!");
+        req.login(user, err => {
+            if (err) return next(err);
+            res.status(200).send("Login successful!");
+        });
+    })(req, res, next)
 }
 
 export function logout(req: Request, res: Response, next: NextFunction) {
     req.logout(err => {
         if (err) return next(err);
-        res.redirect("/");
+        res.status(200).send("Logout successful!");
     })
 }
 
-export function isLoggedIn(redirectTo: string) {
-    return (req: Request, res: Response, next: NextFunction) => {
-        if (req.user) {
-            next()
-        }
-        res.redirect(redirectTo);
+export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
+    if (req.user) {
+        next()
+    } else {
+        res.status(401).send("Unauthorized!");
     }
-}
+    }
 
 export function checkRole(roles: UserRole[]) {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -39,7 +40,7 @@ export function checkRole(roles: UserRole[]) {
                 next();
             }
         }
-        res.status(401).send("User unauthorized").redirect("/");
+        res.status(401).send("User unauthorized");
     }
 }
 
@@ -52,7 +53,7 @@ export function signUp(req: Request, res: Response, next: NextFunction) {
         .then(row => {
             req.login({id: row.id, username: row.username}, err => {
                 if (err) return next(err);
-                res.redirect("/");
+                res.status(200).send("Signed up successful!");
             })
         })
     })
