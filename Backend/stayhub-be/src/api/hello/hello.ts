@@ -28,7 +28,7 @@ export default class Hello {
     public static async addName(name: string): Promise<Hello | null> {
         try {
             const result = await db.one(
-                "INSERT INTO hello(name) VALUES $1 RETURNING id, name",
+                "INSERT INTO hello(name) VALUES ($1) RETURNING id, name",
                 name,
                 row => new Hello(row.id, row.name)
             );
