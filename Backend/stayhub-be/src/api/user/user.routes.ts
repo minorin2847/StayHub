@@ -1,6 +1,5 @@
 import { login, logout, signUp, checkRole, isLoggedIn } from "@/auth/auth.js";
 import express, { type NextFunction, type Request, type Response } from 'express';
-import { UserRole } from "./user.enum.js";
 
 const router = express.Router();
 
@@ -12,7 +11,7 @@ const router = express.Router();
 router.post("/login", login);
 
 // POST /user/dashboard/login
-router.post("/dashboard/login", checkRole([UserRole.ROLE_ADMIN]), login);
+router.post("/dashboard/login", checkRole(["ROLE_ADMIN"]), login);
 
 // POST /user/logout
 router.post("/logout", logout);

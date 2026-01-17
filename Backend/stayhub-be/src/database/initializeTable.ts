@@ -47,7 +47,7 @@ export default async function initializeTable() {
     const password = "123456"
     const hash = crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
         if (err) throw new DatabaseError(err.message);
-        db.oneOrNone("INSERT INTO users(username, salt, hash) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING id, username;", ["admin", salt, hashed]).then(() => {
+        db.oneOrNone("INSERT INTO users(username, salt, hash, roles) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING id, username;", ["admin", salt, hashed, "{" + ["ROLE_USER", "ROLE_ADMIN"].join(",") + "}"]).then(() => {
             console.log(`Initialized admin account!`);
         })
 
