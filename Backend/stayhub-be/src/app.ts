@@ -10,17 +10,19 @@ import helloRoute from "./api/hello/hello.routes.js";
 import userRoute from "@/api/user/user.routes.js";
 
 /* Middleware */
-app.use(cors());
+app.use(cors({credentials: true, origin: process.env.FRONTEND_URL}));
 app.use(express.json());
 
 /* Auth session */
 app.use(initializeSession());
+
+app.use(passport.initialize());
 app.use(passport.authenticate('session'));
 
 
 /* Routes */
 app.use("/hello", helloRoute);
-app.use("/users", userRoute);
+app.use("/user", userRoute);
 
 const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
