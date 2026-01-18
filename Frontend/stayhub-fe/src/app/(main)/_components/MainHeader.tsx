@@ -45,7 +45,7 @@ export default function MainHeader() {
                     <Image unoptimized src={user?.avatar ? user.avatar : `https://ui-avatars.com/api/?name=${user.name}&rounded=true&background=random`} alt={user?.name || "Avatar"} width={48} height={48}></Image>
                     <ul className="hidden group-hover:block absolute top-full -left-[25px] w-[100px] bg-gray-300">
                         <li>
-                            <div onClick={()=> {logout();window.location.reload()}} className="flex items-center w-full p-[10px] cursor-pointer hover:bg-gray-400">Log out</div>
+                            <div onClick={()=> {logout().then(()=>window.location.reload())}} className="flex items-center w-full p-[10px] cursor-pointer hover:bg-gray-400">Log out</div>
                         </li>
                     </ul>
                 </div>
