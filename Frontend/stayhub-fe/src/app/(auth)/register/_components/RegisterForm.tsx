@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FaEye, FaEyeSlash, FaLock, FaRegUser, FaUser } from "react-icons/fa";
+import { FaAt, FaEye, FaEyeSlash, FaLock, FaRegUser, FaUser } from "react-icons/fa";
 import { FiLogIn } from "react-icons/fi";
 
 const RegisterForm = () => {
@@ -41,13 +41,21 @@ const RegisterForm = () => {
         <div className="relative">
           <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
           <input
+            placeholder="Name"
+            className="w-full pl-10 pr-10 py-3 border-2 rounded-lg
+                       outline-none focus:ring focus:ring-stone-300
+                       border-gray-300 bg-gray-100"
+          />
+        </div>
+        <div className="relative">
+          <FaAt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
+          <input
             placeholder="Email"
             className="w-full pl-10 pr-10 py-3 border-2 rounded-lg
                        outline-none focus:ring focus:ring-stone-300
                        border-gray-300 bg-gray-100"
           />
         </div>
-
         <div className="relative">
           <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
 
