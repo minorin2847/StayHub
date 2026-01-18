@@ -20,7 +20,9 @@ router.post("/logout", logout);
 // POST /user/signup
 // Body: {
 //  username,
-//  password
+//  password,
+//  name,
+//  email
 // }
 router.post("/signup", signUp);
 

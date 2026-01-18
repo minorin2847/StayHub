@@ -46,12 +46,12 @@ export function checkRole(roles: UserRole[]) {
 
 export function signUp(req: Request, res: Response, next: NextFunction) {
     const salt = crypto.randomBytes(16);
-    const { username, password } = req.body;
+    const { username, password, name, email } = req.body;
     crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
         if (err) return next(err);
-        db.one("INSERT INTO users(username, salt, hash) VALUES ($1, $2, $3) RETURNING id, username", [username, salt, hashed])
+        db.one("INSERT INTO users(username, salt, hash, name, email) VALUES ($1, $2, $3, $4, $5)", [username, salt, hashed, name, email])
         .then(row => {
-            req.login({id: row.id, username: row.username}, err => {
+            req.login({id: row.id, username: username, name: name, email: email}, err => {
                 if (err) return next(err);
                 res.status(200).send("Signed up successful!");
             })
