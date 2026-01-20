@@ -1,6 +1,7 @@
 import { DatabaseError } from '@/types/DatabaseError.js';
 import crypto from 'node:crypto';
 import db from './db.js';
+import toRoleString from '@/utils/toRoleString.js';
 
 const tables = {
     hello: `
@@ -15,7 +16,10 @@ const tables = {
             username    VARCHAR(100)    UNIQUE NOT NULL,
             salt        BYTEA     NOT NULL,
             hash        BYTEA        NOT NULL,
-            roles       VARCHAR(100)[]  NOT NULL    DEFAULT '{ROLE_USER}'
+            roles       VARCHAR(100)[]  NOT NULL    DEFAULT '{ROLE_USER}',
+            name        VARCHAR(100)    NOT NULL,
+            email       VARCHAR(100)    NOT NULL,
+            avatar      TEXT
         );
     `,
     session: `
@@ -47,7 +51,9 @@ export default async function initializeTable() {
     const password = "123456"
     const hash = crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
         if (err) throw new DatabaseError(err.message);
-        db.oneOrNone("INSERT INTO users(username, salt, hash, roles) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING id, username;", ["admin", salt, hashed, "{" + ["ROLE_USER", "ROLE_ADMIN"].join(",") + "}"]).then(() => {
+        db.oneOrNone(
+            "INSERT INTO users(username, name, email, salt, hash, roles) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING RETURNING id, username;", 
+            ["admin", "John Admin", "admin@stayhub.com", salt, hashed, toRoleString(["ROLE_USER", "ROLE_ADMIN"])]).then(() => {
             console.log(`Initialized admin account!`);
         })
 

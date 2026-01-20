@@ -43,11 +43,9 @@ const LoginForm = () => {
       if (response.status == 200) {
 
         console.log("Login completed!");
-        const result = await response.json();
+        const result = await response.body;
         console.log(result);
-
-        //window.location.href = "/";
-        //window.location.reload();
+        redirect("/");
       } else {
         console.log("Incorrect")
       }

@@ -1,5 +1,6 @@
 import { login, logout, signUp, checkRole, isLoggedIn } from "@/auth/auth.js";
 import express, { type NextFunction, type Request, type Response } from 'express';
+import User from "./user.js";
 
 const router = express.Router();
 
@@ -19,13 +20,15 @@ router.post("/logout", logout);
 // POST /user/signup
 // Body: {
 //  username,
-//  password
+//  password,
+//  name,
+//  email
 // }
 router.post("/signup", signUp);
 
 // GET /user/auth
 router.get("/auth", isLoggedIn, (req: Request, res: Response, next: NextFunction) => {
-    res.status(200).json(req.user);
+    res.status(200).json(User.toDTO(req.user));
 });
 
 

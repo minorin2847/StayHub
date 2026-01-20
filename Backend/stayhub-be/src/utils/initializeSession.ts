@@ -49,7 +49,7 @@ export function initializeSession() {
 }
 
 passport.serializeUser((user: any, cb) => {
-    process.nextTick(() => cb(null, {id: user.id, username: user.username}));
+    process.nextTick(() => cb(null, User.toDTO(user)));
 })
 
 passport.deserializeUser((user: any, cb) => {
