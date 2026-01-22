@@ -1,5 +1,4 @@
 import db from '@/database/db.js'
-import { DatabaseError } from '@/types/DatabaseError.js';
 
 export default class Hello {
     /* Values */
