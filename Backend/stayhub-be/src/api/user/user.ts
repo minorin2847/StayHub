@@ -1,29 +1,37 @@
-<<<<<<< Updated upstream
-import type { UserRole } from "./user.enum.js";
+import type { UserDTO } from "./user.type.js";
 
 export default class User {
     id: string;
     username: string;
     salt: string;
     hash: string;
-    roles: UserRole[];
+    roles: string[];
 
-    constructor({id, username, salt, hash, roles} : {
+    name: string;
+    email: string;
+    avatar: string;
+
+    constructor({id, username, salt, hash, roles, name, email, avatar} : {
         id: string,
         username: string,
         salt: string,
         hash: string,
-        roles: UserRole[]
+        roles: string[],
+        name: string,
+        email: string,
+        avatar: string
     }) {
         this.id = id;
         this.username = username;
         this.salt = salt;
         this.hash = hash;
         this.roles = roles;
+
+        this.name = name;
+        this.email = email;
+        this.avatar = avatar
     }
 
-
-=======
 export default class User {
     id: number;
     accountid: number;
@@ -70,5 +78,4 @@ export default class User {
         this.address = address;
         this.avatar = avatar
     }
->>>>>>> Stashed changes
 }

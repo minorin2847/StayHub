@@ -50,11 +50,7 @@ export function initializeSession() {
 }
 
 passport.serializeUser((user: any, cb) => {
-<<<<<<< Updated upstream
-    process.nextTick(() => cb(null, {id: user.id, username: user.username}));
-=======
     process.nextTick(() => cb(null, Account.toDTO(user)));
->>>>>>> Stashed changes
 })
 
 passport.deserializeUser((user: any, cb) => {

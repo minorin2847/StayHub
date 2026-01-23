@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect, useRouter } from "next/navigation";
 import { useState } from "react";
-import { FaEye, FaEyeSlash, FaLock, FaRegUser, FaUser } from "react-icons/fa";
+import { FaAt, FaEye, FaEyeSlash, FaLock, FaRegUser, FaUser } from "react-icons/fa";
 import { FiLogIn } from "react-icons/fi";
 
 const RegisterForm = () => {
@@ -64,8 +64,6 @@ const RegisterForm = () => {
           <div className="relative">
           <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
           <input
-<<<<<<< Updated upstream
-=======
             placeholder="First Name"
             value={firstname}
             onChange={e=>setFirstname(e.target.value)}
@@ -86,12 +84,11 @@ const RegisterForm = () => {
                        border-gray-300 bg-gray-100"
           />
           </div>
-
+            
         </div>
         <div className="relative">
           <FaAt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
           <input
->>>>>>> Stashed changes
             placeholder="Email"
             value={email}
             onChange={e=>setEmail(e.target.value)}
@@ -100,7 +97,6 @@ const RegisterForm = () => {
                        border-gray-300 bg-gray-100"
           />
         </div>
-
         <div className="relative">
           <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
 
