@@ -9,8 +9,6 @@ import { FiLogIn } from "react-icons/fi";
 
 const LoginForm = () => {
   const router = useRouter();
-  // const [username, setUsername] = useState<string>("");
-  // const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({

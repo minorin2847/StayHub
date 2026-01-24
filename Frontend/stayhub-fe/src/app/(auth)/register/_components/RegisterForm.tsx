@@ -1,9 +1,9 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useState } from "react";
-import { FaEye, FaEyeSlash, FaLock, FaRegUser, FaUser } from "react-icons/fa";
+import { FaAt, FaEye, FaEyeSlash, FaLock, FaRegUser, FaUser } from "react-icons/fa";
 import { FiLogIn } from "react-icons/fi";
 import { IoIosArrowRoundBack } from "react-icons/io";
 import { MdEmail } from "react-icons/md";
@@ -11,11 +11,16 @@ import { MdEmail } from "react-icons/md";
 const RegisterForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
 
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
+    firstname: "",
+    lastname: ""
   });
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -94,6 +99,34 @@ const RegisterForm = () => {
         </div>
         <div className="relative">
           <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
+        <div className="flex flex-row relative">
+          <div className="relative">
+          <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
+          <input
+            placeholder="First Name"
+            value={formData.firstname}
+            onChange={handleChange}
+            className="w-full pl-10 pr-10 py-3 border-2 rounded-lg
+                       outline-none focus:ring focus:ring-stone-300
+                       border-gray-300 bg-gray-100"
+          />
+
+          </div>
+          <div className="relative">
+          <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
+          <input
+            placeholder="Last Name"
+            value={formData.lastname}
+            onChange={handleChange}
+            className="w-full pl-10 pr-10 py-3 border-2 rounded-lg
+                       outline-none focus:ring focus:ring-stone-300
+                       border-gray-300 bg-gray-100"
+          />
+          </div>
+            
+        </div>
+        <div className="relative">
+          <FaAt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
           <input
             placeholder="Email"
             name="email"
@@ -106,7 +139,6 @@ const RegisterForm = () => {
                        border-gray-300 bg-gray-100"
           />
         </div>
-
         <div className="relative">
           <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
 
