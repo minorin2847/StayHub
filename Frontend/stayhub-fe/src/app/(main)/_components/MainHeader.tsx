@@ -1,6 +1,4 @@
 'use client';
-
-
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
