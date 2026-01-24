@@ -20,7 +20,7 @@ const AuthLayoutWrapper = ({
 }: AuthLayoutWrapper) => {
   return (
     <div className="min-h-screen w-full bg-linear-to-br from-stone-400 to-stone-500 flex items-center justify-center p-4">
-      <div className="flex w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="flex w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden min-h-142.5">
         <div className="hidden md:flex w-1/2 relative ">
           <Image
             src={imageSrc}
