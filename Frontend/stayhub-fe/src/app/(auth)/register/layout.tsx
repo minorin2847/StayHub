@@ -3,7 +3,7 @@ import AuthLayoutWrapper from "@/components/auth/AuthLayoutWrapper";
 export default function CustomerRegisterLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthLayoutWrapper 
-      label={<>khách sạn Transylvania</>}
+      label={<>StayHub</>}
     >
       {children}
     </AuthLayoutWrapper>
