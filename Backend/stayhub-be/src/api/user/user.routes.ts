@@ -6,28 +6,11 @@ import { findUser } from "./user.handler.js";
 
 const router = express.Router();
 
-// POST /user/login
-// Body: {
-//  username,
-//  password
-// }
-router.post("/login", login);
+
 
 // POST /user/dashboard/login
 // router.post("/dashboard/login", checkRole(["ROLE_ADMIN"]), login);
 
-// POST /user/logout
-router.post("/logout", logout);
-
-// POST /user/signup
-// Body: {
-//  username,
-//  password,
-//  firstName,
-//  lastName,
-//  email
-// }
-router.post("/signup", signUp);
 
 // GET /user/auth
 

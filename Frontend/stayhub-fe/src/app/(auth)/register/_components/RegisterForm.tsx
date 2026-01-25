@@ -11,9 +11,6 @@ import { MdEmail } from "react-icons/md";
 const RegisterForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
 
   const [formData, setFormData] = useState({
     username: "",
@@ -97,13 +94,13 @@ const RegisterForm = () => {
                        border-gray-300 bg-gray-100"
           />
         </div>
-        <div className="relative">
-          <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
+        
         <div className="flex flex-row relative">
           <div className="relative">
           <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
           <input
             placeholder="First Name"
+            name="firstname"
             value={formData.firstname}
             onChange={handleChange}
             className="w-full pl-10 pr-10 py-3 border-2 rounded-lg
@@ -116,6 +113,7 @@ const RegisterForm = () => {
           <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
           <input
             placeholder="Last Name"
+            name="lastname"
             value={formData.lastname}
             onChange={handleChange}
             className="w-full pl-10 pr-10 py-3 border-2 rounded-lg

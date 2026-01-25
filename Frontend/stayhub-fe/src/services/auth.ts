@@ -2,7 +2,7 @@ import React from "react";
 
 export const auth = {
   login: async (username: string, password: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

@@ -51,6 +51,9 @@ export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
 export function signUp(req: Request, res: Response, next: NextFunction) {
     const salt = crypto.randomBytes(16);
     const { username, password, firstname, lastname, email } = req.body;
+    if(!firstname || !username || !email || !password){
+    return res.status(400).json({message: "Vui lòng nhập đủ thông tin!"})
+  }
     findAccount(username).then(() => res.status(409).send("User already exists!")).catch(() => {
         crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
             if (err) return next(err);

@@ -1,6 +1,5 @@
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-dotenv.config();
+
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -12,7 +11,8 @@ const transporter = nodemailer.createTransport({
 
 export const sendResetEmail = async (
   email: string,
-  username: string,
+  firstName: string,
+  lastName: string,
   token: string,
 ) => {
   const resetUrl = `${process.env.FRONTEND_URL}/new-password?token=${token}`;
@@ -23,7 +23,7 @@ export const sendResetEmail = async (
     subject: "Đặt lại mật khẩu Stayhub",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Xin chào ${username}</h2>
+        <h2>Xin chào ${firstName} ${lastName}</h2>
         <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản Stayhub.</p>
         <p>Vui lòng click vào nút bên dưới để đặt lại mật khẩu (Link có hiệu lực trong 60 phút):</p>
         <a href="${resetUrl}" 

@@ -1,22 +1,28 @@
+
+import { passport } from '@/utils/initializeSession.js';
+import type { NextFunction, Request, Response } from 'express';
+
+import User from "@/api/user/user.js";
+import { findUser } from '@/api/user/user.handler.js';
+import { findAccount } from '@/api/account/account.handler.js';
 import db from "../../database/db.js";
 import { sendResetEmail } from "../../utils/emailSender.js";
-import type { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "node:crypto";
 
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
   try {
-    const user = await db.oneOrNone("SELECT * FROM users WHERE email = $1", [
+    const account = await db.oneOrNone("SELECT * FROM accounts WHERE email = $1", [
       email,
     ]);
 
-    if (!user) {
+    if (!account) {
       return res
         .status(200)
         .json({ message: "Nếu email tồn tại, link đã được gửi." });
     }
-    await db.none("DELETE FROM password_reset_tokens WHERE email = $1", [
+    await db.none("DELETE FROM passwordResetTokens WHERE email = $1", [
       email,
     ]);
 
@@ -24,11 +30,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
 
     await db.none(
-      "INSERT INTO password_reset_tokens(email, token, expires_at) VALUES($1, $2, $3)",
+      "INSERT INTO passwordResetTokens(email, token, expiresAt) VALUES($1, $2, $3)",
       [email, token, expiresAt],
     );
-
-    await sendResetEmail(email, user.username, token);
+    const user = await findUser(account.username)
+    await sendResetEmail(email, user.firstname, user.lastname, token);
 
     return res.status(200).json({ message: "Đã gửi email hướng dẫn!" });
   } catch (error) {
@@ -43,7 +49,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
   try {
     const record = await db.oneOrNone(
-      "SELECT * FROM password_reset_tokens WHERE token = $1",
+      "SELECT * FROM passwordResetTokens WHERE token = $1",
       [token],
     );
 
@@ -73,11 +79,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 
         try {
           await db.none(
-            "UPDATE users SET salt = $1, hash = $2 WHERE email = $3",
+            "UPDATE accounts SET salt = $1, hash = $2 WHERE email = $3",
             [salt, hashedPassword, record.email],
           );
 
-          await db.none("DELETE FROM password_reset_tokens WHERE token = $1", [
+          await db.none("DELETE FROM passwordResetTokens WHERE token = $1", [
             token,
           ]);
 
@@ -94,38 +100,79 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
-export const register = async (req: Request, res: Response)=>{
-  const {username, email, password} = req.body;
+export function login(req: Request, res: Response, next: NextFunction) {
+    return passport.authenticate('local', (err: any, user: any, info: any, status: any) => {
+        if (err) return next(err);
+        if (!user) res.status(404).send("Incorrect username or password!");
+        findUser(user.id).then(() => {
+            req.login(user, err => {
+                if (err) return next(err);
+                res.status(200).send("Login successful!");
+            });
+        }).catch(() => res.status(404).send("Incorrect username or password!"))
 
-  if(!username || !email || !password){
+    })(req, res, next)
+}
+
+export function logout(req: Request, res: Response, next: NextFunction) {
+    req.logout(err => {
+        if (err) return next(err);
+        res.status(200).send("Logout successful!");
+    })
+}
+
+export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
+    if (req.user) {
+        next()
+    } else {
+        res.status(401).send("Unauthorized!");
+    }
+    }
+
+// export function checkRole(roles: UserRole[]) {
+//     return (req: Request, res: Response, next: NextFunction) => {
+//         const user = req.user as User;
+//         const userRoles = user.roles;
+//         for (const role of userRoles) {
+//             if (roles.includes(role)) {
+//                 next();
+//             }
+//         }
+//         res.status(401).send("User unauthorized");
+//     }
+// }
+
+export function signUp(req: Request, res: Response, next: NextFunction) {
+    const salt = crypto.randomBytes(16);
+    const { username, password, firstname, lastname, email } = req.body;
+    if(!firstname || !username || !email || !password){
     return res.status(400).json({message: "Vui lòng nhập đủ thông tin!"})
   }
-  try {
-    const existingUser = await db.oneOrNone(
-      "select * from users where email = $1 or username = $2",
-      [email, username]
-    )
-    if(existingUser){
-      return res.status(409).json({message: "Email hoặc username đã tồn tại"})
-    }
-    const salt = crypto.randomBytes(16)
-    crypto.pbkdf2(password, salt, 310000, 32, "sha256", async (err, hashedPassword) => {
-      if (err) return res.status(500).json({ message: "Lỗi mã hóa mật khẩu" });
+    findAccount(username).then(() => res.status(409).send("User already exists!")).catch(() => {
+        crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
+            if (err) return next(err);
+            db.task('sign-up', async t => {
+                const userAccount = await db.one("INSERT INTO accounts(username, salt, hash, email)\
+                    VALUES ($(username), $(salt), $(hash), $(email)) \
+                    RETURNING id, username, email", {
+                        username: username,
+                        salt: salt,
+                        hash: hashed,
+                        email: email
+                    });
+                console.log(`Created account ${username}, ID ${userAccount.id} with email ${email}!`);
+                const user = await db.one("INSERT INTO users(accountID, firstName, lastName) \
+                    VALUES ($(accountID), $(firstName), $(lastName))    \
+                    RETURNING id", {
+                        accountID: userAccount.id,
+                        firstName: firstname,
+                        lastName: lastname
+                    });
+                console.log(`Created user account with id ${user.id}!`);
+            }).then(() => {
+                    res.status(200).send("Signed up successful!");
+            });
+        })
+    })
 
-      try {
-        await db.none(
-          "INSERT INTO users(username, email, salt, hash, roles) VALUES ($1, $2, $3, $4, $5)",
-          [username, email, salt, hashedPassword, "{ROLE_USER}"]
-        );
-
-        return res.status(201).json({ message: "Đăng ký thành công!" });
-      } catch (dbError) {
-        console.error("DB Error:", dbError);
-        return res.status(500).json({ message: "Lỗi lưu Database" });
-      }
-    });
-  } catch (error) {
-    console.error('Register Error:', error)
-    return res.status(500).json({message: "Lối hệ thống"})
-  }
 }
