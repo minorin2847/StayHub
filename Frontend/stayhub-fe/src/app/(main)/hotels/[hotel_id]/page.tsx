@@ -6,7 +6,7 @@ function Form() {
   const [name, setName] = useState('Taylor');
 
   return (
-    <>
+    <div>
       <input
         value={name}
         onChange={e => setName(e.target.value)}
@@ -15,6 +15,8 @@ function Form() {
         <p>Hello, {name}.</p>
       </div>
       
-    </>
+    </div>
   );
 }
+
+export default Form;
