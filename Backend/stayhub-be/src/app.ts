@@ -9,6 +9,7 @@ const port = process.env.PORT;
 import helloRoute from "./api/hello/hello.routes.js";
 import userRoute from "@/api/user/user.routes.js";
 import authRouter from './api/auth/auth.routes.js';
+import destinationRouter from './api/destinations/destination.routes.js';
 
 /* Middleware */
 app.use(cors({credentials: true, origin: process.env.FRONTEND_URL}));
@@ -25,6 +26,7 @@ app.use(passport.authenticate('session'));
 app.use("/hello", helloRoute);
 app.use("/user", userRoute);
 app.use("/auth", authRouter);
+app.use("/destinations", destinationRouter)
 
 const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
