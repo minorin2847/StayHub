@@ -25,7 +25,7 @@ export default function MainHeader() {
             <div className="flex items-center justify-start grow">
                 <Image className="" src="/images/logo.png" alt="Stayhub logo" width={96} height={96} />
             </div>
-            <div className="flex justify-end items-center grow pr-[30px] gap-[10px]">
+            <div className="flex justify-end items-center grow gap-[10px]">
                 <div className="flex flex-col relative group">
                     <FcGlobe size={32}/>
                     <ul className="hidden group-hover:block absolute top-full -left-[25px] bg-gray-200 w-[100px]">
@@ -48,7 +48,7 @@ export default function MainHeader() {
                     </ul>
                 </div>
 
-                : <Link href={"/login"} className="rounded-full w-[102px] h-[48px] m-[8px]">
+                : <Link href={"/login"} className="rounded-full w-[102px] h-[48px]">
                     <button className="w-full h-full bg-blue-500 text-white rounded-full cursor-pointer hover:bg-blue-700">
                         Login     
                     </button>
