@@ -7,7 +7,7 @@ export default function MainLayout({children}: {children: React.ReactNode}) {
         <AuthProvider>
             <MainHeader />
         </AuthProvider>
-        <div className="px-[104px]">
+        <div>
             {children}
         </div>
         </>
