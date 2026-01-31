@@ -16,7 +16,7 @@ export default function RoomAmenities({ roomData }: {
             </div>
         ))}
     </div>
-    <button onClick={()=>setAmenExpand(!amenExpand)} className="flex w-fit h-[40px] justify-center items-center px-[8px] py-[16px] border-2 border-blue-500 rounded-[10px] text-blue-500 hover:bg-blue-500 hover:text-white ">{amenExpand ? "Show less" : `Show all ${roomData.amenities.length} Amenities`}</button>
+    <button onClick={()=>setAmenExpand(!amenExpand)} className="flex w-fit h-[40px] justify-center items-center px-[8px] py-[16px] border-2 border-blue-500 rounded-[10px] text-blue-500 hover:bg-blue-500 hover:text-white font-semibold">{amenExpand ? "Show less" : `Show all ${roomData.amenities.length} Amenities`}</button>
     </div>
     )
 }
