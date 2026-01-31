@@ -33,7 +33,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       "INSERT INTO passwordResetTokens(email, token, expiresAt) VALUES($1, $2, $3)",
       [email, token, expiresAt],
     );
-    const user = await findUser(account.username)
+    const user = await findUser(account.id)
     await sendResetEmail(email, user.firstname, user.lastname, token);
 
     return res.status(200).json({ message: "Đã gửi email hướng dẫn!" });
