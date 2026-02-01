@@ -1,9 +1,15 @@
-'use client';
+"use client";
+
+import HeroSection from "@/components/home/HeroSection";
+import SearchSection from "@/components/home/SearchSection";
+import TrendingDestination from "@/components/home/TrendingDestination";
 
 export default function Home() {
   return (
-    <>
-      <div className="bg-[url(/images/auth-bg.avif)] bg-cover bg-center h-[512px] w-screen rounded-b-[16px]"></div>
-    </>
-  )
+    <div className="w-full overflow-x-hidden bg-white">
+      <HeroSection />
+      <SearchSection/>
+      <TrendingDestination />  
+    </div>
+  );
 }
