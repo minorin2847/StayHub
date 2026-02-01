@@ -21,7 +21,7 @@ export default function MainHeader() {
     const {user, isAuthenticated, logout} = useAuth();
 
     return (
-        <header className="w-screen h-[96px] flex justify-evenly px-[104px] py-6">
+        <header className="w-full px-[104px] h-[96px] bg-[#fefefe] flex justify-evenly drop-shadow-[0px_1px_15px_rgba(0,0,0,0.14)]">
             <div className="flex items-center justify-start grow">
                 <Image className="" src="/images/logo.png" alt="Stayhub logo" width={96} height={96} />
             </div>
