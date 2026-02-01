@@ -9,7 +9,7 @@ export default function HotelPolicies({ hotelData }: {
                 <p className="font-semibold text-[28px]">Policies</p>
                 <p className="text-[18px] text-neutral-400">{`${hotelData.name} takes special requests - add in the next step!`}</p>
             </div>
-            <div className="flex flex-col border border-neutral-200 rounded-[1px]">
+            <div className="flex flex-col border border-neutral-200 rounded-[20px]">
                 {
                     hotelData.policies.map((obj, index) => (
                         <div key={index} className={`flex px-[24px] py-[18px] w-full gap-x-[270px] items-center ${index+1 < hotelData.policies.length ? "border-b border-b-neutral-200" : ""}`}>
