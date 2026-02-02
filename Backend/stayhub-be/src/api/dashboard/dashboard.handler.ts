@@ -4,6 +4,7 @@ import { findEmployee } from "../employee/employee.handler.js";
 import db from "@/database/db.js";
 import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
+import Employee from "../employee/employee.js";
 
 export function dashboardLogin(req: Request, res: Response, next: NextFunction) {
     return passport.authenticate('local', (err: any, user: any, info: any, status: any) => {
@@ -42,5 +43,16 @@ export function hasPermission(role: string) {
             if (err instanceof Error) res.status(404).send(err.message);
             res.status(404).send("An unknown error occured!");
         }
+    }
+}
+
+// Prerequisite: isLoggedIn
+export async function getEmployee(req: Request, res: Response, next: NextFunction) {
+    try {
+        const employee = await findEmployee(req.user.id);
+        res.status(200).json(Employee.toDTO(employee));
+    } catch (err) {
+        if (err instanceof Error) res.status(404).send(err.message);
+        res.status(404).send("An unknown error occured!");
     }
 }

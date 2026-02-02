@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { dashboardLogin } from "./dashboard.handler.js";
+import { dashboardLogin, getEmployee } from "./dashboard.handler.js";
+import { isLoggedIn } from "@/auth/auth.js";
 
 const dashboardRoute = Router();
 
-// dashboardRoute.get("/", );
+dashboardRoute.get("/", isLoggedIn, getEmployee);
 
 dashboardRoute.post("/login", dashboardLogin);
 export default dashboardRoute;
