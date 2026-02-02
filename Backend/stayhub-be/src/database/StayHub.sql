@@ -127,9 +127,8 @@ CREATE TABLE IF NOT EXISTS booking (
 );
 
 CREATE TABLE IF NOT EXISTS roles (
-  employeeID int,
-  role varchar(100),
-  PRIMARY KEY (employeeID, role)
+  name varchar(100) NOT NULL PRIMARY KEY,
+  tier int NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS employees (
@@ -198,6 +197,11 @@ CREATE TABLE IF NOT EXISTS rooms_reviews (
   PRIMARY KEY (rooms_id, reviews_roomID)
 );
 
+CREATE TABLE IF NOT EXISTS employee_roles (
+  employeeID int,
+  role varchar(100),
+  PRIMARY KEY (employeeID, role)
+);
 
 -- ==========================================
 -- 2. Alter Tables (Rewritten with DO Blocks)
@@ -348,5 +352,14 @@ BEGIN
     -- FIXED: 'fk_hotelid'
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotelid' AND conrelid = 'employees'::regclass) THEN 
         ALTER TABLE employees ADD CONSTRAINT fk_hotelid FOREIGN KEY (hotelid) REFERENCES hotels (id);
+    END IF; 
+END $$;
+
+-- 18. Link Employee -> Roles
+DO $$ 
+BEGIN 
+    -- FIXED: 'fk_employee_roles'
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employee_roles' AND conrelid = 'employee_roles'::regclass) THEN 
+        ALTER TABLE employee_roles ADD CONSTRAINT fk_employee_roles FOREIGN KEY (role) REFERENCES roles (name);
     END IF; 
 END $$;
