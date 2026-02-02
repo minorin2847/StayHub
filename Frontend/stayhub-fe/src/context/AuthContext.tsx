@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // Gọi API logout để server xóa HTTP-only Cookie
       // Giả sử endpoint backend của bạn là /auth/logout (Method POST)
-      await fetch(`${BACKEND_URL}/user/logout`, {
+      await fetch(`${BACKEND_URL}/auth/logout`, {
         method: "POST",
         credentials: "include"
       });
