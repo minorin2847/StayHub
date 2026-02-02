@@ -14,8 +14,14 @@ import {
   FaReact,
   FaHome,
 } from "react-icons/fa";
+import { MdExitToApp } from "react-icons/md";
+import { auth } from "@/services/auth";
+import { useDashboardAuth } from "@/context/DashboardAuthContext";
+import { redirect } from "next/navigation";
 function SideBar(){
     const [expanded, setExpanded] = useState(true);
+    const { logout } = useDashboardAuth();
+
     return <aside className={'relative w-1/5 flex flex-col transition-width ease-in-out backdrop-blur-xl border-r border-slate-200/50 bg-slate-900/95 dark:border-slate-700/50" + $(expanded ? "w-full" : "w-30")'}>
         <div className="p-6 w-full">
             <div className="flex items-center justify-start space-x-4">
@@ -51,10 +57,14 @@ function SideBar(){
                         <FaComments className="w-6 h-6"/>
                         <span className="ml-4 text-base font-medium">Reviews</span>
                     </button>
-                    <div className="absolute bottom-0 text-4xl text-white mb-1 w-full flex items-center">
+                    <div className="absolute bottom-0 text-4xl text-white mb-1 w-full flex flex-col items-center">
                         <button className ="flex items-center p-3 mb-1 w-full hover:bg-slate-100/20 round-lg transition-colors">
                             <FaCog className="w-6 h-6"/>
                             <span className="ml-4 text-base font-medium">Settings</span>
+                         </button>
+                        <button onClick={() => logout().then(redirect("/dashboard/login"))} className ="flex items-center p-3 mb-1 w-full hover:bg-slate-100/20 round-lg transition-colors cursor-pointer">
+                            <MdExitToApp className="w-6 h-6"/>
+                            <span className="ml-4 text-base font-medium">Log out</span>
                          </button>
                     </div>
                 </ul>
