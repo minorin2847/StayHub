@@ -1,20 +1,4 @@
 services:
-  # --- Database Service ---
-  db:
-    image: postgres:15-alpine
-    container_name: stayhub-db
-    restart: always
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: stayhub
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - stayhub-network
-
   # --- MinIO Service (S3 Compatible Storage) ---
   minio:
     image: minio/minio:latest
@@ -46,10 +30,10 @@ services:
       - PORT=4000
       - SESSION_KEY=st@yI-IubBNVTHVADu~ng
       - FRONTEND_URL=http://localhost:3000
-      - DB_HOST=db
-      - DB_USER=admin
-      - DB_PASSWORD=admin
-      - DB_NAME=stayhub
+      - DB_HOST=aws-1-ap-southeast-1.pooler.supabase.com
+      - DB_USER=postgres.rqmfiaewllhlfmvhhlcg
+      - DB_PASSWORD=FqCJkznSLepDTzTg
+      - DB_NAME=postgres
       - DB_PORT=5432
       - EMAIL_USER=stayhub.project@gmail.com
       - EMAIL_PASS=whnofpvuvcswsvkw

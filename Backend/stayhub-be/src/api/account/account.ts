@@ -1,3 +1,5 @@
+import type { AccountDTO } from "./account.type.js";
+
 export default class Account {
     id: number;
     username: string;
@@ -19,7 +21,7 @@ export default class Account {
         this.email = email;
     }
 
-    public static toDTO(account: Account) {
+    public static toDTO(account: Account): AccountDTO {
         return {
             id: account.id,
             username: account.username,

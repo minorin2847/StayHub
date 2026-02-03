@@ -11,9 +11,20 @@ export const auth = {
     if (!res.ok) {
       throw new Error("Tên đăng nhập hoặc mật khẩu không đúng");
     }
-    return await res.json();
+    return await res.text();
   },
-
+  dashboardLogin: async (username: string, password: string) => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      throw new Error("Tên đăng nhập hoặc mật khẩu không đúng");
+    }
+    return await res.text();
+  },
   forgotPassword: async (email: string) => {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`,

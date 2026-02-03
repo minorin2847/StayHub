@@ -1,20 +1,20 @@
 'use client';
-// src/context/AuthContext.tsx
+import { Employee } from '@/types/Employee';
+// src/context/DashboardAuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { User } from '@/types/User';
 
 
-interface AuthContextType {
+interface DashboardAuthContextType {
   isAuthenticated: boolean;
-  user: User | null; // Define a proper User interface here
+  user: Employee | null; // Define a proper User interface here
   isLoading: boolean;
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const DashboardAuthContext = createContext<DashboardAuthContextType | undefined>(undefined);
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const DashboardAuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
 
@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const verifyUserSession = async () => {
       try {
         // Make a request to a backend endpoint that verifies the session
-        const response = await fetch(`${BACKEND_URL}/user/auth`, {
+        const response = await fetch(`${BACKEND_URL}/dashboard`, {
             method: "GET",
             credentials: "include"
         }); // A "who am I" endpoint
@@ -65,14 +65,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user, isLoading, logout 
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <DashboardAuthContext.Provider value={value}>{children}</DashboardAuthContext.Provider>;
 };
 
 // Custom hook to easily access the context
-export const useAuth = () => {
-  const context = useContext(AuthContext);
+export const useDashboardAuth = () => {
+  const context = useContext(DashboardAuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useDashboardAuth must be used within an AuthProvider');
   }
   return context;
 };
