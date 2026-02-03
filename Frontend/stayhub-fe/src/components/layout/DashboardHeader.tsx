@@ -1,9 +1,9 @@
 'use client';
 import Image from "next/image";
 import React from "react";
-import Sidebar from "./SideBar.jsx";
-import {FaBars} from "react-icons/fa";
-function Header(){
+import Sidebar from "./DashboardSideBar.js";
+import { FaBars } from "react-icons/fa";
+export default function Header() {
     return (
         <div className="relative flex bg-white/80 px-5 py-3 my-0.5 border-b border-grey-300/20 items-center">
             {/*Center - Search bar*/}
@@ -27,4 +27,3 @@ function Header(){
         </div>
     );
 }
-export default Header;
