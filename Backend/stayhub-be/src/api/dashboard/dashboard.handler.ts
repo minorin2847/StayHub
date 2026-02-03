@@ -5,6 +5,7 @@ import db from "@/database/db.js";
 import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
 import Employee from "../employee/employee.js";
+import type { AccountDTO } from "../account/account.type.js";
 
 export function dashboardLogin(req: Request, res: Response, next: NextFunction) {
     return passport.authenticate('local', (err: any, user: any, info: any, status: any) => {
@@ -26,16 +27,17 @@ export function hasPermission(role: string) {
         try {
             const requiredRole = await getRole(role);
             const roles = await db.map("SELECT roles.* \
-                FROM employees_roles INNER JOIN roles \
-                ON employees_roles.role=roles.name \
+                FROM employee_roles INNER JOIN roles \
+                ON employee_roles.role=roles.name \
                 WHERE employeeid=$1 \
                 ORDER BY roles.tier", [req.user.id], row => new Role(row));
             if (roles.length===0) {
                 throw new Error("Employee doesn't have any roles!");
             }
             for (const role of roles) {
-                if (role.tier > requiredRole.tier || role.name == requiredRole.name) {
-                    next()
+                if (role.tier < requiredRole.tier || role.name == requiredRole.name) {
+                    next();
+                    return;
                 }
             }
             res.status(401).send("Unauthorized!");
@@ -55,4 +57,30 @@ export async function getEmployee(req: Request, res: Response, next: NextFunctio
         if (err instanceof Error) res.status(404).send(err.message);
         res.status(404).send("An unknown error occured!");
     }
+}
+
+export async function getNonEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
+    let { name, start, end } = req.query;
+    try {
+        const response = await db.map("SELECT * FROM get_accounts_with_page_count($(name), $(start), $(end))", {
+            name: name ?? "",
+            start: start ?? 0,
+            end: end ?? 10
+        }, (row: any): AccountDTO => {
+            return {
+                id: row.id,
+                username: row.username,
+                email: row.email
+            }
+        });
+        res.status(200).json({count: response.length, values: response});
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(404).send(err.message);
+        }
+        else {
+            res.status(404).send("An unknown error occured!");
+        }
+    }
+
 }
