@@ -1,15 +1,24 @@
 import crypto from 'node:crypto';
 import db from './db.js';
 import pgPromise from 'pg-promise';
+import path from 'node:path';
+import fs from 'fs/promises';
+import { fileURLToPath } from 'node:url';
 
-export default async function initializeTable() {
+export default async function initialize() {
     // Initialize tables
     try {
         const pgp = pgPromise();
         const { QueryFile } = pgp;
-        const file = new QueryFile("./database/StayHub.sql");
-        await db.multi(file);
-        console.log(`All tables initialized!`);
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const folderPath = path.join(__dirname, "definitions");
+        const files = await fs.readdir(folderPath);
+        for (const file of files) {
+            const queryFile = new QueryFile("./database/definitions/" + file);
+            await db.multi(queryFile);
+            console.log(`All ${file.split(".")[0]?.toLowerCase()} initialized!`);
+        }
     } catch (err) {
         if (err instanceof Error) {
             console.error(`An error occured when creating tables: ${err}`);
@@ -56,22 +65,23 @@ export default async function initializeTable() {
                 ('MANAGE_BRANCH', 2), \
                 ('MANAGE_HOTEL', 3), \
                 ('MANAGE_ROOM', 4) \
-                ON CONFLICT DO NOTHING \ ");
-            if (!admin_role) {
-                admin_role = await db.one("SELECT * FROM roles WHERE name=$1", ['ADMINISTRATOR']);
+                ON CONFLICT DO NOTHING \
+                RETURNING name, tier;\ ");
+            if (!roles) {
+                roles = await db.many("SELECT name, tier FROM roles;");
             }
-            console.log(`Initialize admin role with name ${admin_role.name}, tier ${admin_role.tier}!`);
-            let roles = await db.oneOrNone("INSERT INTO employee_roles(employeeID, role) \
+            console.log(`Initialize roles with values ${roles.map(i=>"name: " + i.name + "; tier: " + i.tier).join("\n")}!`);
+            let adminRole = await db.oneOrNone("INSERT INTO employee_roles(employeeID, role) \
                 VALUES ($(employeeID), $(role)) \
                 ON CONFLICT DO NOTHING \
                 RETURNING employeeID, role", {
                     employeeID: employeeID,
-                    role: admin_role.name
+                    role: 'ADMINISTRATOR'
                 });
-            if (!roles) {
-                roles = await db.one("SELECT * FROM roles WHERE employeeID=$1", [employeeID]);
+            if (!adminRole) {
+                adminRole = await db.one("SELECT * FROM employee_roles WHERE employeeID=$1", [employeeID]);
             }
-            console.log(`Initialized admin role for employee ${roles.employeeid} as ${roles.role}!`);
+            console.log(`Initialized admin role for employee ${adminRole.employeeid} as ${adminRole.role}!`);
             return roles;
         }).catch(err => console.error(`An error occured while creating admin account: ${err}`));
 

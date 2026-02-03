@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import initializeTable from './database/initializeTable.js';
+import initialize from './database/initialize.js';
 import { passport, initializeSession } from '@/utils/initializeSession.js';
 /* Express */
 const app = express();
@@ -32,7 +32,7 @@ const server = app.listen(port, () => {
 })
 
 // Create table if not exists, quit server when failed
-initializeTable().catch(err => server.close(() => {
+initialize().catch(err => server.close(() => {
     console.log("Server stopped");
     console.error(err.message);
 }));
