@@ -1,23 +1,4 @@
 services:
-  # --- MinIO Service (S3 Compatible Storage) ---
-  minio:
-    image: minio/minio:latest
-    container_name: stayhub-minio
-    restart: always
-    # Starts the server using /data for storage and exposes the web console
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000" # API Port
-      - "9001:9001" # Web Console Port
-    environment:
-      # Change these credentials for production!
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: password
-    volumes:
-      - ./contents:/data # Persist data to your local ./contents folder
-    networks:
-      - stayhub-network
-
   # --- Backend Service (Express) ---
   backend:
     build:
@@ -45,9 +26,6 @@ services:
     volumes:
       - ./Backend/stayhub-be:/app
       - /app/node_modules
-    depends_on:
-      - db
-      - minio # Ensure backend waits for MinIO to start
     networks:
       - stayhub-network
 
@@ -70,9 +48,6 @@ services:
       - backend
     networks:
       - stayhub-network
-
-volumes:
-  postgres_data:
 
 networks:
   stayhub-network:
