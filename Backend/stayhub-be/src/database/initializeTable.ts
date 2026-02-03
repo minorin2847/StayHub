@@ -50,14 +50,13 @@ export default async function initializeTable() {
             }
             const employeeID = employee.id;
             console.log(`Initialized admin employee account with employeeID ${employeeID}!`);
-            // Initialize admin role
-            let admin_role = await db.oneOrNone("INSERT INTO roles(name, tier) \
-                VALUES ($(name), $(tier)) \
-                ON CONFLICT DO NOTHING \
-                RETURNING name, tier", {
-                    name: 'ADMINISTRATOR',
-                    tier: 1
-                });
+            // Initialize roles
+            let roles = await db.manyOrNone("INSERT INTO roles(name, tier) \
+                VALUES ('ADMINISTRATOR', 1),\
+                ('MANAGE_BRANCH', 2), \
+                ('MANAGE_HOTEL', 3), \
+                ('MANAGE_ROOM', 4) \
+                ON CONFLICT DO NOTHING \ ");
             if (!admin_role) {
                 admin_role = await db.one("SELECT * FROM roles WHERE name=$1", ['ADMINISTRATOR']);
             }
