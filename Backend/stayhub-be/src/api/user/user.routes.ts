@@ -18,7 +18,7 @@ router.get("/auth", isLoggedIn, async (req: Request, res: Response, next: NextFu
     try {
     const user = await findUser(req.user.id);
     
-    res.status(200).json(user);
+    res.status(200).json({...user, ...req.user});
     } catch (err) {
         res.status(500).send(`An error occured!\n${err}`);
     }

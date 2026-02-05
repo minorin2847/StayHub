@@ -18,7 +18,7 @@ import { MdExitToApp } from "react-icons/md";
 import { auth } from "@/services/auth";
 import { useDashboardAuth } from "@/context/DashboardAuthContext";
 import { redirect } from "next/navigation";
-function SideBar(){
+export default function SideBar(){
     const [expanded, setExpanded] = useState(true);
     const { logout } = useDashboardAuth();
 
@@ -73,4 +73,3 @@ function SideBar(){
         
     </aside>;
 }
-export default SideBar;
