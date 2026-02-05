@@ -15,18 +15,10 @@ export const getDestinations = async (req: Request, res: Response) => {
 
     const data = await db.any(query, params);
 
-    const formattedData = data.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      image: item.image,  
-      description: item.description, 
-      category: item.category,
-    }));
-
-    return res.status(200).json(formattedData);
+    
+    return res.status(200).json(data);
   } catch (error) {
-    console.error("Lỗi lấy destinations:", error);
-    return res.status(500).json({ message: "Lỗi Server" });
+    console.error(error);
+    return res.status(500)
   }
 };

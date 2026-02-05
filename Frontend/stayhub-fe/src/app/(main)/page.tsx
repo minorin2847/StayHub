@@ -1,7 +1,10 @@
 "use client";
 
+import DealsWeekend from "@/components/home/DealsWeekend";
 import HeroSection from "@/components/home/HeroSection";
 import SearchSection from "@/components/home/SearchSection";
+import TopSights from "@/components/home/TopSights";
+import TravelMore from "@/components/home/TravelMore";
 import TrendingDestination from "@/components/home/TrendingDestination";
 
 export default function Home() {
@@ -10,6 +13,9 @@ export default function Home() {
       <HeroSection />
       <SearchSection/>
       <TrendingDestination />  
+      <DealsWeekend />
+      <TravelMore />
+      <TopSights/>
     </div>
   );
 }

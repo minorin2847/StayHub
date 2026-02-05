@@ -40,11 +40,20 @@ const TrendingDestination = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/destinations?category=${isActive}`,
-      );
-      const data = await res.json();
-      setDestinations(data);
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/destinations?category=${isActive}`,
+        );
+        if (!res.ok) {
+          throw new Error("Failed to fetch");
+        }
+        const data = await res.json();
+        setDestinations(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [isActive]);
@@ -83,15 +92,15 @@ const TrendingDestination = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {loading
-            ? Array(4)
+            ? (Array(4)
                 .fill(0)
                 .map((_, index) => (
                   <div
                     key={index}
                     className="h-[400px] w-full rounded-[20px] bg-gray-200 animate-pulse"
                   ></div>
-                ))
-            : destinations.map((item) => (
+                )))
+            : destinations.length>0 ? (destinations.map((item) => (
                 <div
                   key={item.id}
                   className="group relative h-[400px] w-full rounded-[20px] overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-shadow"
@@ -118,7 +127,9 @@ const TrendingDestination = () => {
                     </p>
                   </div>
                 </div>
-              ))}
+              ))): (
+                <p className="col-span-full text-center text-gray-500">Không tìm thấy điểm đến nào.</p>
+              )}
         </div>
       </Container>
     </section>
