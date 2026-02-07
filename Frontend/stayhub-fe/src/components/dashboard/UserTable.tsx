@@ -2,9 +2,10 @@
 
 import { Account } from "@/types/Account";
 
-export default function UserTable({ tableData }: {
+type UserTableParameter = {
     tableData: Account[]
-}) {
+}
+export default function UserTable(params: UserTableParameter) {
     return (
         <table>
 

@@ -4,6 +4,7 @@ import UserTable from "@/components/dashboard/UserTable";
 import { Account } from "@/types/Account";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FaMagnifyingGlass } from "react-icons/fa6";
 
 export default function ManageUser() {
     const searchParams = useSearchParams();
@@ -47,17 +48,24 @@ export default function ManageUser() {
     }, [query, start, end])
     return (
         <div className="flex flex-col">
-            <input 
-                type="text" 
-                placeholder="Search username..."
-                name="query"
-                onChange={e => setQuery(e.target.value)}
-                value={query} 
-            />
+            <div className="flex px-[30px] gap-x-[8px] h-fit w-full">
+                <input
+                    className="flex grow h-full items-center border rounded-[5px] outline-none" 
+                    type="text" 
+                    placeholder="Search username..."
+                    name="query"
+                    onChange={e => setQuery(e.target.value)}
+                    value={query} 
+                />
+                <button className="p-[10px] w-fit h-fit rounded-[10px] text-white gap-x-[6px] flex items-center bg-blue-400">
+                    <FaMagnifyingGlass size={24} />
+                    <p className="font-semibold text-[16px]">Search</p>
+                </button>
+            </div>
             {
                 loading ? 
-                    <UserTable tableData={results}/>
-                : <div className="">Loading...</div>
+                    <div className="">Loading...</div>
+                : <UserTable tableData={results} />
             }
 
         </div>
