@@ -9,7 +9,12 @@ const port = process.env.PORT;
 import helloRoute from "./api/hello/hello.routes.js";
 import userRoute from "@/api/user/user.routes.js";
 import authRouter from './api/auth/auth.routes.js';
-import dashboardRoute from "@/api/dashboard/dashboard.routes.js";
+import destinationRouter from './api/destinations/destination.routes.js';
+import dealsRouter from './api/deals/deals.routes.js';
+import sightsRouter from './api/sights/sights.routes.js';
+import thingsRouter from './api/things/things.routes.js';
+import homeGuestsRouter from './api/homeGuests/homeGuests.routes.js';
+
 /* Middleware */
 app.use(cors({credentials: true, origin: process.env.FRONTEND_URL}));
 app.use(express.json());
@@ -25,8 +30,11 @@ app.use(passport.authenticate('session'));
 app.use("/hello", helloRoute);
 app.use("/user", userRoute);
 app.use("/auth", authRouter);
-app.use("/dashboard", dashboardRoute);
-
+app.use("/destinations", destinationRouter)
+app.use("/deals",dealsRouter)
+app.use("/sights",sightsRouter);
+app.use("/things", thingsRouter);
+app.use("/homeGuests",homeGuestsRouter)
 const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 })
