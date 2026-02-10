@@ -12,6 +12,8 @@ import authRouter from './api/auth/auth.routes.js';
 import destinationRouter from './api/destinations/destination.routes.js';
 import dealsRouter from './api/deals/deals.routes.js';
 import sightsRouter from './api/sights/sights.routes.js';
+import thingsRouter from './api/things/things.routes.js';
+import homeGuestsRouter from './api/homeGuests/homeGuests.routes.js';
 
 /* Middleware */
 app.use(cors({credentials: true, origin: process.env.FRONTEND_URL}));
@@ -30,8 +32,9 @@ app.use("/user", userRoute);
 app.use("/auth", authRouter);
 app.use("/destinations", destinationRouter)
 app.use("/deals",dealsRouter)
-app.use("sights",sightsRouter)
-
+app.use("/sights",sightsRouter);
+app.use("/things", thingsRouter);
+app.use("/homeGuests",homeGuestsRouter)
 const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 })
