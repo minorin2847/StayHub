@@ -22,7 +22,7 @@ export default function SideBar(){
     const [expanded, setExpanded] = useState(true);
     const { logout } = useDashboardAuth();
 
-    return <aside className={'relative w-1/5 flex flex-col transition-width ease-in-out backdrop-blur-xl border-r border-slate-200/50 bg-slate-900/95 dark:border-slate-700/50" + $(expanded ? "w-full" : "w-30")'}>
+    return <aside className={'w-1/5 flex flex-col transition-width ease-in-out backdrop-blur-xl border-r border-slate-200/50 bg-slate-900/95 dark:border-slate-700/50" + $(expanded ? "w-full" : "w-30")'}>
         <div className="p-6 w-full">
             <div className="flex items-center justify-start space-x-4">
                 <div className="w-13 h-13 flex items-center">

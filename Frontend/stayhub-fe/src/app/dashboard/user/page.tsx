@@ -47,8 +47,8 @@ export default function ManageUser() {
         }
     }, [query, start, end])
     return (
-        <div className="flex flex-col">
-            <div className="flex px-[30px] gap-x-[8px] h-fit w-full">
+        <div className="flex flex-col gap-y-[30px] px-[30px]">
+            <div className="flex gap-x-[8px] h-fit w-full">
                 <input
                     className="flex grow h-full items-center border rounded-[5px] outline-none" 
                     type="text" 
