@@ -6,6 +6,7 @@ import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
 import Employee from "../employee/employee.js";
 import type { AccountDTO } from "../account/account.type.js";
+import type { EmployeeDTO } from "../employee/employee.type.js";
 
 export function dashboardLogin(req: Request, res: Response, next: NextFunction) {
     return passport.authenticate('local', (err: any, user: any, info: any, status: any) => {
@@ -59,18 +60,25 @@ export async function getEmployee(req: Request, res: Response, next: NextFunctio
     }
 }
 
-export async function getNonEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
+type EmployeeTableData = AccountDTO & EmployeeDTO & {roles: Role[]};
+
+export async function getEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
     let { name, start, end } = req.query;
     try {
-        const response = await db.map("SELECT * FROM get_accounts_with_page_count($(name), $(start), $(end))", {
+        const response = await db.map("SELECT * FROM get_employees_with_page_count($(name), $(start), $(end))", {
             name: name ?? "",
             start: start ?? 0,
             end: end ?? 10
-        }, (row: any): AccountDTO => {
+        }, (row: any): EmployeeTableData => {
             return {
                 id: row.id,
                 username: row.username,
-                email: row.email
+                email: row.email,
+                hotelid: row.hotelid,
+                firstname: row.firstname,
+                lastname: row.lastname,
+                salary: row.salary,
+                roles: row.roles
             }
         });
         res.status(200).json({count: response.length, values: response});

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { dashboardLogin, getEmployee, getNonEmployeeAccounts, hasPermission } from "./dashboard.handler.js";
+import { dashboardLogin, getEmployee, getEmployeeAccounts, hasPermission } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/auth/auth.js";
 
 const dashboardRoute = Router();
@@ -16,6 +16,6 @@ dashboardRoute.post("/login", dashboardLogin);
 // Query: {name: string, start: number, end: number}
 // Function: Search and return non-employee accounts (accounts without an employee profile)
 //  with pagination [start, end)
-dashboardRoute.get("/non-employee", isLoggedIn, hasPermission('MANAGE_HOTEL'), getNonEmployeeAccounts);
+dashboardRoute.get("/user", isLoggedIn, hasPermission('MANAGE_HOTEL'), getEmployeeAccounts);
 
 export default dashboardRoute;
