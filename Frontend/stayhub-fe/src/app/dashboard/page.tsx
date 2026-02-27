@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect} from "react";
-import Header from '../../components/layout/DashboardHeader.js'
-import SideBar from '../../components/layout/DashboardSideBar.js'
+import Header from '../../components/dashboard/DashboardHeader.js'
+import SideBar from '../../components/dashboard/DashboardSideBar.js'
 import { Employee } from "@/types/Employee.js";
 import { redirect } from "next/navigation.js";
 export default function AdminDashboard() {
