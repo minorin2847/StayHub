@@ -363,3 +363,10 @@ BEGIN
         ALTER TABLE employee_roles ADD CONSTRAINT fk_employee_roles FOREIGN KEY (role) REFERENCES roles (name);
     END IF; 
 END $$;
+
+-- ==========================================
+-- 3. Role-level Security
+-- ==========================================
+
+-- Employees
+ALTER TABLE IF EXISTS employees ENABLE ROW LEVEL SECURITY;

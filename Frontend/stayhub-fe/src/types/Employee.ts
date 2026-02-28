@@ -1,3 +1,6 @@
+import { Account } from "./Account";
+import { Role } from "./Role";
+
 export type Employee = {
     id: number;
     accountid: number;
@@ -6,3 +9,5 @@ export type Employee = {
     lastname: string;
     salary: number;
 }
+
+export type EmployeeTableData = Account & Employee & {roles: Role[]};

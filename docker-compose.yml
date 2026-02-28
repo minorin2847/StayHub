@@ -11,9 +11,9 @@ services:
       - PORT=4000
       - SESSION_KEY=st@yI-IubBNVTHVADu~ng
       - FRONTEND_URL=http://localhost:3000
-      - DB_HOST=aws-1-ap-southeast-1.pooler.supabase.com
-      - DB_USER=postgres.rqmfiaewllhlfmvhhlcg
-      - DB_PASSWORD=FqCJkznSLepDTzTg
+      - DB_HOST=aws-1-ap-southeast-2.pooler.supabase.com
+      - DB_USER=postgres.yijwpmeackjqszmdyrpa
+      - DB_PASSWORD=xWWlpaAj1%25%23pS7
       - DB_NAME=postgres
       - DB_PORT=5432
       - EMAIL_USER=stayhub.project@gmail.com
