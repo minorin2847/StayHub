@@ -9,7 +9,7 @@ export default function AdminDashboard() {
     
     useEffect(() => {
         const init = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard`, {
                 method: "GET",
                 credentials: "include"
             });

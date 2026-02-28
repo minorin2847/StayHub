@@ -22,7 +22,7 @@ export const DashboardAuthProvider = ({ children }: { children: React.ReactNode 
     const verifyUserSession = async () => {
       try {
         // Make a request to a backend endpoint that verifies the session
-        const response = await fetch(`${BACKEND_URL}/dashboard`, {
+        const response = await fetch(`${BACKEND_URL}/employee/dashboard`, {
             method: "GET",
             credentials: "include"
         }); // A "who am I" endpoint
@@ -45,7 +45,7 @@ export const DashboardAuthProvider = ({ children }: { children: React.ReactNode 
     try {
       // Gọi API logout để server xóa HTTP-only Cookie
       // Giả sử endpoint backend của bạn là /auth/logout (Method POST)
-      await fetch(`${BACKEND_URL}/auth/logout`, {
+      await fetch(`${BACKEND_URL}/employee/logout`, {
         method: "POST",
         credentials: "include"
       });
