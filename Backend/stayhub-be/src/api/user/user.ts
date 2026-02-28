@@ -1,7 +1,8 @@
 
 export default class User {
     id: number;
-    accountid: number;
+    username: string;
+    email: string;
     firstname: string;
     lastname: string;
     phonenumber: string;
@@ -14,7 +15,8 @@ export default class User {
 
     constructor({
         id, 
-        accountid, 
+        username,
+        email, 
         firstname, 
         lastname, 
         phonenumber,
@@ -24,7 +26,8 @@ export default class User {
         address,
         avatar} : {
             id: number;
-            accountid: number;
+            username: string;
+            email: string;
             firstname: string;
             lastname: string;
             phonenumber: string;
@@ -35,7 +38,8 @@ export default class User {
             avatar: string;
         }) {
         this.id = id;
-        this.accountid = accountid;
+        this.username = username;
+        this.email = email;
         this.firstname = firstname;
         this.lastname = lastname;
         this.phonenumber = phonenumber;

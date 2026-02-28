@@ -3,8 +3,7 @@ import { passport } from '@/utils/initializeSession.js';
 import type { NextFunction, Request, Response } from 'express';
 
 import User from "@/api/user/user.js";
-import { findUser } from '@/api/user/user.handler.js';
-import { findAccount } from '@/api/account/account.handler.js';
+import { findUser, findUserByUsername } from '@/api/user/user.handler.js';
 import db from "../../database/db.js";
 import { sendResetEmail } from "../../utils/emailSender.js";
 import { v4 as uuidv4 } from "uuid";
@@ -13,7 +12,7 @@ import crypto from "node:crypto";
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
   try {
-    const account = await db.oneOrNone("SELECT * FROM accounts WHERE email = $1", [
+    const account = await db.oneOrNone("SELECT * FROM users WHERE email = $1", [
       email,
     ]);
 
@@ -79,7 +78,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
         try {
           await db.none(
-            "UPDATE accounts SET salt = $1, hash = $2 WHERE email = $3",
+            "UPDATE users SET salt = $1, hash = $2 WHERE email = $3",
             [salt, hashedPassword, record.email],
           );
 
@@ -101,7 +100,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 };
 
 export function login(req: Request, res: Response, next: NextFunction) {
-    return passport.authenticate('local', (err: any, user: any, info: any, status: any) => {
+    return passport.authenticate('user-login', (err: any, user: any, info: any, status: any) => {
         if (err) return next(err);
         if (!user) res.status(404).send("Incorrect username or password!");
         findUser(user.id).then(() => {
@@ -124,6 +123,7 @@ export function logout(req: Request, res: Response, next: NextFunction) {
 export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
     if (req.user) {
         next()
+        return;
     } else {
         res.status(401).send("Unauthorized!");
     }
@@ -148,27 +148,21 @@ export function signUp(req: Request, res: Response, next: NextFunction) {
     if(!firstname || !username || !email || !password){
     return res.status(400).json({message: "Vui lòng nhập đủ thông tin!"})
   }
-    findAccount(username).then(() => res.status(409).send("User already exists!")).catch(() => {
+    findUserByUsername(username).then(() => res.status(409).send("User already exists!")).catch(() => {
         crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
             if (err) return next(err);
             db.task('sign-up', async t => {
-                const userAccount = await db.one("INSERT INTO accounts(username, salt, hash, email)\
-                    VALUES ($(username), $(salt), $(hash), $(email)) \
-                    RETURNING id, username, email", {
+                const userAccount = await db.one("INSERT INTO users(username, salt, hash, email, firstName, lastName)\
+                    VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName)) \
+                    RETURNING id, username, email, firstName, lastName", {
                         username: username,
                         salt: salt,
                         hash: hashed,
-                        email: email
-                    });
-                console.log(`Created account ${username}, ID ${userAccount.id} with email ${email}!`);
-                const user = await db.one("INSERT INTO users(accountID, firstName, lastName) \
-                    VALUES ($(accountID), $(firstName), $(lastName))    \
-                    RETURNING id", {
-                        accountID: userAccount.id,
+                        email: email,
                         firstName: firstname,
                         lastName: lastname
                     });
-                console.log(`Created user account with id ${user.id}!`);
+                console.log(`Created account ${firstname} ${lastname} (${username}), ID ${userAccount.id} with email ${email}!`);
             }).then(() => {
                     res.status(200).send("Signed up successful!");
             });
