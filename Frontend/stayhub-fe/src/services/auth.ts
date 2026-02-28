@@ -2,7 +2,7 @@ import React from "react";
 
 export const auth = {
   login: async (username: string, password: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -14,7 +14,7 @@ export const auth = {
     return await res.text();
   },
   dashboardLogin: async (username: string, password: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/login`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -27,7 +27,7 @@ export const auth = {
   },
   forgotPassword: async (email: string) => {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`,
+      `${process.env.NEXT_PUBLIC_API_URL}/user/auth/forgot-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,7 +45,7 @@ export const auth = {
 
   resetPassword: async (token: string, newPassword: string) => {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`,
+      `${process.env.NEXT_PUBLIC_API_URL}/user/auth/reset-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
