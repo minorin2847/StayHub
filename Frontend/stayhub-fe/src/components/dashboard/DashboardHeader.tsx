@@ -3,7 +3,7 @@ import React from 'react';
 import { IoSearchOutline, IoNotificationsOutline, IoSettingsOutline } from 'react-icons/io5';
 import { LuChevronDown } from 'react-icons/lu';
 
-export default function DashboardHeader() {
+export default function Header() {
     return (
         <header className="flex items-center justify-between px-8 py-4 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50">
             <div className="flex-shrink-0">
