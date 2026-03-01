@@ -93,7 +93,7 @@ passport.deserializeUser(async (obj: any, cb) => {
             const row = await pg.oneOrNone("SELECT * FROM users WHERE username=$1", [obj.username]);
             return cb(null, row ? new User(row): false);
         } else {
-            const row = await pg.oneOrNone("SELECT * FROM employees WHERE username=$1", [obj.username]);
+            const row = await pg.oneOrNone("SELECT * FROM get_user_auth_context($1);", [obj.username]);
             return cb(null, row ? new Employee(row) : false);
         }
     } catch (err) {
