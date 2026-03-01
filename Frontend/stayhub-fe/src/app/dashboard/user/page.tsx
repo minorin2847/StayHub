@@ -6,16 +6,18 @@ import { Employee, EmployeeTableData } from "@/types/Employee";
 import { Role } from "@/types/Role";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FaPlus } from "react-icons/fa";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 
 export default function ManageUser() {
     const searchParams = useSearchParams();
     const [query, setQuery] = useState<string>(searchParams.get('name') ?? '');
-    const [start, setStart] = useState<string>(searchParams.get('start') ?? '0');
-    const [end, setEnd] = useState<string>(searchParams.get('end') ?? '10');
+    const [page, setPage] = useState<string>(searchParams.get('page') ?? '1');
     const [results, setResults] = useState<EmployeeTableData[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
-    
+    const [hasPrevious, setHasPrevious] = useState<boolean>(false);
+    const [hasNext, setHasNext] = useState<boolean>(false);
+
     useEffect(() => {
         const controller = new AbortController();
         const signal = controller.signal;
@@ -25,15 +27,16 @@ export default function ManageUser() {
             try {
                 const params = new URLSearchParams({
                         name: query,
-                        start: start,
-                        end: end
+                        page: page
                     }).toString()
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/user?${params}`, {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/user?${params}`, {
                     method: "GET",
                     credentials: "include",
                 });
                 const data = await res.json();
-                setResults(data['values'] as EmployeeTableData[]);
+                setResults(data as EmployeeTableData[]);
+                setHasPrevious(parseInt(page) > 1);
+                setHasNext(data.length == 15);
             } catch (error) {
                 if (error instanceof Error && error.name !== 'AbortError') {
                     console.error("An error occured: ", error);
@@ -47,44 +50,43 @@ export default function ManageUser() {
             clearTimeout(queryHandler);
             controller.abort();
         }
-    }, [query, start, end])
+    }, [query, page])
     return (
-        <div className="flex flex-col gap-8 p-8 animate-in fade-in duration-500">
-            {/* Search Bar Section */}
-            <div className="flex items-center gap-4 w-full group">
-                <div className="relative flex-grow">
-                    <FaMagnifyingGlass 
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" 
-                        size={18} 
-                    />
+        <div className="flex flex-col gap-y-[30px] px-[30px] pt-[30px]">
+            <div className="flex justify-between gap-x-[8px] h-fit w-full">
+                <div className="flex items-center border rounded-5px gap-x-[10px] pl-[5px]">
+                    <FaMagnifyingGlass size={22} />
                     <input
-                        className="w-full h-12 pl-12 pr-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 shadow-sm transition-all placeholder:text-slate-400 text-slate-600" 
-                        type="text" 
-                        placeholder="Search username, email or ID..."
-                        name="query"
-                        onChange={e => setQuery(e.target.value)}
-                        value={query} 
+                    className="flex w-[300px] outline-none" 
+                    type="text" 
+                    placeholder="Search username..."
+                    name="query"
+                    onChange={e => setQuery(e.target.value)}
+                    value={query} 
                     />
                 </div>
-                <button className="h-12 px-8 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 active:scale-95 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2">
-                    Search
-                </button>
+                <div className="">
+                    <button className="p-[10px] w-fit h-fit rounded-[10px] text-white gap-x-[6px] flex items-center bg-blue-400">
+                        <FaPlus size={24} />
+                        <p className="font-semibold text-[16px]">Create</p>
+                    </button>
+                </div>
+
             </div>
-    
-            {/* Table Section */}
-            <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center h-64 gap-3">
-                        {/* Spinner đơn giản */}
-                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-slate-500 font-medium text-sm">Fetching users...</p>
+            {
+                loading ? 
+                    <div className="">Loading...</div>
+                :
+                <div className="flex flex-col gap-y-[20px]">
+                    <UserTable tableData={results} />
+                    <div className="flex gap-x-[10px] items-center border mx-auto">
+                        <button className={`flex justify-center items-center ${hasPrevious ? "text-blue-500 cursor-pointer" : "text-gray-300/80"} font-light font-roboto text-[20px] w-[30px] border-r`} disabled={!hasPrevious} onClick={()=>setPage(Number(Math.max(parseInt(page)-1, 1)).toString())}>{"<"}</button>
+                        <p className="select-none text-[16px]">{`Page ${page}`}</p>
+                        <button className={`flex justify-center items-center ${hasNext ? "text-blue-500 cursor-pointer" : "text-gray-300/80"} font-light font-roboto text-[20px] w-[30px] border-l`} disabled={!hasNext} onClick={()=>setPage(Number(parseInt(page)+1).toString())}>{">"}</button>
                     </div>
-                ) : (
-                    <div className="animate-in slide-in-from-bottom-2 duration-500">
-                        <UserTable tableData={results} />
-                    </div>
-                )}
-            </div>
+                </div>
+            }
+
         </div>
-    );
+    )
 };

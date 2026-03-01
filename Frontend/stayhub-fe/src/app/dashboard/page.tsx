@@ -3,6 +3,7 @@ import { useState, useEffect} from "react";
 import { Employee } from "@/types/Employee.js";
 import { redirect } from "next/navigation.js";
 import ReservationChart from '@/components/dashboard/ReservationChart';
+import ReservationChart from "@/components/dashboard/ReservationChart";
 export default function AdminDashboard() {
     const [user, setUser] = useState<Employee>();
     
