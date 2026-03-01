@@ -8,6 +8,6 @@ employeeRoute.post("/login", login);
 
 employeeRoute.post("/logout", logout);
 
-employeeRouter.post("/", createEmployeeHandler);
+employeeRoute.post("/", createEmployeeHandler);
 
 export default employeeRoute;
