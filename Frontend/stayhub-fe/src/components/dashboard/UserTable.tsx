@@ -9,7 +9,7 @@ type UserTableParameter = {
 }
 export default function UserTable(params: UserTableParameter) {
     return (
-        <table className="w-full border border-red-500 table-auto border-collapse">
+        <table className="w-full border border-red-500 table-auto border-collapse select-none">
             <thead>
                 <tr>
                     <th className="h-fit py-[10px] border bg-gray-100">ID</th>
