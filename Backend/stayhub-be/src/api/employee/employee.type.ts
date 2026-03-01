@@ -3,6 +3,7 @@ export type EmployeeDTO = {
     username: string;
     email: string;
     hotelid: number;
+    branchid: number[];
     firstname: string;
     lastname: string;
     salary: number;
