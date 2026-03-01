@@ -1,7 +1,7 @@
 "use client";
 
-import Header from "@/components/layout/DashboardHeader"
-import SideBar from "@/components/layout/DashboardSideBar"
+import Header from '@/components/dashboard/DashboardHeader.tsx'
+import SideBar from '@/components/dashboard/DashboardSideBar.tsx'
 import { DashboardAuthProvider } from "@/context/DashboardAuthContext"
 
 export default function DashBoardLayout({
