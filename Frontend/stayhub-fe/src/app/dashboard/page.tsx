@@ -2,6 +2,7 @@
 import { useState, useEffect} from "react";
 import { Employee } from "@/types/Employee.js";
 import { redirect } from "next/navigation.js";
+import ReservationChart from "@/components/dashboard/ReservationChart";
 export default function AdminDashboard() {
     const [user, setUser] = useState<Employee>();
     
@@ -22,6 +23,8 @@ export default function AdminDashboard() {
         init()
     }, [])
     return (
-        <></>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                      <ReservationChart />
+        </div>
     );
 }
