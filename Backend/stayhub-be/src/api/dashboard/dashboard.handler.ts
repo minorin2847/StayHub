@@ -1,25 +1,13 @@
-import { passport } from "@/utils/initializeSession.js";
+
 import type { NextFunction, Request, Response } from "express";
 import { findEmployee } from "../employee/employee.handler.js";
 import db from "@/database/db.js";
 import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
 import Employee from "../employee/employee.js";
-import type { AccountDTO } from "../account/account.type.js";
+import type { EmployeeDTO } from "../employee/employee.type.js";
 
-export function dashboardLogin(req: Request, res: Response, next: NextFunction) {
-    return passport.authenticate('local', (err: any, user: any, info: any, status: any) => {
-        if (err) return next(err);
-        if (!user) res.status(404).send("Incorrect username or password!");
-        findEmployee(user.id).then(() => {
-            req.login(user, err => {
-                if (err) return next(err);
-                res.status(200).send("Login successful!");
-            });
-        }).catch(() => res.status(404).send("Incorrect username or password!"))
 
-    })(req, res, next)
-}
 
 // Prerequisite: isLoggedIn
 export function hasPermission(role: string) {
@@ -59,18 +47,25 @@ export async function getEmployee(req: Request, res: Response, next: NextFunctio
     }
 }
 
-export async function getNonEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
+type EmployeeTableData = EmployeeDTO & {roles: Role[]};
+
+export async function getEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
     let { name, start, end } = req.query;
     try {
-        const response = await db.map("SELECT * FROM get_accounts_with_page_count($(name), $(start), $(end))", {
+        const response = await db.map("SELECT * FROM get_employees_with_page_count($(name), $(start), $(end))", {
             name: name ?? "",
             start: start ?? 0,
             end: end ?? 10
-        }, (row: any): AccountDTO => {
+        }, (row: any): EmployeeTableData => {
             return {
                 id: row.id,
                 username: row.username,
-                email: row.email
+                email: row.email,
+                hotelid: row.hotelid,
+                firstname: row.firstname,
+                lastname: row.lastname,
+                salary: row.salary,
+                roles: row.roles
             }
         });
         res.status(200).json({count: response.length, values: response});
@@ -84,3 +79,4 @@ export async function getNonEmployeeAccounts(req: Request, res: Response, next: 
     }
 
 }
+

@@ -30,35 +30,24 @@ export default async function initialize() {
     const hash = crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
         if (err) throw new Error(err.message);
         db.task('admin-creation', async t => {
-            let user = await db.oneOrNone("INSERT INTO accounts(username, salt, hash, email) \
-            VALUES ($(username), $(salt), $(hash), $(email)) \
+            let user = await db.oneOrNone("INSERT INTO employees(username, salt, hash, email, firstName, lastName, salary) \
+            VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(salary)) \
             ON CONFLICT DO NOTHING \
-            RETURNING id, username, email;", 
+            RETURNING id, username, email, firstName, lastName, salary;", 
             {
                 username: 'admin',
                 salt: salt,
                 hash: hashed,
-                email: 'admin@stayhub.com'
+                email: 'admin@stayhub.com',
+                firstName: "John",
+                lastName: "Admin",
+                salary: 36363636
             })
             if (!user) {
-                user = await db.one("SELECT id FROM accounts WHERE username='admin'");
+                user = await db.one("SELECT id FROM employees WHERE username='admin'");
             }
             const id = user.id;
             console.log(`Initialized admin account with id ${id}!`);
-            let employee = await db.oneOrNone("INSERT INTO employees(accountID, firstName, lastName, salary) \
-            VALUES ($(id), $(firstName), $(lastName), $(salary)) \
-            ON CONFLICT DO NOTHING \
-            RETURNING id, accountID, firstName, lastName, salary;",{
-                id: id,
-                firstName: 'John',
-                lastName: 'Admin',
-                salary: 36363636
-            });
-            if (!employee) {
-                employee = await db.one("SELECT id from employees where accountID=$1", [id]);
-            }
-            const employeeID = employee.id;
-            console.log(`Initialized admin employee account with employeeID ${employeeID}!`);
             // Initialize roles
             let roles = await db.manyOrNone("INSERT INTO roles(name, tier) \
                 VALUES ('ADMINISTRATOR', 1),\
@@ -75,11 +64,11 @@ export default async function initialize() {
                 VALUES ($(employeeID), $(role)) \
                 ON CONFLICT DO NOTHING \
                 RETURNING employeeID, role", {
-                    employeeID: employeeID,
+                    employeeID: id,
                     role: 'ADMINISTRATOR'
                 });
             if (!adminRole) {
-                adminRole = await db.one("SELECT * FROM employee_roles WHERE employeeID=$1", [employeeID]);
+                adminRole = await db.one("SELECT * FROM employee_roles WHERE employeeID=$1", [id]);
             }
             console.log(`Initialized admin role for employee ${adminRole.employeeid} as ${adminRole.role}!`);
             return roles;
