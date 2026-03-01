@@ -1,7 +1,6 @@
 "use client";
 import Header from '@/components/dashboard/DashboardHeader.tsx'
 import SideBar from '@/components/dashboard/DashboardSideBar.tsx'
-import ReservationChart from '@/components/dashboard/ReservationChart';
 import { DashboardAuthProvider } from "@/context/DashboardAuthContext"
 
 export default function DashBoardLayout({
@@ -16,9 +15,6 @@ export default function DashBoardLayout({
                 <SideBar />
                 <div className="flex-1 flex flex-col coverflow-hidden">
                   <Header />
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                      <ReservationChart />
-                  </div>
                   {children}  
                 </div>
             </div>

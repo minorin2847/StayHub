@@ -49,27 +49,42 @@ export default function ManageUser() {
         }
     }, [query, start, end])
     return (
-        <div className="flex flex-col gap-y-[30px] px-[30px]">
-            <div className="flex gap-x-[8px] h-fit w-full">
-                <input
-                    className="flex grow h-full items-center border rounded-[5px] outline-none" 
-                    type="text" 
-                    placeholder="Search username..."
-                    name="query"
-                    onChange={e => setQuery(e.target.value)}
-                    value={query} 
-                />
-                <button className="p-[10px] w-fit h-fit rounded-[10px] text-white gap-x-[6px] flex items-center bg-blue-400">
-                    <FaMagnifyingGlass size={24} />
-                    <p className="font-semibold text-[16px]">Search</p>
+        <div className="flex flex-col gap-8 p-8 animate-in fade-in duration-500">
+            {/* Search Bar Section */}
+            <div className="flex items-center gap-4 w-full group">
+                <div className="relative flex-grow">
+                    <FaMagnifyingGlass 
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" 
+                        size={18} 
+                    />
+                    <input
+                        className="w-full h-12 pl-12 pr-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 shadow-sm transition-all placeholder:text-slate-400 text-slate-600" 
+                        type="text" 
+                        placeholder="Search username, email or ID..."
+                        name="query"
+                        onChange={e => setQuery(e.target.value)}
+                        value={query} 
+                    />
+                </div>
+                <button className="h-12 px-8 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 active:scale-95 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2">
+                    Search
                 </button>
             </div>
-            {
-                loading ? 
-                    <div className="">Loading...</div>
-                : <UserTable tableData={results} />
-            }
-
+    
+            {/* Table Section */}
+            <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center h-64 gap-3">
+                        {/* Spinner đơn giản */}
+                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-500 font-medium text-sm">Fetching users...</p>
+                    </div>
+                ) : (
+                    <div className="animate-in slide-in-from-bottom-2 duration-500">
+                        <UserTable tableData={results} />
+                    </div>
+                )}
+            </div>
         </div>
-    )
+    );
 };
