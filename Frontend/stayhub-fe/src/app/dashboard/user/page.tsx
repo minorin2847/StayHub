@@ -55,7 +55,7 @@ export default function ManageUser() {
         <div className="flex flex-col gap-y-[30px] px-[30px] pt-[30px]">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                 {/* Searching */}
-            <div className="relative w-full md:max-w-md group">
+            <div className="relative w-full group">
                 <FaMagnifyingGlass 
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" 
                     size={18} 
