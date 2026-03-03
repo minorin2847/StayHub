@@ -59,4 +59,5 @@ export default async function initialize() {
         }).catch(err => console.error(`An error occured while creating admin account: ${err}`));
 
     });
+
 }
