@@ -1,13 +1,12 @@
-import { Account } from "./Account";
 import { Role } from "./Role";
 
 export type Employee = {
     id: number;
     accountid: number;
     hotelid: number;
+    branchid: number[];
     firstname: string;
     lastname: string;
     salary: number;
+    roles: Role[]
 }
-
-export type EmployeeTableData = Account & Employee & {roles: Role[]};

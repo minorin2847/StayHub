@@ -13,7 +13,7 @@ export default function ManageUser() {
     const searchParams = useSearchParams();
     const [query, setQuery] = useState<string>(searchParams.get('name') ?? '');
     const [page, setPage] = useState<string>(searchParams.get('page') ?? '1');
-    const [results, setResults] = useState<EmployeeTableData[]>([]);
+    const [results, setResults] = useState<Employee[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [hasPrevious, setHasPrevious] = useState<boolean>(false);
     const [hasNext, setHasNext] = useState<boolean>(false);
@@ -34,9 +34,9 @@ export default function ManageUser() {
                     credentials: "include",
                 });
                 const data = await res.json();
-                setResults(data as EmployeeTableData[]);
+                setResults(data.response as Employee[]);
                 setHasPrevious(parseInt(page) > 1);
-                setHasNext(data.length == 15);
+                setHasNext(data.hasNext);
             } catch (error) {
                 if (error instanceof Error && error.name !== 'AbortError') {
                     console.error("An error occured: ", error);

@@ -1,11 +1,11 @@
 "use client";
 
 import { Account } from "@/types/Account";
-import { Employee, EmployeeTableData } from "@/types/Employee";
+import { Employee } from "@/types/Employee";
 
 
 type UserTableParameter = {
-    tableData: EmployeeTableData[]
+    tableData: Employee[]
 }
 export default function UserTable(params: UserTableParameter) {
     return (
