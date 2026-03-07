@@ -11,73 +11,77 @@ RETURNS TABLE (
     firstName VARCHAR,
     lastName VARCHAR,
     salary INT,
-    roles JSONB
+    roles JSONB,
+    has_next BOOLEAN
 ) AS $$
 DECLARE
-    v_limit INT := 15; -- Fixed page size
+    v_limit INT := 10;
+    v_fetch_limit INT := 11; 
     v_total_rows INT;
-    v_total_pages INT;
+    v_max_pages INT;
     v_actual_page INT;
     v_offset INT;
 BEGIN
-    -- 1. Get the total number of matching rows to calculate the max pages
-    SELECT COUNT(*)
-    INTO v_total_rows
-    FROM employees e
+    -- 1. Boundary Check: Handle Underflow (Page < 1)
+    v_actual_page := GREATEST(1, p_page);
+
+    -- 2. Boundary Check: Handle Overflow
+    -- We still need the count to know if the requested page is "too high"
+    SELECT COUNT(*) INTO v_total_rows 
+    FROM employees e 
     WHERE e.username ILIKE '%' || p_name || '%';
 
-    -- 2. Calculate the total number of pages
-    IF v_total_rows = 0 THEN
-        v_total_pages := 1; -- Default to 1 to prevent math errors if no results
-    ELSE
-        v_total_pages := CEIL(v_total_rows::numeric / v_limit)::INT;
+    v_max_pages := CEIL(v_total_rows::numeric / v_limit)::INT;
+    
+    -- If they ask for page 100 but only 5 exist, give them page 5
+    IF v_actual_page > v_max_pages AND v_max_pages > 0 THEN
+        v_actual_page := v_max_pages;
     END IF;
 
-    -- 3. Enforce page boundaries (Return last page if input is too high)
-    IF p_page > v_total_pages THEN
-        v_actual_page := v_total_pages;
-    ELSIF p_page < 1 THEN
-        v_actual_page := 1; -- Safety check for negative or zero page inputs
-    ELSE
-        v_actual_page := p_page;
-    END IF;
-
-    -- 4. Calculate the offset based on the validated page
+    -- 3. Calculate Offset
     v_offset := (v_actual_page - 1) * v_limit;
 
-    -- 5. Return the requested page of data
+    -- 4. Execution with "Plus One" logic
     RETURN QUERY
+    WITH raw_data AS (
+        SELECT 
+            e.id, 
+            e.username,
+            e.email,
+            e.hotelid,
+            array_agg(DISTINCT bh.branch_id) AS branchID,
+            e.firstname,
+            e.lastname,
+            e.salary,
+            COALESCE(
+                (
+                    SELECT jsonb_agg(
+                        jsonb_build_object('role', er.role, 'tier', r.tier) 
+                        ORDER BY r.tier ASC
+                    )
+                    FROM employee_roles er
+                    JOIN roles r ON er.role = r.name
+                    WHERE er.employeeID = e.id
+                ), 
+                '[]'::jsonb
+            ) AS roles
+        FROM employees e
+        LEFT JOIN branch_hotels bh ON e.hotelid = bh.hotel_id
+        WHERE e.username ILIKE '%' || p_name || '%'
+        GROUP BY e.id
+        ORDER BY e.id
+        LIMIT v_fetch_limit -- Fetch 16
+        OFFSET v_offset
+    )
     SELECT 
-        e.id, 
-        e.username,
-        e.email,
-        e.hotelid,
-        array_agg(DISTINCT bh.branch_id),
-        e.firstname,
-        e.lastname,
-        e.salary,
-        -- Aggregate roles and tiers into a JSON array, sorted by tier
-        COALESCE(
-            (
-                SELECT jsonb_agg(
-                    jsonb_build_object('role', er.role, 'tier', r.tier) 
-                    ORDER BY r.tier ASC
-                )
-                FROM employee_roles er
-                JOIN roles r ON er.role = r.name
-                WHERE er.employeeID = e.id
-            ), 
-            '[]'::jsonb -- Default to an empty JSON array
-        ) AS roles
-    FROM employees e
-    LEFT JOIN branch_hotels bh ON e.hotelid = bh.hotel_id
-    WHERE e.username ILIKE '%' || p_name || '%'
-    GROUP BY e.id
-    ORDER BY e.id
-    LIMIT v_limit
-    OFFSET v_offset;
+        rd.id, rd.username, rd.email, rd.hotelid, rd.branchid, 
+        rd.firstname, rd.lastname, rd.salary, rd.roles,
+        (SELECT COUNT(*) FROM raw_data) > v_limit AS has_next -- True if we got 16
+    FROM raw_data rd
+    LIMIT v_limit; -- Return only 15 to the UI
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION get_user_auth_context(p_username VARCHAR)
 RETURNS TABLE (
