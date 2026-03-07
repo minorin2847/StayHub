@@ -10,18 +10,19 @@ import type { EmployeeDTO } from "../employee/employee.type.js";
 
 
 // Prerequisite: isLoggedIn
-export function hasPermission(role: string) {
+export function hasPermission(roles: string[]) {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const requiredRole = await getRole(role);
-            const roles = req.user.roles;
-            if (roles.length===0) {
+            const userRoles = req.user.roles.map(i => i.name);
+            if (userRoles.length===0) {
                 throw new Error("Employee doesn't have any roles!");
             }
-            for (const role of roles) {
-                if (role.tier < requiredRole.tier || role.name == requiredRole.name) {
-                    next();
-                    return;
+            for (const requiredRole of roles) {
+                for (const userRole of userRoles) {
+                    if (requiredRole == userRole) {
+                        next();
+                        return;
+                    }
                 }
             }
             res.status(401).send("Unauthorized!");
@@ -57,11 +58,9 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
             return t.map("SELECT * FROM get_employees_by_page($(name), $(page))", {
                 name: name ?? "",
                 page: page ?? 1
-            }, (row: any): Employee => {
-                return row as Employee
             })
         });
-        res.status(200).json(response);
+        res.status(200).json({hasNext: response[0].hasNext, response: response.map(i=>i as Employee)});
     } catch (err) {
         if (err instanceof Error) {
             res.status(404).send(err.message);
