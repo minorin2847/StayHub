@@ -1,6 +1,5 @@
 
 import type { NextFunction, Request, Response } from "express";
-import { findEmployee } from "../employee/employee.handler.js";
 import db from "@/database/db.js";
 import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
@@ -46,14 +45,13 @@ export async function getEmployee(req: Request, res: Response, next: NextFunctio
 export async function getEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
     let { name, page } = req.query;
     let roles = (req.user.roles || []).join(",");
-    let branchid = (req.user.branchid || []).join(",");
     try {
         const response = await db.tx(async t => {
             
             await t.none("SET LOCAL app.current_username = $1", [req.user.username]);
             await t.none("SET LOCAL app.roles = $1", [roles]);
             await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || '']);
-            await t.none("SET LOCAL app.branchid = $1", [branchid]);
+            await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || '']);
             return t.map("SELECT * FROM get_employees_by_page($(name), $(page))", {
                 name: name ?? "",
                 page: page ?? 1

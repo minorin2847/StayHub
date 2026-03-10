@@ -6,7 +6,7 @@ export default class Employee {
     username: string;
     email: string;
     hotelid: number;
-    branchid: number[];
+    branchid: number;
     firstname: string;
     lastname: string;
     salary: number;
@@ -15,7 +15,7 @@ export default class Employee {
     constructor({id, hotelid, branchid, firstname, lastname, salary, roles, username, email}: {
         id: number;
         hotelid: number;
-        branchid: number[];
+        branchid: number;
         firstname: string;
         lastname: string;
         salary: number;

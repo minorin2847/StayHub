@@ -7,7 +7,7 @@ RETURNS TABLE (
     username VARCHAR,
     email VARCHAR,
     hotelID INT,
-    branchID INT[],
+    branchID INT,
     firstName VARCHAR,
     lastName VARCHAR,
     salary INT,
@@ -52,7 +52,7 @@ BEGIN
         e.username,
         e.email,
         e.hotelid,
-        array_agg(DISTINCT bh.branch_id),
+        e.branchid,
         e.firstname,
         e.lastname,
         e.salary,
@@ -70,7 +70,6 @@ BEGIN
             '[]'::jsonb -- Default to an empty JSON array
         ) AS roles
     FROM employees e
-    LEFT JOIN branch_hotels bh ON e.hotelid = bh.hotel_id
     WHERE e.username ILIKE '%' || p_name || '%'
     GROUP BY e.id
     ORDER BY e.id
@@ -88,7 +87,7 @@ RETURNS TABLE (
     firstname VARCHAR,
     lastname VARCHAR,
     salary INT,
-    branchid INT[],
+    branchid INT,
     roles JSONB
 ) 
 SECURITY DEFINER 
@@ -105,7 +104,7 @@ BEGIN
         e.firstname,
         e.lastname,
         e.salary,
-        array_agg(DISTINCT bh.branch_id),
+        e.branchid,
         -- Aggregate roles and tiers into a JSON array, sorted by tier
         COALESCE(
             (
@@ -120,7 +119,6 @@ BEGIN
             '[]'::jsonb -- Default to an empty JSON array
         ) AS roles
     FROM employees e
-    LEFT JOIN branch_hotels bh ON e.hotelid = bh.hotel_id
     WHERE e.username = p_username -- Now filters based on the passed-in username
     GROUP BY 
         e.id, 
@@ -140,7 +138,9 @@ CREATE OR REPLACE FUNCTION create_initial_admin(
     p_email VARCHAR,
     p_firstName VARCHAR,
     p_lastName VARCHAR,
-    p_salary INT
+    p_salary INT,
+    p_hotelid INT,
+    p_branchid INT
 ) 
 RETURNS TABLE (
     id INT, 
@@ -148,7 +148,9 @@ RETURNS TABLE (
     email VARCHAR, 
     firstName VARCHAR, 
     lastName VARCHAR, 
-    salary INT
+    salary INT,
+    hotelid INT,
+    branchid INT
 ) 
 SECURITY DEFINER -- Bypasses RLS so you can create the user before they log in
 SET search_path = public -- Security best practice for SECURITY DEFINER
@@ -158,11 +160,11 @@ BEGIN
     RETURN QUERY
     -- 1. Attempt to insert the new employee
     WITH inserted_admin AS (
-        INSERT INTO employees (username, salt, hash, email, firstName, lastName, salary)
-        VALUES (p_username, p_salt, p_hash, p_email, p_firstName, p_lastName, p_salary)
+        INSERT INTO employees (username, salt, hash, email, firstName, lastName, salary, hotelid, branchid)
+        VALUES (p_username, p_salt, p_hash, p_email, p_firstName, p_lastName, p_salary, p_hotelid, p_branchid)
         -- NOTE: You must specify the unique column that triggers the conflict
         ON CONFLICT DO NOTHING 
-        RETURNING employees.id, employees.username, employees.email, employees.firstName, employees.lastName, employees.salary
+        RETURNING employees.id, employees.username, employees.email, employees.firstName, employees.lastName, employees.salary, employees.hotelid, employees.branchid
     ),
     -- 2. If a new user WAS inserted, automatically assign them the Admin role
     assigned_role AS (
@@ -175,7 +177,7 @@ BEGIN
     UNION ALL
     
     -- 4. If no row was inserted (meaning they already exist), return the existing row
-    SELECT e.id, e.username, e.email, e.firstName, e.lastName, e.salary
+    SELECT e.id, e.username, e.email, e.firstName, e.lastName, e.salary, e.hotelid, e.branchid
     FROM employees e
     WHERE e.username = p_username;
 END;

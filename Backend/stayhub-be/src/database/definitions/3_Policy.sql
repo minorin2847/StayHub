@@ -39,10 +39,8 @@ IF NOT EXISTS (
                 'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 AND 
                 hotelid IN (
-                    SELECT hotel_id FROM branch_hotels 
-                    WHERE branch_id = ANY(
-                        string_to_array(NULLIF(current_setting('app.branchid', true), ''), ',')::int[]
-                    )
+                    SELECT id FROM hotels 
+                    WHERE branchid = NULLIF(current_setting('app.branchid', true), '')::INT
                 )
             );
         $POLICY$;
