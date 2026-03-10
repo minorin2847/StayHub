@@ -67,7 +67,10 @@ BEGIN
             ) AS roles
         FROM employees e
         LEFT JOIN branch_hotels bh ON e.hotelid = bh.hotel_id
-        WHERE e.username ILIKE '%' || p_name || '%'
+        WHERE 
+        (e.username ILIKE '%' || p_name || '%'
+        OR e.email ILIKE '%' || p_name || '%'
+        )
         GROUP BY e.id
         ORDER BY e.id
         LIMIT v_fetch_limit -- Fetch 16
