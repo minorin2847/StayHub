@@ -11,37 +11,57 @@ import { FaPlus } from "react-icons/fa";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { MdFilterList } from "react-icons/md";
 import { Button } from 'antd';
+import EditModal from "@/components/dashboard/user/EditModal";
+import buildQueryParams from "@/utils/BuildQueryParams";
 
+export type UserSearchParams = {
+    name: string | null;
+    hotelid: string | null;
+    branchid: string | null;
+    roles: string[];
+    salaryMin: string | null;
+    salaryMax: string | null;
+    sort: string | null;
+    order: string | null;
+    page: string | null
+};
 
 export default function ManageUser() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [query, setQuery] = useState<string>(searchParams.get('name') ?? '');
-    const [page, setPage] = useState<string>(searchParams.get('page') ?? '1');
+    const [query, setQuery] = useState<UserSearchParams>({
+        name: searchParams.get('name'),
+        hotelid: searchParams.get('hotelid'),
+        branchid: searchParams.get('branchid'),
+        roles: searchParams.getAll('roles').filter(Boolean),
+        salaryMin: searchParams.get('salaryMin'),
+        salaryMax: searchParams.get('salaryMax'),
+        sort: searchParams.get('sort'),
+        order: searchParams.get('order'),
+        page: searchParams.get('page')
+    }) 
     const [results, setResults] = useState<Employee[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [hasPrevious, setHasPrevious] = useState<boolean>(false);
     const [hasNext, setHasNext] = useState<boolean>(false);
+    const [isFilterOpened, setIsFilterOpened] = useState<boolean>(false);
+
 
     useEffect(() => {
         const controller = new AbortController();
         const signal = controller.signal;
-
+        setLoading(true);
         const queryHandler = setTimeout(async () => {
-            setLoading(true);
             try {
-                const params = new URLSearchParams({
-                        name: query,
-                        page: page
-                    }).toString()
-                router.push(`/dashboard/user?${params}`, undefined, {shallow: true});
+                const params = buildQueryParams(query).toString()
+                router.push(`/dashboard/user?${params}`);
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/user?${params}`, {
                     method: "GET",
                     credentials: "include",
                 });
                 const data = await res.json();
                 setResults(data.response as Employee[]);
-                setHasPrevious(parseInt(page) > 1);
+                setHasPrevious(parseInt(query.page ?? '1') > 1);
                 setHasNext(data.hasNext);
             } catch (error) {
                 if (error instanceof Error && error.name !== 'AbortError') {
@@ -56,7 +76,7 @@ export default function ManageUser() {
             clearTimeout(queryHandler);
             controller.abort();
         }
-    }, [query, page])
+    }, [query])
     return (
         <div className="flex flex-col gap-y-[30px] px-[30px] pt-[30px]">
             <div className="flex justify-between items-center gap-4 w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
@@ -71,8 +91,8 @@ export default function ManageUser() {
                     type="text" 
                     placeholder="Search by username, email or full name..."
                     name="query"
-                    onChange={e => setQuery(e.target.value)}
-                    value={query} 
+                    onChange={e => setQuery({...query, name: e.target.value})}
+                    value={query.name ?? ''} 
                 />
             </div>
             <div className="flex items-center gap-3">
@@ -85,8 +105,16 @@ export default function ManageUser() {
                 <Button 
                 size="large" 
                 shape="default" 
-                icon={<MdFilterList />}
+                icon={<MdFilterList size={25} className="text-blue-600"/>}
+                className="!text-emerald-600 hover:!border-emerald-600 !flex !justify-center !items-center"
+                onClick={()=>{setIsFilterOpened(true)}}
                 />
+
+                {
+                    <EditModal isFilterOpened={isFilterOpened} setIsFilterOpened={setIsFilterOpened}
+                    query={query}
+                    setQuery={setQuery} />
+                }
             </div>
         </div>
             {   
@@ -110,14 +138,14 @@ export default function ManageUser() {
                                     : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
                                 }`}
                                 disabled={!hasPrevious} 
-                                onClick={() => setPage((Math.max(parseInt(page) - 1, 1)).toString())}
+                                onClick={() => setQuery({...query, page: (Math.max(parseInt(query.page ?? '1') - 1, 1)).toString()})}
                             >
                                 <span className="text-lg font-light">{"<"}</span>
                             </button>
             
                             <div className="px-6 py-2 bg-white border border-slate-100 rounded-xl shadow-sm">
                                 <p className="select-none text-sm font-bold text-slate-700">
-                                    Trang <span className="text-emerald-600">{page}</span>
+                                    Trang <span className="text-emerald-600">{query.page ?? '1'}</span>
                                 </p>
                             </div>
             
@@ -128,7 +156,7 @@ export default function ManageUser() {
                                     : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
                                 }`}
                                 disabled={!hasNext} 
-                                onClick={() => setPage((parseInt(page) + 1).toString())}
+                                onClick={() => setQuery({...query, page: (parseInt(query.page ?? '1') + 1).toString()})}
                             >
                                 <span className="text-lg font-light">{">"}</span>
                             </button>
