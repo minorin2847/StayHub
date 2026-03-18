@@ -1,13 +1,14 @@
 "use client";
 
 import UserTable from "@/components/dashboard/UserTable";
-import { Account } from "@/types/Account";
-import { Employee, EmployeeTableData } from "@/types/Employee";
+import { EmployeeTableData } from "@/types/Employee";
 import { Role } from "@/types/Role";
+import { Button, Modal } from "antd";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { FaMagnifyingGlass } from "react-icons/fa6";
+import FormCreate from "./components/FormCreate";
 
 export default function ManageUser() {
     const searchParams = useSearchParams();
@@ -17,6 +18,10 @@ export default function ManageUser() {
     const [loading, setLoading] = useState<boolean>(false);
     const [hasPrevious, setHasPrevious] = useState<boolean>(false);
     const [hasNext, setHasNext] = useState<boolean>(false);
+
+    const [open, setOpen] = useState(false)
+    const showModal = () => setOpen(true)
+    const closeModal = () => setOpen(false)
 
     useEffect(() => {
         const controller = new AbortController();
@@ -34,9 +39,9 @@ export default function ManageUser() {
                     credentials: "include",
                 });
                 const data = await res.json();
-                setResults(data as EmployeeTableData[]);
+                setResults(data.response as EmployeeTableData[]);
                 setHasPrevious(parseInt(page) > 1);
-                setHasNext(data.length == 15);
+                setHasNext(data.hasNext);
             } catch (error) {
                 if (error instanceof Error && error.name !== 'AbortError') {
                     console.error("An error occured: ", error);
@@ -53,38 +58,87 @@ export default function ManageUser() {
     }, [query, page])
     return (
         <div className="flex flex-col gap-y-[30px] px-[30px] pt-[30px]">
-            <div className="flex justify-between gap-x-[8px] h-fit w-full">
-                <div className="flex items-center border rounded-5px gap-x-[10px] pl-[5px]">
-                    <FaMagnifyingGlass size={22} />
-                    <input
-                    className="flex w-[300px] outline-none" 
+            <div className="flex justify-between items-center gap-4 w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                {/* Searching */}
+            <div className="flex grow group items-center gap-x-4 h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 shadow-inner transition-all">
+                <FaMagnifyingGlass 
+                    className="text-slate-400 group-focus-within:text-emerald-500 transition-colors" 
+                    size={18} 
+                />
+                <input
+                    className="outline-none text-sm font-medium placeholder:text-slate-400 transition-all focus:border-emerald-500 w-full" 
                     type="text" 
-                    placeholder="Search username..."
+                    placeholder="Search by username, email..."
                     name="query"
                     onChange={e => setQuery(e.target.value)}
                     value={query} 
-                    />
-                </div>
-                <div className="">
-                    <button className="p-[10px] w-fit h-fit rounded-[10px] text-white gap-x-[6px] flex items-center bg-blue-400">
-                        <FaPlus size={24} />
-                        <p className="font-semibold text-[16px]">Create</p>
-                    </button>
-                </div>
-
+                />
             </div>
-            {
-                loading ? 
-                    <div className="">Loading...</div>
-                :
-                <div className="flex flex-col gap-y-[20px]">
-                    <UserTable tableData={results} />
-                    <div className="flex gap-x-[10px] items-center border mx-auto">
-                        <button className={`flex justify-center items-center ${hasPrevious ? "text-blue-500 cursor-pointer" : "text-gray-300/80"} font-light font-roboto text-[20px] w-[30px] border-r`} disabled={!hasPrevious} onClick={()=>setPage(Number(Math.max(parseInt(page)-1, 1)).toString())}>{"<"}</button>
-                        <p className="select-none text-[16px]">{`Page ${page}`}</p>
-                        <button className={`flex justify-center items-center ${hasNext ? "text-blue-500 cursor-pointer" : "text-gray-300/80"} font-light font-roboto text-[20px] w-[30px] border-l`} disabled={!hasNext} onClick={()=>setPage(Number(parseInt(page)+1).toString())}>{">"}</button>
+            <div className="flex items-center gap-3">
+                {/* Create button */}
+                <Button onClick={showModal} className="!flex-1 !md:flex-none !flex !items-center !justify-center !gap-2 !h-11 !px-6 !rounded-xl !bg-emerald-600 !text-white !font-bold !text-sm  !shadow-emerald-100" type="primary">
+                    <FaPlus size={16} />
+                    Create New User
+                </Button>
+                <FormCreate 
+                    open={open} 
+                    onClose={closeModal} 
+                    onSuccess={(newEmployee) => {
+                        setResults([newEmployee, ...results]);
+                    }}
+                />
+                {/* filter button */}
+                <button className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 4h18M6 12h12M10 20h4"></path></svg>
+                </button>
+            </div>
+        </div>
+            {   
+                loading ? (
+                    <div className="flex flex-col items-center justify-center h-64 gap-4 bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-500 text-sm font-medium">Loading...</p>
                     </div>
-                </div>
+                )
+                : (
+                    <div className="flex flex-col gap-6">
+                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                            <UserTable tableData={results} />
+                        </div>
+            
+                        <div className="flex items-center justify-center gap-4 py-2">
+                            <button 
+                                className={`flex justify-center items-center w-10 h-10 rounded-xl border transition-all ${
+                                    hasPrevious 
+                                    ? "bg-white border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 shadow-sm cursor-pointer" 
+                                    : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
+                                }`}
+                                disabled={!hasPrevious} 
+                                onClick={() => setPage((Math.max(parseInt(page) - 1, 1)).toString())}
+                            >
+                                <span className="text-lg font-light">{"<"}</span>
+                            </button>
+            
+                            <div className="px-6 py-2 bg-white border border-slate-100 rounded-xl shadow-sm">
+                                <p className="select-none text-sm font-bold text-slate-700">
+                                    Trang <span className="text-emerald-600">{page}</span>
+                                </p>
+                            </div>
+            
+                            <button 
+                                className={`flex justify-center items-center w-10 h-10 rounded-xl border transition-all ${
+                                    hasNext 
+                                    ? "bg-white border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 shadow-sm cursor-pointer" 
+                                    : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
+                                }`}
+                                disabled={!hasNext} 
+                                onClick={() => setPage((parseInt(page) + 1).toString())}
+                            >
+                                <span className="text-lg font-light">{">"}</span>
+                            </button>
+                        </div>
+                    </div>
+                )
             }
 
         </div>
