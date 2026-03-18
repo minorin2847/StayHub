@@ -54,18 +54,21 @@ const FormCreate = ({
         email: values.email,
         roles: [values.role],
         role: values.role, // Some versions might expect singular role
-        hotelid: values.hotelId === 'none' ? null : parseInt(values.hotelId),
-        branchid: values.branchId === 'none' ? null : parseInt(values.branchId),
+        hotelid: values.hotelId === "none" ? null : parseInt(values.hotelId),
+        branchid: values.branchId === "none" ? null : parseInt(values.branchId),
       };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/employee/signup`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(payload),
         },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      );
 
       if (!res.ok) {
         const errorData = await res.text();
@@ -76,18 +79,18 @@ const FormCreate = ({
       message.success("User created successfully!");
       // Build a mock object to prepend to the local table quickly
       const newEmployee = {
-         id: Date.now(), // Fake ID temporarily until next fetch
-         username: values.username,
-         firstname: values.firstName,
-         lastname: values.lastName,
-         email: values.email,
-         hotelid: payload.hotelid,
-         branchid: payload.branchid,
-         role: values.role,
-         roles: [{ role: values.role }],
-         _generatedPassword: values.password
+        id: Date.now(), // Fake ID temporarily until next fetch
+        username: values.username,
+        firstname: values.firstName,
+        lastname: values.lastName,
+        email: values.email,
+        hotelid: payload.hotelid,
+        branchid: payload.branchid,
+        role: values.role,
+        roles: [{ role: values.role }],
+        _generatedPassword: values.password,
       };
-      
+
       onSuccess(newEmployee, values.password);
       form.resetFields();
       onClose();
@@ -124,7 +127,7 @@ const FormCreate = ({
         className="mt-6"
       >
         <Form.Item name="password" hidden>
-            <Input />
+          <Input />
         </Form.Item>
 
         <Row gutter={16}>
@@ -141,43 +144,14 @@ const FormCreate = ({
           </Col>
           <Col span={12}>
             <Form.Item name="email" label="Email">
-              <Input disabled placeholder="...@stayhub.com" addonAfter="Generated" />
+              <Input
+                disabled
+                placeholder="...@stayhub.com"
+                addonAfter="Generated"
+              />
             </Form.Item>
           </Col>
         </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
-             <Form.Item
-              name="role"
-              label="Role"
-              rules={[{ required: true, message: "Please select a role!" }]}
-            >
-              <Select placeholder="Select role">
-                <Select.Option value="MANAGE_BRANCH">Branch Management</Select.Option>
-                <Select.Option value="MANAGE_HOTEL">Hotel Management</Select.Option>
-                <Select.Option value="MANAGE_ROOM">Room Management</Select.Option>
-                <Select.Option value="PROCESS_PAYMENT">Payment Management</Select.Option>
-                <Select.Option value="MANAGE_SERVICE">Service Management</Select.Option>
-                <Select.Option value="MANAGE_REVIEW">Review Management</Select.Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-             <Form.Item
-              name="hotelId"
-              label="Assigned Hotel"
-              rules={[{ required: true, message: "Please select a hotel!" }]}
-            >
-              <Select placeholder="Select hotel">
-                <Select.Option value="none">None</Select.Option>
-                <Select.Option value="1">Hotel 1</Select.Option>
-                <Select.Option value="2">Hotel 2</Select.Option>
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
-
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -202,6 +176,34 @@ const FormCreate = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
+              name="role"
+              label="Role"
+              rules={[{ required: true, message: "Please select a role!" }]}
+            >
+              <Select placeholder="Select role">
+                <Select.Option value="MANAGE_BRANCH">
+                  Branch Management
+                </Select.Option>
+                <Select.Option value="MANAGE_HOTEL">
+                  Hotel Management
+                </Select.Option>
+                <Select.Option value="MANAGE_ROOM">
+                  Room Management
+                </Select.Option>
+                <Select.Option value="PROCESS_PAYMENT">
+                  Payment Management
+                </Select.Option>
+                <Select.Option value="MANAGE_SERVICE">
+                  Service Management
+                </Select.Option>
+                <Select.Option value="MANAGE_REVIEW">
+                  Review Management
+                </Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
               name="branchId"
               label="Branch"
               rules={[{ required: true, message: "Please select a branch!" }]}
@@ -210,6 +212,22 @@ const FormCreate = ({
                 <Select.Option value="none">None</Select.Option>
                 <Select.Option value="1">Branch 1</Select.Option>
                 <Select.Option value="2">Branch 2</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="hotelId"
+              label="Assigned Hotel"
+              rules={[{ required: true, message: "Please select a hotel!" }]}
+            >
+              <Select placeholder="Select hotel">
+                <Select.Option value="none">None</Select.Option>
+                <Select.Option value="1">Hotel 1</Select.Option>
+                <Select.Option value="2">Hotel 2</Select.Option>
               </Select>
             </Form.Item>
           </Col>
