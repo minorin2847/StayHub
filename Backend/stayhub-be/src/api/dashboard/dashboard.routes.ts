@@ -11,6 +11,7 @@ dashboardRoute.get("/", isLoggedIn, getEmployee);
 // Query: {name: string, start: number, end: number}
 // Function: Search and return non-employee accounts (accounts without an employee profile)
 //  with pagination [start, end)
-dashboardRoute.get("/user", isLoggedIn, hasPermission('MANAGE_HOTEL'), getEmployeeAccounts);
+dashboardRoute.get("/user", isLoggedIn, 
+    hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), getEmployeeAccounts);
 
 export default dashboardRoute;
