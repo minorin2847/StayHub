@@ -2,7 +2,6 @@ import db from "@/database/db.js";
 import { passport } from "@/utils/initializeSession.js";
 import Employee from "./employee.js";
 import type { NextFunction, Request, Response } from "express";
-import { EmployeeService } from "./employee.service.js";
 import type { CreateEmployeeInput } from "./employee.type.js";
 import crypto from "node:crypto";
 

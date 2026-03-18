@@ -1,6 +1,6 @@
 "use client";
 
-import UserTable from "@/components/dashboard/UserTable";
+import UserTable from "@/components/dashboard/user/UserTable";
 import { Account } from "@/types/Account";
 import { Employee, EmployeeTableData } from "@/types/Employee";
 import { Role } from "@/types/Role";
@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { MdFilterList } from "react-icons/md";
-import { Button } from 'antd';
 import EditModal from "@/components/dashboard/user/EditModal";
 import buildQueryParams from "@/utils/BuildQueryParams";
 
@@ -97,8 +96,8 @@ export default function ManageUser() {
                     type="text" 
                     placeholder="Search by username, email or full name..."
                     name="query"
-                    onChange={e => setQuery(e.target.value)}
-                    value={query} 
+                    onChange={e => setQuery({...query, name: e.target.value})}
+                    value={query.name ?? ""} 
                     />
                 </div>
                 <div className="">

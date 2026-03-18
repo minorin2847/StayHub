@@ -1,3 +1,5 @@
+"use client";
+
 import { Branch } from "@/types/Branch";
 import { useEffect, useState } from "react";
 import { FaArrowTrendUp } from "react-icons/fa6";
@@ -10,9 +12,9 @@ export default function BranchList() {
     const [loading, isLoading] = useState<boolean>(false);
     
     const columns = [
-
+        
     ]
-    useEffect
+    // useEffect
 
     return (
         <div className="flex mx-16 my-12 gap-y-[32px]">

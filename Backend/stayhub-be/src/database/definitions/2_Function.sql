@@ -116,7 +116,6 @@ RETURNS TABLE (
     lastname VARCHAR,
     salary INT,
     branchid INT,
-    branchid INT,
     roles JSONB
 ) 
 SECURITY DEFINER 
@@ -133,7 +132,6 @@ BEGIN
         e.firstname,
         e.lastname,
         e.salary,
-        e.branchid,
         e.branchid,
         -- Aggregate roles and tiers into a JSON array, sorted by tier
         COALESCE(
