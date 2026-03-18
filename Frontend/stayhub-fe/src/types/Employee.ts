@@ -4,7 +4,7 @@ export type Employee = {
     id: number;
     accountid: number;
     hotelid: number;
-    branchid: number[];
+    branchid: number;
     firstname: string;
     lastname: string;
     salary: number;
