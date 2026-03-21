@@ -23,9 +23,6 @@ export default function Header() {
 
             <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                    <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
-                        <IoSettingsOutline size={20} />
-                    </button>
                     <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors relative">
                         <IoNotificationsOutline size={20} />
                         <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>

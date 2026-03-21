@@ -1,82 +1,110 @@
 CREATE OR REPLACE FUNCTION get_employees_by_page(
-    p_name TEXT,
-    p_page INT
+    p_name TEXT DEFAULT NULL,
+    p_hotel_id INT DEFAULT NULL,
+    p_branch_id INT DEFAULT NULL,
+    p_roles TEXT[] DEFAULT NULL,
+    p_min_salary INT DEFAULT 0,
+    p_max_salary INT DEFAULT 2147483647,
+    p_sort_column TEXT DEFAULT 'id',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
 ) 
 RETURNS TABLE (
-    id INT,
-    username VARCHAR,
-    email VARCHAR,
-    hotelID INT,
-    branchID INT,
-    firstName VARCHAR,
-    lastName VARCHAR,
-    salary INT,
-    roles JSONB
+    id INT, username VARCHAR, email VARCHAR, hotelID INT, branchID INT,
+    firstName VARCHAR, lastName VARCHAR, salary INT, roles JSONB, has_next BOOLEAN
 ) AS $$
 DECLARE
-    v_limit INT := 15; -- Fixed page size
+    v_limit INT := 10;
     v_total_rows INT;
-    v_total_pages INT;
+    v_max_pages INT;
     v_actual_page INT;
     v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
 BEGIN
-    -- 1. Get the total number of matching rows to calculate the max pages
-    SELECT COUNT(*)
-    INTO v_total_rows
-    FROM employees e
-    WHERE e.username ILIKE '%' || p_name || '%';
+    -- ### Build the Dynamic WHERE clause (shared by Count and Fetch) ##
+    
+    -- 1. Filter by username, full name and email
+    IF p_name IS NOT NULL AND p_name <> '' THEN
 
-    -- 2. Calculate the total number of pages
-    IF v_total_rows = 0 THEN
-        v_total_pages := 1; -- Default to 1 to prevent math errors if no results
-    ELSE
-        v_total_pages := CEIL(v_total_rows::numeric / v_limit)::INT;
+        v_where := v_where || format(' AND (e.username ILIKE %L OR e.email ILIKE %L OR (e.firstName || '' '' || e.lastName) ILIKE %L)', 
+                   '%' || p_name || '%', '%' || p_name || '%', '%' || p_name || '%');
     END IF;
 
-    -- 3. Enforce page boundaries (Return last page if input is too high)
-    IF p_page > v_total_pages THEN
-        v_actual_page := v_total_pages;
-    ELSIF p_page < 1 THEN
-        v_actual_page := 1; -- Safety check for negative or zero page inputs
-    ELSE
-        v_actual_page := p_page;
+    -- 2. Filter by hotelid
+    IF p_hotel_id IS NOT NULL THEN v_where := v_where || format(' AND e.hotelID = %L', p_hotel_id); END IF;
+
+    -- 3. Filter by branchid
+    IF p_branch_id IS NOT NULL THEN v_where := v_where || format(' AND e.branchID = %L', p_branch_id); END IF;
+
+    -- 4. Filter by salary range
+    v_where := v_where || format(' AND e.salary BETWEEN %L AND %L', p_min_salary, p_max_salary);
+
+    -- 5. Filter by roles
+    IF p_roles IS NOT NULL AND array_length(p_roles, 1) > 0 THEN
+        v_where := v_where || format(' AND EXISTS (SELECT 1 FROM employee_roles er WHERE er.employeeID = e.id AND er.role = ANY(%L))', p_roles);
     END IF;
 
-    -- 4. Calculate the offset based on the validated page
+    -- ### Boundary Check: Get Total Count based on filters ###
+    EXECUTE 'SELECT COUNT(*) FROM employees e' || v_where INTO v_total_rows;
+    
+    -- ### Calculate max pages (handle division by zero if table is empty) ###
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    
+    -- ### Underflow check: Page < 1 becomes Page 1 ###
+    -- ### Overflow check: Requested page > Max pages becomes Max Page ###
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+
+    -- ### Offset Calculation ###
     v_offset := (v_actual_page - 1) * v_limit;
 
-    -- 5. Return the requested page of data
-    RETURN QUERY
-    SELECT 
-        e.id, 
-        e.username,
-        e.email,
-        e.hotelid,
-        e.branchid,
-        e.firstname,
-        e.lastname,
-        e.salary,
-        -- Aggregate roles and tiers into a JSON array, sorted by tier
-        COALESCE(
-            (
-                SELECT jsonb_agg(
-                    jsonb_build_object('role', er.role, 'tier', r.tier) 
-                    ORDER BY r.tier ASC
-                )
-                FROM employee_roles er
-                JOIN roles r ON er.role = r.name
-                WHERE er.employeeID = e.id
-            ), 
-            '[]'::jsonb -- Default to an empty JSON array
-        ) AS roles
-    FROM employees e
-    WHERE e.username ILIKE '%' || p_name || '%'
-    GROUP BY e.id
-    ORDER BY e.id
-    LIMIT v_limit
-    OFFSET v_offset;
+    -- ### Dynamic Sorting Logic ###
+    v_sort_clause := CASE p_sort_column
+        -- Sort by username
+        WHEN 'username'  THEN 'e.username'
+        -- Sort by fullname
+        WHEN 'full_name' THEN 'e.firstName || '' '' || e.lastName'
+        -- Sort by salary
+        WHEN 'salary'    THEN 'e.salary'
+        -- Default sort by id
+        ELSE 'e.id'
+    END;
+    -- Sort direction (ascending/descending)
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    -- ### Execution ###
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                e.id, e.username, e.email, e.hotelid, e.branchid, e.firstname, e.lastname, e.salary,
+                COALESCE(
+                    (SELECT jsonb_agg(jsonb_build_object(''role'', er.role, ''tier'', r.tier) ORDER BY r.tier ASC)
+                     FROM employee_roles er JOIN roles r ON er.role = r.name
+                     WHERE er.employeeID = e.id), ''[]''::jsonb
+                ) AS roles
+            FROM employees e
+            -- Filter clause
+            %s
+            -- Sort clause, sort direction
+            ORDER BY %s %s
+            -- Limit by limit+1
+            LIMIT %L 
+            -- Offset clause
+            OFFSET %L
+        )
+        SELECT rd.*, 
+        -- If we fetched 11 items, or if the current offset + rows is less than total, has_next is true
+        (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION get_user_auth_context(p_username VARCHAR)
 RETURNS TABLE (
