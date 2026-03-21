@@ -108,7 +108,11 @@ CREATE TABLE IF NOT EXISTS hotels (
   description text,
   amenities amenities [],
   policies policies [],
-  previewImages text []
+  previewImages text [],
+  contact_email varchar(100),
+  contact_phone varchar(20),
+  salt bytea,
+  hash bytea
 );
 
 CREATE TABLE IF NOT EXISTS branch (
@@ -259,6 +263,14 @@ CREATE TABLE IF NOT EXISTS employee_roles (
 -- ==========================================
 -- 2. Alter Tables (Rewritten with DO Blocks)
 -- ==========================================
+
+DO $$ 
+BEGIN 
+    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS contact_email varchar(100);
+    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS contact_phone varchar(20);
+    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS salt bytea;
+    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS hash bytea;
+END $$;
 
 
 -- 3. Link Users_Reserves -> Users

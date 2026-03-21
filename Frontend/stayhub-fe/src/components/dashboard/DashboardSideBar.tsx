@@ -1,26 +1,117 @@
-'use client';
+"use client";
 import React, { useState } from "react";
 import Image from "next/image";
-import { 
-  FaHome, FaUsers, FaRestroom, 
-  FaFirstOrderAlt, FaComments, FaCog 
+import {
+  FaHome,
+  FaUsers,
+  FaRestroom,
+  FaFirstOrderAlt,
+  FaComments,
+  FaCog,
+  FaHotel,
 } from "react-icons/fa";
 import { MdExitToApp, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { useDashboardAuth } from "@/context/DashboardAuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import SideBarItem from "./SideBarItem";
 
-const menuItems = [
+interface SubItem {
+  name: string;
+  path: string;
+  role?: string[];
+}
+
+interface MenuItem {
+  name: string;
+  icon: React.ElementType;
+  path: string;
+  subItems?: SubItem[];
+  roles?: string[]; 
+}
+
+const menuItems: MenuItem[] = [
   { name: "Dashboard", icon: FaHome, path: "/dashboard" },
-  { name: "Users", icon: FaUsers, path: "/users" },
-  { name: "Rooms", icon: FaRestroom, path: "/rooms" },
-  { name: "Bookings", icon: FaFirstOrderAlt, path: "/bookings" },
-  { name: "Reviews", icon: FaComments, path: "/reviews" },
+  {
+    name: "Users",
+    icon: FaUsers,
+    path: "/dashboard/users", 
+    roles: ["MANAGE_HOTEL"],
+    subItems: [
+      { name: "All Users", path: "/dashboard/users" },
+      { name: "User Roles", path: "/dashboard/users/roles" },
+    ],
+  },
+  {
+    name: "Rooms",
+    icon: FaRestroom,
+    path: "/dashboard/rooms",
+    roles: ["MANAGE_ROOM"],
+    subItems: [
+      { name: "View All Rooms", path: "/dashboard/rooms" },
+      { name: "Add New Room", path: "/dashboard/rooms/add" },
+      { name: "Room Types", path: "/dashboard/rooms/types" },
+    ],
+  },
+  {
+    name: "Hotels",
+    icon: FaHotel,
+    path: "/dashboard/hotels",
+    roles: ["ADMINISTRATOR"],
+    subItems: [
+      { name: "View All Hotels", path: "/dashboard/hotels" },
+      { name: "Add New Hotel", path: "/dashboard/hotels/add" },
+    ],
+  },
+  {
+    name: "Branches",
+    icon: FaHotel, // We can reuse FaHotel or another icon
+    path: "/dashboard/branches",
+    roles: ["MANAGE_HOTEL"],
+    subItems: [
+      { name: "View All Branches", path: "/dashboard/branches" },
+      { name: "Add New Branch", path: "/dashboard/branches/add" },
+    ],
+  },
+  {
+    name: "Front Desk",
+    icon: FaCog, // Can change icon later
+    path: "/dashboard/frontdesk",
+    roles: ["STAFF", "MANAGE_BRANCH"],
+  },
+  {
+    name: "Bookings",
+    icon: FaFirstOrderAlt,
+    path: "/dashboard/bookings",
+    roles: ["STAFF", "MANAGE_BRANCH"],
+  },
+  {
+    name: "Guests",
+    icon: FaUsers,
+    path: "/dashboard/guests",
+    roles: ["STAFF", "MANAGE_BRANCH"],
+  },
+  { name: "Reviews", icon: FaComments, path: "/dashboard/reviews" },
 ];
 
 export default function SideBar() {
   const [expanded, setExpanded] = useState(true);
-  const { logout } = useDashboardAuth();
+  const { user, logout } = useDashboardAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Handle both user.roles (array) and user.role (string) gracefully
+  const userAny = user as any;
+  const rawRoles = userAny?.roles
+    ? Array.isArray(userAny.roles)
+      ? userAny.roles
+      : [userAny.roles]
+    : userAny?.role
+      ? [userAny.role]
+      : [];
+  const userRoleNames = rawRoles.map((r: any) => {
+    const roleStr = typeof r === "string" ? r : r.name || r.role || "";
+    return roleStr.toUpperCase();
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -28,13 +119,13 @@ export default function SideBar() {
   };
 
   return (
-    <aside 
+    <aside
       className={`relative h-screen flex flex-col transition-all duration-300 border-r border-slate-200 bg-white ${
         expanded ? "w-64" : "w-20"
       }`}
     >
       {/* Nút Thu gọn/Mở rộng */}
-      <button 
+      <button
         onClick={() => setExpanded(!expanded)}
         className="absolute -right-3 top-10 bg-white border border-slate-200 rounded-full p-1 text-slate-500 hover:text-emerald-500 shadow-sm z-50"
       >
@@ -44,28 +135,62 @@ export default function SideBar() {
       {/* Logo Section */}
       <div className="p-6 flex items-center gap-3 overflow-hidden">
         <div className="flex-shrink-0">
-          <Image src="/images/logo.png" alt="Logo" width={40} height={40} className="rounded-lg" />
+          <Image
+            src="/images/logo.png"
+            alt="Logo"
+            width={40}
+            height={40}
+            className="rounded-lg"
+          />
         </div>
         {expanded && (
-          <h1 className="text-xl font-bold text-slate-800 whitespace-nowrap">StayHub</h1>
+          <h1 className="text-xl font-bold text-slate-800 whitespace-nowrap">
+            StayHub
+          </h1>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 mt-4">
+      <nav className="flex-1 px-3 mt-4 overflow-y-auto overflow-x-hidden no-scrollbar">
         <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <li key={item.name}>
-              <button className="flex items-center w-full p-3 rounded-xl transition-all group hover:bg-emerald-50 text-slate-500 hover:text-emerald-600">
-                <item.icon size={22} className="flex-shrink-0" />
-                {expanded && (
-                  <span className="ml-4 text-sm font-semibold whitespace-nowrap">
-                    {item.name}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
+          {menuItems
+            .filter((item) => {
+              if (!item.roles || item.roles.length === 0) return true;
+              return item.roles.some((role) => userRoleNames.includes(role));
+            })
+            .map((item) => (
+              <SideBarItem
+                key={item.name}
+                label={item.name}
+                icon={item.icon}
+                isSidebarExpanded={expanded}
+                isActive={
+                  pathname === item.path ||
+                  item.subItems?.some((s) => pathname === s.path)
+                }
+                onClick={() => {
+                  if (!item.subItems) {
+                    router.push(item.path);
+                  }
+                }}
+              >
+                {item.subItems &&
+                  item.subItems.map((subItem) => (
+                    <li key={subItem.name}>
+                      <button
+                        onClick={() => router.push(subItem.path)}
+                        className={`flex items-center w-full py-2 px-3 text-sm rounded-lg transition-colors ${
+                          pathname === subItem.path
+                            ? "bg-emerald-100 text-emerald-700 font-semibold"
+                            : "text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
+                        }`}
+                      >
+                        {subItem.name}
+                      </button>
+                    </li>
+                  ))}
+              </SideBarItem>
+            ))}
         </ul>
       </nav>
 
@@ -73,17 +198,21 @@ export default function SideBar() {
       <div className="p-3 border-t border-slate-100 space-y-2">
         <button className="flex items-center w-full p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-50">
           <FaCog size={22} className="flex-shrink-0" />
-          {expanded && <span className="ml-4 text-sm font-semibold">Settings</span>}
+          {expanded && (
+            <span className="ml-4 text-sm font-semibold">Settings</span>
+          )}
         </button>
-        
-        <button 
+
+        <button
           onClick={handleLogout}
           className="flex items-center w-full p-3 rounded-xl transition-all text-red-500 hover:bg-red-50"
         >
           <MdExitToApp size={22} className="flex-shrink-0" />
-          {expanded && <span className="ml-4 text-sm font-semibold">Log out</span>}
+          {expanded && (
+            <span className="ml-4 text-sm font-semibold">Log out</span>
+          )}
         </button>
       </div>
     </aside>
   );
-} 
+}

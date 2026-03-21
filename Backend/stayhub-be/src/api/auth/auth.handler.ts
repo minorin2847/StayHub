@@ -1,9 +1,8 @@
-
-import { passport } from '@/utils/initializeSession.js';
-import type { NextFunction, Request, Response } from 'express';
+import { passport } from "@/utils/initializeSession.js";
+import type { NextFunction, Request, Response } from "express";
 
 import User from "@/api/user/user.js";
-import { findUser, findUserByUsername } from '@/api/user/user.handler.js';
+import { findUser, findUserByUsername } from "@/api/user/user.handler.js";
 import db from "../../database/db.js";
 import { sendResetEmail } from "../../utils/emailSender.js";
 import { v4 as uuidv4 } from "uuid";
@@ -21,18 +20,16 @@ export const forgotPassword = async (req: Request, res: Response) => {
         .status(200)
         .json({ message: "Nếu email tồn tại, link đã được gửi." });
     }
-    await db.none("DELETE FROM passwordResetTokens WHERE email = $1", [
-      email,
-    ]);
+    await db.none("DELETE FROM passwordResetTokens WHERE email = $1", [email]);
 
     const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await db.none(
       "INSERT INTO passwordResetTokens(email, token, expiresAt) VALUES($1, $2, $3)",
       [email, token, expiresAt],
     );
-    const user = await findUser(account.id)
+    const user = await findUser(account.id);
     await sendResetEmail(email, user.firstname, user.lastname, token);
 
     return res.status(200).json({ message: "Đã gửi email hướng dẫn!" });
@@ -41,7 +38,6 @@ export const forgotPassword = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Lỗi hệ thống" });
   }
 };
-
 
 export const resetPassword = async (req: Request, res: Response) => {
   const { token, newPassword } = req.body;
@@ -100,34 +96,38 @@ export const resetPassword = async (req: Request, res: Response) => {
 };
 
 export function login(req: Request, res: Response, next: NextFunction) {
-    return passport.authenticate('user-login', (err: any, user: any, info: any, status: any) => {
-        if (err) return next(err);
-        if (!user) res.status(404).send("Incorrect username or password!");
-        findUser(user.id).then(() => {
-            req.login(user, err => {
-                if (err) return next(err);
-                res.status(200).send("Login successful!");
-            });
-        }).catch(() => res.status(404).send("Incorrect username or password!"))
-
-    })(req, res, next)
+  return passport.authenticate(
+    "user-login",
+    (err: any, user: any, info: any, status: any) => {
+      if (err) return next(err);
+      if (!user) res.status(404).send("Incorrect username or password!");
+      findUser(user.id)
+        .then(() => {
+          req.login(user, (err) => {
+            if (err) return next(err);
+            res.status(200).send("Login successful!");
+          });
+        })
+        .catch(() => res.status(404).send("Incorrect username or password!"));
+    },
+  )(req, res, next);
 }
 
 export function logout(req: Request, res: Response, next: NextFunction) {
-    req.logout(err => {
-        if (err) return next(err);
-        res.status(200).send("Logout successful!");
-    })
+  req.logout((err) => {
+    if (err) return next(err);
+    res.status(200).send("Logout successful!");
+  });
 }
 
 export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
-    if (req.user) {
-        next()
-        return;
-    } else {
-        res.status(401).send("Unauthorized!");
-    }
-    }
+  if (req.user) {
+    next();
+    return;
+  } else {
+    res.status(401).send("Unauthorized!");
+  }
+}
 
 // export function checkRole(roles: UserRole[]) {
 //     return (req: Request, res: Response, next: NextFunction) => {
@@ -143,30 +143,36 @@ export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
 // }
 
 export function signUp(req: Request, res: Response, next: NextFunction) {
-    const salt = crypto.randomBytes(16);
-    const { username, password, firstname, lastname, email } = req.body;
-    if(!firstname || !username || !email || !password){
-    return res.status(400).json({message: "Vui lòng nhập đủ thông tin!"})
+  const salt = crypto.randomBytes(16);
+  const { username, password, firstname, lastname, email } = req.body;
+  if (!firstname || !username || !email || !password) {
+    return res.status(400).json({ message: "Vui lòng nhập đủ thông tin!" });
   }
-    findUserByUsername(username).then(() => res.status(409).send("User already exists!")).catch(() => {
-        crypto.pbkdf2(password, salt, 310000, 32, 'sha256', (err, hashed) => {
-            if (err) return next(err);
-            db.task('sign-up', async t => {
-                const userAccount = await db.one("INSERT INTO users(username, salt, hash, email, firstName, lastName)\
+  findUserByUsername(username)
+    .then(() => res.status(409).send("User already exists!"))
+    .catch(() => {
+      crypto.pbkdf2(password, salt, 310000, 32, "sha256", (err, hashed) => {
+        if (err) return next(err);
+        db.task("sign-up", async (t) => {
+          const userAccount = await db.one(
+            "INSERT INTO users(username, salt, hash, email, firstName, lastName)\
                     VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName)) \
-                    RETURNING id, username, email, firstName, lastName", {
-                        username: username,
-                        salt: salt,
-                        hash: hashed,
-                        email: email,
-                        firstName: firstname,
-                        lastName: lastname
-                    });
-                console.log(`Created account ${firstname} ${lastname} (${username}), ID ${userAccount.id} with email ${email}!`);
-            }).then(() => {
-                    res.status(200).send("Signed up successful!");
-            });
-        })
-    })
-
+                    RETURNING id, username, email, firstName, lastName",
+            {
+              username: username,
+              salt: salt,
+              hash: hashed,
+              email: email,
+              firstName: firstname,
+              lastName: lastname,
+            },
+          );
+          console.log(
+            `Created account ${firstname} ${lastname} (${username}), ID ${userAccount.id} with email ${email}!`,
+          );
+        }).then(() => {
+          res.status(200).send("Signed up successful!");
+        });
+      });
+    });
 }
