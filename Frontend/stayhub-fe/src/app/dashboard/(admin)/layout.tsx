@@ -23,7 +23,7 @@ export default function AdminLayout({
 }) {
   const { user } = useDashboardAuth();
   if (
-    !user ||
+    user &&
     !user.roles.some((i) => i.role == "ADMINISTRATOR")
   ) {
     redirect("/dashboard");
