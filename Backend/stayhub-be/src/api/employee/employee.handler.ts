@@ -58,6 +58,7 @@ export function createEmployee(
     roles,
     hotelid,
     branchid,
+    salary
   } = req.body;
   if (!firstname || !username || !email || !password) {
     return res.status(400).json({ message: "Vui lòng nhập đủ thông tin!" });
@@ -68,18 +69,19 @@ export function createEmployee(
       crypto.pbkdf2(password, salt, 310000, 32, "sha256", (err, hashed) => {
         if (err) return next(err);
         db.task("sign-up", async (t) => {
+          const roleStr = req.user.roles.join(",");
           await t.none("SET LOCAL app.current_username = $1", [
             req.user.username,
           ]);
-          await t.none("SET LOCAL app.roles = $1", [req.user.roles]);
+          await t.none("SET LOCAL app.roles = $1", [roleStr || ""]);
           await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || ""]);
           await t.none("SET LOCAL app.branchid = $1", [
             req.user.branchid || "",
           ]);
-          const userAccount = await db.one(
-            "INSERT INTO employees(username, salt, hash, email, firstName, lastName, hotelid, branchid)\
-                    VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(hotelid), $(branchid)) \
-                    RETURNING id, username, email, firstName, lastName, hotelid, branchid",
+          return await db.one(
+            "INSERT INTO employees(username, salt, hash, email, firstName, lastName, hotelid, branchid, salary)\
+                    VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(hotelid), $(branchid), $(salary)) \
+                    RETURNING id, username, email, firstName, lastName, hotelid, branchid, salary",
             {
               username: username,
               salt: salt,
@@ -89,13 +91,15 @@ export function createEmployee(
               lastName: lastname,
               hotelid: hotelid,
               branchid: branchid,
+              salary: salary
             },
           );
+
+        }).then(userAccount => {
           console.log(
-            `Created account ${firstname} ${lastname} (${username}), ID ${userAccount.id} with email ${email}!`,
+            `Created account ${userAccount.firstname} ${userAccount.lastname} (${userAccount.username}), ID ${userAccount.id} with email ${userAccount.email}!`,
           );
-        }).then(() => {
-          res.status(200).send("Signed up successful!");
+          res.status(200).json(userAccount);
         });
       });
     });
