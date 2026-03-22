@@ -33,42 +33,32 @@ const FormCreate = ({
         description: values.description,
       };
 
-      // const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branch/signup`, {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   credentials: "include",
-      //   body: JSON.stringify(payload),
-      // });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/branches/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
-      // if (!res.ok) {
-      //   const errorData = await res.text();
-      //   message.error(`Registration failed: ${errorData}`);
-      //   return;
-      // }
+      if (!res.ok) {
+        const errorData = await res.text();
+        message.error(`Branch creation failed: ${errorData}`);
+        return;
+      }
+      const newBranch = await res.json();
+      message.success("Branch created successfully!");
 
-      message.success("User created successfully!");
       // Build a mock object to prepend to the local table quickly
-      const newBranch = {
-         id: Date.now(), // Fake ID temporarily until next fetch
-         name: values.name,
-         location: values.location,
-         description: values.description,
-         manager_firstname: null,
-         manager_lastname: null,
-         manager_email: null,
-         hotel_count: 0,
-         revenue: 0,
-         status: "ACTIVE"
-      };
+
       
       onSuccess(newBranch);
       form.resetFields();
       onClose();
     } catch (error) {
       console.error(error);
-      message.error("An error occurred during registration.");
+      message.error("An error occurred during branch creation.");
     }
   };
 

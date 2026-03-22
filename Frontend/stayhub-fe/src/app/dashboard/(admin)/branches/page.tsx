@@ -5,24 +5,44 @@ import { Button, Table } from "antd";
 import { useEffect, useState } from "react";
 import { FaPen, FaPlus, FaTrash } from "react-icons/fa";
 import { FaArrowTrendUp, FaMagnifyingGlass } from "react-icons/fa6";
-import { MdLocationCity } from "react-icons/md";
+import { MdFilterList, MdLocationCity } from "react-icons/md";
 import FormCreate from "./components/FormCreate";
 import { useDashboardAuth } from "@/context/DashboardAuthContext";
+import { useRouter, useSearchParams } from "next/navigation";
+import buildQueryParams from "@/utils/BuildQueryParams";
+import BranchFilterSortModal from "@/components/dashboard/branch/BranchFilterModal";
 
-export type BranchListData = Branch & { manager_firstname: string; manager_lastname: string; manager_email: string; hotel_count: number; revenue: number; status: string }
+export type BranchListData = Branch & { 
+    manager_firstname: string | null; 
+    manager_lastname: string | null; 
+    manager_email: string | null; 
+    hotel_count: number | null; 
+    revenue: number | null; 
+    status: string | null }
 export type BranchListQuery = {
     name: string | null;
-    page: string | null;
+    hotelCountMin: string | null;
+    hotelCountMax: string | null;
+    sort: string | null;
+    order: string | null;
+    page: string | null
 }
 export default function BranchList() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
     const [data, setData] = useState<BranchListData[]>([]);
     const [query, setQuery] = useState<BranchListQuery>({
-        name: "",
-        page: "1"
+        name: searchParams.get('name'),
+        hotelCountMin: searchParams.get('hotelCountMin'),
+        hotelCountMax: searchParams.get('hotelCountMax'),
+        sort: searchParams.get('sort'),
+        order: searchParams.get('order'),
+        page: searchParams.get('page')
     });
     const [hasPrevious, setHasPrevious] = useState<boolean>(false);
     const [hasNext, setHasNext] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
+    const [isFilterOpened, setIsFilterOpened] = useState<boolean>(false);
     const [open, setOpen] = useState(false)
     const showModal = () => setOpen(true)
     const closeModal = () => setOpen(false)
@@ -69,7 +89,7 @@ export default function BranchList() {
             title: 'HOTELS',
             dataIndex: 'hotel_count',
             key: 'hotel_count',
-            render: (count) => <span className="text-gray-700">{count}</span>,
+            render: (count) => <span className="text-gray-700">{count ? count : 0}</span>,
         },
         {
             title: 'REVENUE',
@@ -81,7 +101,7 @@ export default function BranchList() {
                         style: 'currency',
                         currency: 'USD',
                         maximumFractionDigits: 0,
-                    }).format(revenue)}
+                    }).format(revenue ? revenue : 0)}
                 </span>
             ),
         },
@@ -90,7 +110,7 @@ export default function BranchList() {
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
-                const isActive = status?.toUpperCase() === 'ACTIVE';
+                const isActive = status ? status.toUpperCase() === 'ACTIVE' : true;
                 return (
                     <span
                         className={`px-3 py-1 text-xs font-bold rounded-full border ${isActive
@@ -98,7 +118,7 @@ export default function BranchList() {
                                 : 'bg-red-50 text-red-600 border-red-200'
                             }`}
                     >
-                        {status?.toUpperCase()}
+                        {status ? status.toUpperCase(): 'ACTIVE'}
                     </span>
                 );
             },
@@ -125,77 +145,35 @@ export default function BranchList() {
         },
     ];
     useEffect(() => {
-        const init = async () => {
-            setLoading(true);
-            setData([
-                {
-                    id: 1,
-                    name: "North America East",
-                    location: "New York, NY, USA",
-                    description: "Main operations center for the US East Coast region.",
-                    manager_firstname: "Jane",
-                    manager_lastname: "Doe",
-                    manager_email: "j.doe@company.com",
-                    hotel_count: 150,
-                    revenue: 1200000,
-                    status: "ACTIVE"
-                },
-                {
-                    id: 2,
-                    name: "Europe Central",
-                    location: "Berlin, Germany",
-                    description: "European headquarters managing the central continental region.",
-                    manager_firstname: "Hans",
-                    manager_lastname: "Schmidt",
-                    manager_email: "h.schmidt@company.com",
-                    hotel_count: 210,
-                    revenue: 950000,
-                    status: "ACTIVE"
-                },
-                {
-                    id: 3,
-                    name: "APAC South",
-                    location: "Singapore",
-                    description: "South Asia and Pacific operations hub.",
-                    manager_firstname: "Li",
-                    manager_lastname: "Wei",
-                    manager_email: "l.wei@company.com",
-                    hotel_count: 85,
-                    revenue: 420000,
-                    status: "INACTIVE"
-                },
-                {
-                    id: 4,
-                    name: "LATAM North",
-                    location: "Mexico City, Mexico",
-                    description: "Northern Latin America regional branch and support center.",
-                    manager_firstname: "Carlos",
-                    manager_lastname: "Ruiz",
-                    manager_email: "c.ruiz@company.com",
-                    hotel_count: 120,
-                    revenue: 680000,
-                    status: "ACTIVE"
-                },
-                {
-                    id: 5,
-                    name: "Middle East",
-                    location: "Dubai, UAE",
-                    description: "Middle East operations and strategic expansion office.",
-                    manager_firstname: "Aisha",
-                    manager_lastname: "Khan",
-                    manager_email: "a.khan@company.com",
-                    hotel_count: 95,
-                    revenue: 810000,
-                    status: "ACTIVE"
+        const controller = new AbortController();
+        const signal = controller.signal;
+        setLoading(true);
+        const queryHandler = setTimeout(async () => {
+            try {
+                const params = buildQueryParams(query).toString()
+                router.push(`/dashboard/branches?${params}`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/branches?${params}`, {
+                    method: "GET",
+                    credentials: "include",
+                });
+                const data = await res.json();
+                setData(data.response as BranchListData[]);
+                setHasPrevious(parseInt(query.page ?? '1') > 1);
+                setHasNext(data.hasNext);
+            } catch (error) {
+                if (error instanceof Error && error.name !== 'AbortError') {
+                    console.error("An error occured: ", error);
                 }
-            ]);
-            setHasPrevious(parseInt(query.page ?? "1") > 1);
-            setHasNext(false);
-            setLoading(false);
-        }
+            } finally {
+                if (!signal.aborted) setLoading(false);
+            }
+        }, 500);
 
-        init()
-    }, [])
+        return () => {
+            clearTimeout(queryHandler);
+            controller.abort();
+        }
+    }, [query])
 
     return (
         <div className="flex flex-col mx-16 my-12 gap-y-[32px]">
@@ -273,13 +251,13 @@ export default function BranchList() {
                 <input
                     className="outline-none text-m font-medium placeholder:text-slate-400 transition-all group-focus-within:border-emerald-500 w-full" 
                     type="text" 
-                    placeholder="Search by username, email or full name..."
+                    placeholder="Search by name, location or manager full name..."
                     name="query"
                     onChange={e => setQuery({...query, name: e.target.value})}
                     value={query.name ?? ""} 
                     />
             </div>
-                <div className="">
+                <div className="flex items-center gap-x-3">
                 {/* Create button */}
                 <Button onClick={showModal} className="!flex-1 !md:flex-none !flex !items-center !justify-center !gap-2 !h-11 !px-6 !rounded-xl !bg-emerald-600 !text-white !font-bold !text-sm  !shadow-emerald-100" type="primary">
                     <FaPlus size={16} />
@@ -292,7 +270,7 @@ export default function BranchList() {
                         setData([newBranch, ...data]);
                     }}
                 />
-                 {/* filter button
+                 {/* filter button */}
                 <Button 
                 size="large" 
                 shape="default" 
@@ -302,10 +280,11 @@ export default function BranchList() {
                 />
 
                 {
-                    <EditModal isFilterOpened={isFilterOpened} setIsFilterOpened={setIsFilterOpened}
+                    <BranchFilterSortModal
+                    isFilterOpened={isFilterOpened} setIsFilterOpened={setIsFilterOpened}
                     query={query}
                     setQuery={setQuery} />
-                } */}
+                }
                 </div>
 
             </div>
