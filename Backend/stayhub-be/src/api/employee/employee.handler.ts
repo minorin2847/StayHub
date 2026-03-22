@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from "express";
 import type { CreateEmployeeInput } from "./employee.type.js";
 import crypto from "node:crypto";
 import type Employee from "./employee.js";
+import rlsWrapper from "@/utils/rlsWrapper.js";
 
 export async function findEmployeeByUsername(
   username: string,
@@ -68,48 +69,43 @@ export function createEmployee(
     .catch(() => {
       crypto.pbkdf2(password, salt, 310000, 32, "sha256", (err, hashed) => {
         if (err) return next(err);
-        db.tx("sign-up", async (t) => {
-          const roleStr = req.user.roles.join(",");
-          await t.none("SET LOCAL app.current_username = $1", [
-            req.user.username,
-          ]);
-          await t.none("SET LOCAL app.roles = $1", [roleStr || ""]);
-          await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || ""]);
-          await t.none("SET LOCAL app.branchid = $1", [
-            req.user.branchid || "",
-          ]);
-          const employee = await t.one(
-            "INSERT INTO employees(username, salt, hash, email, firstName, lastName, hotelid, branchid, salary)\
-                    VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(hotelid), $(branchid), $(salary)) \
-                    RETURNING id, username, email, firstName, lastName, hotelid, branchid, salary",
-            {
-              username: username,
-              salt: salt,
-              hash: hashed,
-              email: email,
-              firstName: firstname,
-              lastName: lastname,
-              hotelid: hotelid,
-              branchid: branchid,
-              salary: salary
-            },
-          );
-          for (const role of roles) {
-            await t.one("INSERT INTO employee_roles(employeeid, role)\
-                        VALUES ($(employeeid), $(role))\
-                        RETURNING employeeid, role", {
-                          employeeid: employee.id,
-                          role: role
-                        })
+        rlsWrapper(
+          "sign-up",
+          req.user,
+          async t => {
+              const employee = await t.one(
+              "INSERT INTO employees(username, salt, hash, email, firstName, lastName, hotelid, branchid, salary)\
+                      VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(hotelid), $(branchid), $(salary)) \
+                      RETURNING id, username, email, firstName, lastName, hotelid, branchid, salary",
+              {
+                username: username,
+                salt: salt,
+                hash: hashed,
+                email: email,
+                firstName: firstname,
+                lastName: lastname,
+                hotelid: hotelid,
+                branchid: branchid,
+                salary: salary
+              },
+            );
+            for (const role of roles) {
+              await t.one("INSERT INTO employee_roles(employeeid, role)\
+                          VALUES ($(employeeid), $(role))\
+                          RETURNING employeeid, role", {
+                            employeeid: employee.id,
+                            role: role
+                          })
+            }
+            return employee
+          },
+          userAccount => {
+            console.log(
+              `Created account ${userAccount.firstname} ${userAccount.lastname} (${userAccount.username}), ID ${userAccount.id} with email ${userAccount.email}!`,
+            );
+            res.status(200).json(userAccount);
           }
-          return employee
-
-        }).then(userAccount => {
-          console.log(
-            `Created account ${userAccount.firstname} ${userAccount.lastname} (${userAccount.username}), ID ${userAccount.id} with email ${userAccount.email}!`,
-          );
-          res.status(200).json(userAccount);
-        });
+        )
       });
     });
 }
