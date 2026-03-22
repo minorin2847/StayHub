@@ -106,6 +106,102 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION get_branches_by_page(
+    p_query TEXT DEFAULT NULL,
+    p_min_hotel_count INT DEFAULT 0,
+    p_max_hotel_count INT DEFAULT 2147483647,
+    p_sort_column TEXT DEFAULT 'id',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT, 
+    name VARCHAR, 
+    location VARCHAR, 
+    manager_firstname VARCHAR, 
+    manager_lastname VARCHAR, 
+    manager_email VARCHAR, 
+    hotel_count INT,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    -- ### 1. Define the Base Data Source ###
+    -- Using the new managerID column to join directly to employees
+    v_base_from := '
+        FROM branch b
+        LEFT JOIN employees m ON b.managerID = m.id
+        LEFT JOIN (
+            SELECT branchID, COUNT(*)::INT as h_count 
+            FROM hotels 
+            GROUP BY branchID
+        ) hc ON b.id = hc.branchID';
+
+    -- ### 2. Build the Dynamic WHERE clause ###
+    
+    -- Filter by branch name, location, or manager full name
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND (b.name ILIKE %L OR b.location ILIKE %L OR (m.firstName || '' '' || m.lastName) ILIKE %L)', 
+                   '%' || p_query || '%', '%' || p_query || '%', '%' || p_query || '%');
+    END IF;
+
+    -- Filter by hotel count range
+    v_where := v_where || format(' AND COALESCE(hc.h_count, 0) BETWEEN %L AND %L', p_min_hotel_count, p_max_hotel_count);
+
+    -- ### 3. Boundary Check & Pagination Math ###
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+    
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    -- ### 4. Dynamic Sorting Logic ###
+    v_sort_clause := CASE p_sort_column
+        WHEN 'name'         THEN 'b.name'
+        WHEN 'location'     THEN 'b.location'
+        WHEN 'hotel_count'  THEN 'COALESCE(hc.h_count, 0)'
+        WHEN 'manager_name' THEN 'm.firstName || '' '' || m.lastName'
+        ELSE 'b.id'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    -- ### 5. Execution ###
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                b.id, b.name, b.location,
+                m.firstName as manager_firstname,
+                m.lastName as manager_lastname,
+                m.email as manager_email,
+                COALESCE(hc.h_count, 0) as hotel_count
+            %s
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION get_user_auth_context(p_username VARCHAR)
 RETURNS TABLE (
     id INT,
@@ -156,6 +252,24 @@ BEGIN
         e.firstname, 
         e.lastname, 
         e.salary;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_branches_auth_context(p_name VARCHAR)
+RETURNS TABLE (
+    id INT,
+    managerid INT,
+    name VARCHAR,
+    location VARCHAR,
+    description TEXT
+) 
+SECURITY DEFINER 
+SET search_path = public 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM branch WHERE branch.name = name;
 END;
 $$;
 

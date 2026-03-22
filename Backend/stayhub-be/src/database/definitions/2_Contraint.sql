@@ -126,6 +126,14 @@ BEGIN
     END IF; 
 END $$;
 
+-- Link Branch Manager -> Employee
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_branch_manager' AND conrelid = 'branch'::regclass) THEN 
+        ALTER TABLE branch ADD CONSTRAINT fk_branch_manager FOREIGN KEY (managerID) REFERENCES employees (id);
+    END IF; 
+END $$;
+
 -- Link Hotels -> Branch
 DO $$ 
 BEGIN 
