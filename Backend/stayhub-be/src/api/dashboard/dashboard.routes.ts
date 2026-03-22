@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getEmployee, getEmployeeAccounts, hasPermission } from "./dashboard.handler.js";
+import { getBranches, getEmployee, getEmployeeAccounts, hasPermission } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/api/auth/auth.handler.js";
 
 const dashboardRoute = Router();
@@ -14,4 +14,7 @@ dashboardRoute.get("/", isLoggedIn, getEmployee);
 dashboardRoute.get("/user", isLoggedIn, 
     hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), getEmployeeAccounts);
 
+dashboardRoute.get("/branches", isLoggedIn,
+    hasPermission(["ADMINISTRATOR"]), getBranches
+)
 export default dashboardRoute;

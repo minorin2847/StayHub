@@ -5,6 +5,7 @@ import type Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
 import type Employee from "../employee/employee.js";
 import type { EmployeeDTO } from "../employee/employee.type.js";
+import type { BranchTable } from "../branch/branch.type.js";
 
 
 
@@ -68,6 +69,38 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
             })
         });
         res.status(200).json(response.length > 0 ? {hasNext: response[0].hasNext, response: response.map(i=>i as Employee)}: []);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(404).send(err.stack);
+        }
+        else {
+            res.status(404).send("An unknown error occured!");
+        }
+    }
+
+}
+
+export async function getBranches(req: Request, res: Response, next: NextFunction) {
+    let { query, hotelCountMin, hotelCountMax, sort, order, page } = req.query;
+
+    const userRoles = (req.user.roles || []).join(",");
+    try {
+        const response = await db.tx(async t => {
+            
+            await t.none("SET LOCAL app.current_username = $1", [req.user.username]);
+            await t.none("SET LOCAL app.roles = $1", [userRoles]);
+            await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || '']);
+            await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || '']);
+            return t.manyOrNone("SELECT * FROM get_branches_by_page($(query),$(hotelCountMin),$(hotelCountMax),$(sort),$(order),$(page))", {
+                query: query ?? null,
+                hotelCountMin: hotelCountMin ?? 0,
+                hotelCountMax: hotelCountMax ?? 2147483647,
+                sort: sort ?? 'id',
+                order: order ?? 'asc',
+                page: page ?? 1
+            })
+        });
+        res.status(200).json(response.length > 0 ? {hasNext: response[0].hasNext, response: response.map(i=>i as BranchTable)}: []);
     } catch (err) {
         if (err instanceof Error) {
             res.status(404).send(err.stack);
