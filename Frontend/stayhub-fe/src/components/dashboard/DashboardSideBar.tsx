@@ -14,14 +14,15 @@ import { MdExitToApp, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { useDashboardAuth } from "@/context/DashboardAuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import SideBarItem from "./SideBarItem";
+import { useSidebar } from "@/context/SidebarContext";
 
-interface SubItem {
+export interface SubItem {
   name: string;
   path: string;
   role?: string[];
 }
 
-interface MenuItem {
+export interface MenuItem {
   name: string;
   icon: React.ElementType;
   path: string;
@@ -29,75 +30,14 @@ interface MenuItem {
   roles?: string[]; 
 }
 
-const menuItems: MenuItem[] = [
-  { name: "Dashboard", icon: FaHome, path: "/dashboard" },
-  {
-    name: "Users",
-    icon: FaUsers,
-    path: "/dashboard/users", 
-    roles: ["MANAGE_HOTEL"],
-    subItems: [
-      { name: "All Users", path: "/dashboard/users" },
-      { name: "User Roles", path: "/dashboard/users/roles" },
-    ],
-  },
-  {
-    name: "Rooms",
-    icon: FaRestroom,
-    path: "/dashboard/rooms",
-    roles: ["MANAGE_ROOM"],
-    subItems: [
-      { name: "View All Rooms", path: "/dashboard/rooms" },
-      { name: "Add New Room", path: "/dashboard/rooms/add" },
-      { name: "Room Types", path: "/dashboard/rooms/types" },
-    ],
-  },
-  {
-    name: "Hotels",
-    icon: FaHotel,
-    path: "/dashboard/hotels",
-    roles: ["ADMINISTRATOR"],
-    subItems: [
-      { name: "View All Hotels", path: "/dashboard/hotels" },
-      { name: "Add New Hotel", path: "/dashboard/hotels/add" },
-    ],
-  },
-  {
-    name: "Branches",
-    icon: FaHotel, // We can reuse FaHotel or another icon
-    path: "/dashboard/branches",
-    roles: ["MANAGE_HOTEL"],
-    subItems: [
-      { name: "View All Branches", path: "/dashboard/branches" },
-      { name: "Add New Branch", path: "/dashboard/branches/add" },
-    ],
-  },
-  {
-    name: "Front Desk",
-    icon: FaCog, // Can change icon later
-    path: "/dashboard/frontdesk",
-    roles: ["STAFF", "MANAGE_BRANCH"],
-  },
-  {
-    name: "Bookings",
-    icon: FaFirstOrderAlt,
-    path: "/dashboard/bookings",
-    roles: ["STAFF", "MANAGE_BRANCH"],
-  },
-  {
-    name: "Guests",
-    icon: FaUsers,
-    path: "/dashboard/guests",
-    roles: ["STAFF", "MANAGE_BRANCH"],
-  },
-  { name: "Reviews", icon: FaComments, path: "/dashboard/reviews" },
-];
+
 
 export default function SideBar() {
   const [expanded, setExpanded] = useState(true);
   const { user, logout } = useDashboardAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { items } = useSidebar().config;
 
   // Handle both user.roles (array) and user.role (string) gracefully
   const userAny = user as any;
@@ -153,7 +93,7 @@ export default function SideBar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 mt-4 overflow-y-auto overflow-x-hidden no-scrollbar">
         <ul className="space-y-2">
-          {menuItems
+          {items
             .filter((item) => {
               if (!item.roles || item.roles.length === 0) return true;
               return item.roles.some((role) => userRoleNames.includes(role));
