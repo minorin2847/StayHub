@@ -17,12 +17,12 @@ export default async function initialize() {
         for (const file of files) {
             const queryFile = new QueryFile("./database/definitions/" + file);
             await db.multi(queryFile);
-            console.log(`All ${file.split(".")[0]?.toLowerCase()} initialized!`);
+            console.log(`All ${file.split(".")[0]?.toLowerCase().split("_")[1]} initialized!`);
         }
     } catch (err) {
         if (err instanceof Error) {
-            console.error(`An error occured when creating tables: ${err}`);
-        } else console.error(`An unknown error occured when creating tables`);
+            console.error(`An error occured when initializing database:\n${err.stack}`);
+        } else console.error(`An unknown error occured when initializing database`);
     }
     // Initialize admin account
     const salt = Buffer.from('k:UK�\b��r�*"`��F');
