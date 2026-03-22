@@ -68,7 +68,7 @@ export function createEmployee(
     .catch(() => {
       crypto.pbkdf2(password, salt, 310000, 32, "sha256", (err, hashed) => {
         if (err) return next(err);
-        db.task("sign-up", async (t) => {
+        db.tx("sign-up", async (t) => {
           const roleStr = req.user.roles.join(",");
           await t.none("SET LOCAL app.current_username = $1", [
             req.user.username,
@@ -78,7 +78,7 @@ export function createEmployee(
           await t.none("SET LOCAL app.branchid = $1", [
             req.user.branchid || "",
           ]);
-          return await db.one(
+          const employee = await t.one(
             "INSERT INTO employees(username, salt, hash, email, firstName, lastName, hotelid, branchid, salary)\
                     VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(hotelid), $(branchid), $(salary)) \
                     RETURNING id, username, email, firstName, lastName, hotelid, branchid, salary",
@@ -94,6 +94,15 @@ export function createEmployee(
               salary: salary
             },
           );
+          for (const role of roles) {
+            await t.one("INSERT INTO employee_roles(employeeid, role)\
+                        VALUES ($(employeeid), $(role))\
+                        RETURNING employeeid, role", {
+                          employeeid: employee.id,
+                          role: role
+                        })
+          }
+          return employee
 
         }).then(userAccount => {
           console.log(
