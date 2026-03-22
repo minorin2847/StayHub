@@ -1,7 +1,7 @@
 import { passport } from "@/utils/initializeSession.js";
 import type { NextFunction, Request, Response } from "express";
 
-import User from "@/api/user/user.js";
+import type User from "@/api/user/user.js";
 import { findUser, findUserByUsername } from "@/api/user/user.handler.js";
 import db from "../../database/db.js";
 import { sendResetEmail } from "../../utils/emailSender.js";

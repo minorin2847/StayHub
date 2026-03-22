@@ -1,9 +1,9 @@
 
 import type { NextFunction, Request, Response } from "express";
 import db from "@/database/db.js";
-import Role from "../roles/roles.js";
+import type Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
-import Employee from "../employee/employee.js";
+import type Employee from "../employee/employee.js";
 import type { EmployeeDTO } from "../employee/employee.type.js";
 
 
