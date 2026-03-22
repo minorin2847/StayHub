@@ -100,7 +100,7 @@ export default function AdminManageUser() {
                     value={query.name ?? ""} 
                     />
                 </div>
-                <div className="">
+                <div className="flex items-center gap-x-3">
                 {/* Create button */}
                 <Button onClick={showModal} className="!flex-1 !md:flex-none !flex !items-center !justify-center !gap-2 !h-11 !px-6 !rounded-xl !bg-emerald-600 !text-white !font-bold !text-sm  !shadow-emerald-100" type="primary">
                     <FaPlus size={16} />
@@ -118,7 +118,7 @@ export default function AdminManageUser() {
                 size="large" 
                 shape="default" 
                 icon={<MdFilterList size={25} className="text-blue-600"/>}
-                className="!text-emerald-600 hover:!border-emerald-600 !flex !justify-center !items-center"
+                className="!text-emerald-600 hover:!border-emerald-600 !flex !justify-center"
                 onClick={()=>{setIsFilterOpened(true)}}
                 />
 
