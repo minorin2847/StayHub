@@ -1,22 +1,15 @@
 "use client";
 import React, { useEffect } from "react";
 import { Button, Form, Input, Modal, Select, Row, Col, message } from "antd";
-import { Employee } from "@/types/Employee";
-
-const generatePassword = () => {
-  return Math.random().toString(36).slice(-8);
-};
 
 const FormCreate = ({
   open,
   onClose,
   onSuccess,
-  user
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: (branch: any) => void;
-  user: Employee | null
 }) => {
   const [form] = Form.useForm();
 
@@ -62,11 +55,11 @@ const FormCreate = ({
          name: values.name,
          location: values.location,
          description: values.description,
-         manager_firstname: user?.firstname ?? "",
-         manager_lastname: user?.lastname ?? "",
-         manager_email: user?.email ?? "",
+         manager_firstname: null,
+         manager_lastname: null,
+         manager_email: null,
          hotel_count: 0,
-         revenue: Math.random()*100000/1,
+         revenue: 0,
          status: "ACTIVE"
       };
       

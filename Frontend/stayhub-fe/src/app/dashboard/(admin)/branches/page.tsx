@@ -20,7 +20,6 @@ export default function BranchList() {
         name: "",
         page: "1"
     });
-    const {user} = useDashboardAuth();
     const [hasPrevious, setHasPrevious] = useState<boolean>(false);
     const [hasNext, setHasNext] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
@@ -56,7 +55,7 @@ export default function BranchList() {
             key: 'manager',
             render: (_, record) => (
                 <span className="text-gray-900">
-                    {record.manager_firstname} {record.manager_lastname}
+                    {record.manager_firstname ? record.manager_firstname + " " + record.manager_lastname : "Unassigned"}
                 </span>
             ),
         },
@@ -64,7 +63,7 @@ export default function BranchList() {
             title: 'EMAIL',
             dataIndex: 'manager_email',
             key: 'manager_email',
-            render: (email) => <span className="text-gray-500">{email}</span>,
+            render: (email) => <span className="text-gray-500">{email ? email : "Unassigned"}</span>,
         },
         {
             title: 'HOTELS',
@@ -292,7 +291,6 @@ export default function BranchList() {
                     onSuccess={(newBranch) => {
                         setData([newBranch, ...data]);
                     }}
-                    user={user}
                 />
                  {/* filter button
                 <Button 
