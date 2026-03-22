@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS employees (
   salt bytea NOT NULL,
   hash bytea NOT NULL,
   email varchar(100) UNIQUE NOT NULL,
-  role varchar(100),
   branchID int,
   hotelID int,
   firstName varchar(100) NOT NULL,
@@ -111,8 +110,6 @@ CREATE TABLE IF NOT EXISTS hotels (
   previewImages text [],
   contact_email varchar(100),
   contact_phone varchar(20),
-  salt bytea,
-  hash bytea
 );
 
 CREATE TABLE IF NOT EXISTS branch (
@@ -264,13 +261,6 @@ CREATE TABLE IF NOT EXISTS employee_roles (
 -- 2. Alter Tables (Rewritten with DO Blocks)
 -- ==========================================
 
-DO $$ 
-BEGIN 
-    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS contact_email varchar(100);
-    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS contact_phone varchar(20);
-    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS salt bytea;
-    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS hash bytea;
-END $$;
 
 
 -- 3. Link Users_Reserves -> Users
@@ -405,13 +395,13 @@ BEGIN
     END IF; 
 END $$;
 
--- Link Employees -> Role
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employees_role' AND conrelid = 'employees'::regclass) THEN 
-        ALTER TABLE employees ADD CONSTRAINT fk_employees_role FOREIGN KEY (role) REFERENCES roles (name);
-    END IF; 
-END $$;
+-- -- Link Employees -> Role
+-- DO $$ 
+-- BEGIN 
+--     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employees_role' AND conrelid = 'employees'::regclass) THEN 
+--         ALTER TABLE employees ADD CONSTRAINT fk_employees_role FOREIGN KEY (role) REFERENCES roles (name);
+--     END IF; 
+-- END $$;
 
 -- Link Employees -> Branch
 DO $$ 
