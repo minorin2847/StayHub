@@ -6,5 +6,8 @@ export type Hotel = {
     description: string;
     amenities: Array<{name: string, icon: string, category: string}>;
     policies: Array<{name: string, icon: string, description: string}>;
-    previewimages: Array<string>
+    previewimages: Array<string>;
+    contact_email?: string;
+    contact_phone?: string;
+    _generatedPassword?: string;
 }

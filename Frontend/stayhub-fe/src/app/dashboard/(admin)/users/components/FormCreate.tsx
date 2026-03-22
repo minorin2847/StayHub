@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
-import { Button, Form, Input, Modal, Select, Row, Col, message } from "antd";
+import { Button, Form, Input, Modal, Select, Row, Col, message, InputNumber } from "antd";
 
 const generatePassword = () => {
   return Math.random().toString(36).slice(-8);
@@ -53,9 +53,9 @@ const FormCreate = ({
         lastname: values.lastName,
         email: values.email,
         roles: [values.role],
-        role: values.role, // Some versions might expect singular role
         hotelid: values.hotelId === "none" ? null : parseInt(values.hotelId),
         branchid: values.branchId === "none" ? null : parseInt(values.branchId),
+        salary: values.salary
       };
 
       const res = await fetch(
@@ -78,18 +78,7 @@ const FormCreate = ({
 
       message.success("User created successfully!");
       // Build a mock object to prepend to the local table quickly
-      const newEmployee = {
-        id: Date.now(), // Fake ID temporarily until next fetch
-        username: values.username,
-        firstname: values.firstName,
-        lastname: values.lastName,
-        email: values.email,
-        hotelid: payload.hotelid,
-        branchid: payload.branchid,
-        role: values.role,
-        roles: [{ role: values.role }],
-        _generatedPassword: values.password,
-      };
+      const newEmployee = await res.json();
 
       onSuccess(newEmployee, values.password);
       form.resetFields();
@@ -229,6 +218,16 @@ const FormCreate = ({
                 <Select.Option value="1">Hotel 1</Select.Option>
                 <Select.Option value="2">Hotel 2</Select.Option>
               </Select>
+            </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
+              name="salary"
+              label="Salary"
+              rules={[{ required: true, message: "Please input salary!" }]}
+            >
+              <InputNumber  className="!w-full" min={100} max={10000} defaultValue={1000} step={10} />
             </Form.Item>
           </Col>
         </Row>

@@ -2,7 +2,7 @@
 
 import UserTable from "@/components/dashboard/user/UserTable";
 import { Account } from "@/types/Account";
-import { Employee, EmployeeTableData } from "@/types/Employee";
+import { Employee } from "@/types/Employee";
 import { Role } from "@/types/Role";
 import { Button, Modal } from "antd";
 import { useSearchParams } from "next/navigation";
@@ -27,7 +27,7 @@ export type UserSearchParams = {
 };
 import FormCreate from "./components/FormCreate";
 
-export default function ManageUser() {
+export default function AdminManageUser() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [query, setQuery] = useState<UserSearchParams>({
@@ -59,7 +59,7 @@ export default function ManageUser() {
         const queryHandler = setTimeout(async () => {
             try {
                 const params = buildQueryParams(query).toString()
-                router.push(`/dashboard/user?${params}`);
+                router.push(`/dashboard/users?${params}`);
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/user?${params}`, {
                     method: "GET",
                     credentials: "include",

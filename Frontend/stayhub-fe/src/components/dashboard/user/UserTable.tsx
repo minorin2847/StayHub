@@ -1,42 +1,125 @@
 "use client";
 
-import { Account } from "@/types/Account";
-import { Employee } from "@/types/Employee";
-
+import { EmployeeTableData } from "@/types/Employee";
+import { Table, Tag, Badge, Space, Button, Modal, Avatar } from "antd";
+import { EyeOutlined, EditOutlined } from "@ant-design/icons";
+import { useState } from "react";
 
 type UserTableParameter = {
-    tableData: Employee[]
+    tableData: (EmployeeTableData & { _generatedPassword?: string })[];
 }
-export default function UserTable(params: UserTableParameter) {
-    return (
-        <table className="w-full border border-red-500 table-auto border-collapse select-none">
-            <thead>
-                <tr>
-                    <th className="h-fit py-[10px] border bg-gray-100">ID</th>
-                    <th className="border bg-gray-100">Username</th>
-                    <th className="border bg-gray-100">Full Name</th>
-                    <th className="border bg-gray-100">Email</th>
-                    <th className="border bg-gray-100">Hotel</th>
-                    <th className="border bg-gray-100">Branch</th>
-                    <th className="border bg-gray-100">Salary</th>
-                    <th className="border bg-gray-100">Roles</th>
-                </tr>
-            </thead>
-            <tbody>
-                {params.tableData?.map(item => (
-                    <tr key={item.id} className="group hover:bg-gray-50/50">
-                        <td className="h-fit py-[10px] border text-center">{item.id}</td>
-                        <td className="border text-center">{item.username}</td>
-                        <td className="border text-center">{item.firstname + " " + item.lastname}</td>
-                        <td className="border text-center">{item.email}</td>
-                        <td className="border text-center">{item.hotelid}</td>
-                        <td className="border text-center">{item.branchid}</td>
-                        <td className="border text-center">{item.salary}</td>
-                        <td className="border text-center">{item.roles.map(i=>i.role).join(",")}</td>
-                    </tr>
-                ))}
-            </tbody>
 
-        </table>
-    )
+export default function UserTable({ tableData }: UserTableParameter) {
+    const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [currentEmployee, setCurrentEmployee] = useState<EmployeeTableData | null>(null);
+
+    const showPassword = (record: EmployeeTableData & { _generatedPassword?: string }) => {
+        setCurrentEmployee(record);
+        setCurrentPassword(record._generatedPassword || "");
+        setPasswordModalVisible(true);
+    };
+
+    const columns = [
+        {
+            title: "ID",
+            dataIndex: "id",
+            key: "id",
+            render: (id: number) => `EMP-${id.toString().padStart(3, '0')}`,
+            className: "text-gray-500 font-medium",
+        },
+        {
+            title: "NAME",
+            key: "name",
+            render: (_: unknown, record: EmployeeTableData) => {
+                const initials = `${record.firstname?.[0] || ""}${record.lastname?.[0] || ""}`.toUpperCase();
+                return (
+                    <Space size="middle">
+                        <Avatar className="bg-slate-200 text-slate-800 font-bold">{initials}</Avatar>
+                        <span className="font-semibold text-slate-800">{record.firstname} {record.lastname}</span>
+                    </Space>
+                );
+            }
+        },
+        {
+            title: "ROLE",
+            key: "role",
+            render: (_: unknown, record: EmployeeTableData & { role?: string }) => {
+                // If roles array exists and has items, show the first, else fallback
+                const roleName = record.roles && record.roles.length > 0 ? record.roles[0].role : record.role || "Employee";
+                // Determine a tag color based on role
+                const color = roleName.includes("HOTEL") ? "blue" : roleName.includes("ROOM") ? "green" : roleName.includes("PAYMENT") ? "gold" : "purple";
+                return (
+                    <Tag color={color} className="rounded-full px-3 py-1 font-semibold border-none">
+                        {roleName.replace("MANAGE_", "").replace("_", " ")}
+                    </Tag>
+                );
+            }
+        },
+        {
+            title: "ASSIGNED HOTEL",
+            dataIndex: "hotelid",
+            key: "hotel",
+            render: (hotelid: number) => hotelid ? `Hotel ${hotelid}` : "Unassigned",
+            className: "text-slate-500",
+        },
+        {
+            title: "ACTIONS",
+            key: "actions",
+            render: (_: unknown, record: EmployeeTableData & { _generatedPassword?: string }) => (
+                <Space size="middle">
+                    {record._generatedPassword && (
+                        <Button 
+                            type="text" 
+                            icon={<EyeOutlined />} 
+                            onClick={() => showPassword(record)}
+                            className="text-slate-500 hover:text-emerald-600"
+                        />
+                    )}
+                    <Button 
+                        type="text" 
+                        icon={<EditOutlined />} 
+                        className="text-slate-500 hover:text-blue-600 font-semibold"
+                    >
+                        Edit
+                    </Button>
+                </Space>
+            )
+        }
+    ];
+
+    return (
+        <>
+            <Table 
+                columns={columns} 
+                dataSource={tableData} 
+                rowKey="id"
+                pagination={false}
+                className="w-full"
+            />
+            
+            <Modal
+                title="Generated Password"
+                open={passwordModalVisible}
+                onOk={() => setPasswordModalVisible(false)}
+                onCancel={() => setPasswordModalVisible(false)}
+                footer={[
+                    <Button key="close" type="primary" onClick={() => setPasswordModalVisible(false)}>
+                        Close
+                    </Button>
+                ]}
+            >
+                <div className="flex flex-col gap-4 py-4">
+                    <p className="text-slate-600">
+                        Please securely share the following auto-generated password with the employee <b>{currentEmployee?.firstname} {currentEmployee?.lastname}</b>.
+                    </p>
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
+                        <span className="text-xl font-mono tracking-widest text-slate-800 select-all">
+                            {currentPassword}
+                        </span>
+                    </div>
+                </div>
+            </Modal>
+        </>
+    );
 }
