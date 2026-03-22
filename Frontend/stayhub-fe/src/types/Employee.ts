@@ -2,7 +2,7 @@ import { Role } from "./Role";
 
 export type Employee = {
     id: number;
-    accountid: number;
+    username: string;
     hotelid: number;
     branchid: number;
     firstname: string;
