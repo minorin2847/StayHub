@@ -1,6 +1,5 @@
 import { login, logout, signUp, isLoggedIn } from "@/api/auth/auth.handler.js";
 import express, { type NextFunction, type Request, type Response } from 'express';
-import User from "./user.js";
 import { findUser } from "./user.handler.js";
 
 const router = express.Router();

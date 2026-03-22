@@ -1,9 +1,9 @@
 import db from "@/database/db.js";
 import { passport } from "@/utils/initializeSession.js";
-import Employee from "./employee.js";
 import type { NextFunction, Request, Response } from "express";
 import type { CreateEmployeeInput } from "./employee.type.js";
 import crypto from "node:crypto";
+import type Employee from "./employee.js";
 
 
 
@@ -14,7 +14,7 @@ export async function findEmployeeByUsername(username: string): Promise<Employee
   if (!employee) {
     throw Error(`Can't find employee with username ${username}!`);
   }
-  return new Employee(employee);
+  return employee as Employee;
 }
 
 export function login(req: Request, res: Response, next: NextFunction) {

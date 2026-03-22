@@ -1,5 +1,5 @@
 -- ============================================================================
--- 1. ADMINISTRATOR POLICIES
+-- 1. ADMINISTRATOR POLICIES FOR EMPLOYEES TABLE
 -- ============================================================================
 DO $$ 
 BEGIN
@@ -22,7 +22,7 @@ $$;
 
 
 -- ============================================================================
--- 2. BRANCH MANAGER POLICIES
+-- 2. BRANCH MANAGER POLICIES FOR EMPLOYEES TABLE
 -- ============================================================================
 DO $$ 
 BEGIN
@@ -50,7 +50,7 @@ $$;
 
 
 -- ============================================================================
--- 3. HOTEL MANAGER POLICIES
+-- 3. HOTEL MANAGER POLICIES FOR EMPLOYEE TABLE
 -- ============================================================================
 DO $$ 
 BEGIN
@@ -73,3 +73,48 @@ BEGIN
 END
 $$;
 
+-- ============================================================================
+-- 4. ADMINISTRATOR POLICIES FOR BRANCH TABLE
+-- ============================================================================
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE schemaname = 'public' 
+          AND tablename = 'branch' 
+          AND policyname = 'admin_all_branch'
+    ) THEN
+        EXECUTE $POLICY$
+            CREATE POLICY admin_all_branch ON branch
+            FOR ALL
+            USING (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+            );
+        $POLICY$;
+    END IF;
+END
+$$;
+
+-- ============================================================================
+-- 5. MANAGE_BRANCH POLICIES FOR BRANCH TABLE
+-- ============================================================================
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE schemaname = 'public' 
+          AND tablename = 'branch' 
+          AND policyname = 'manage_branch_all_branch'
+    ) THEN
+        EXECUTE $POLICY$
+            CREATE POLICY manage_branch_all_branch ON branch
+            FOR ALL
+            USING (
+                'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                AND
+                id = NULLIF(current_setting('app.branchid', true), '')::INT
+            );
+        $POLICY$;
+    END IF;
+END
+$$;

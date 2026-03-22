@@ -1,13 +1,3 @@
-export type EmployeeDTO = {
-    id: number;
-    username: string;
-    email: string;
-    hotelid: number;
-    branchid: number[];
-    firstname: string;
-    lastname: string;
-    salary: number;
-}
 
 export type CreateEmployeeInput = {
     username: string;
@@ -18,5 +8,6 @@ export type CreateEmployeeInput = {
     salary: number;
     targetRole: string;
     targetHotelID?: number | null;
+    targetBranchID: number;
 }
 
