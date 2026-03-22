@@ -64,16 +64,6 @@ export default function UserTable({ tableData }: UserTableParameter) {
             className: "text-slate-500",
         },
         {
-            title: "STATUS",
-            key: "status",
-            render: () => (
-                <Space>
-                    <Badge status="success" />
-                    <span className="text-emerald-600 font-medium">Active</span>
-                </Space>
-            )
-        },
-        {
             title: "ACTIONS",
             key: "actions",
             render: (_: unknown, record: EmployeeTableData & { _generatedPassword?: string }) => (
