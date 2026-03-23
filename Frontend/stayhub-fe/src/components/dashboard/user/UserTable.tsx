@@ -1,24 +1,19 @@
 "use client";
 
-import { EmployeeTableData } from "@/types/Employee";
+import { Employee} from "@/types/Employee";
 import { Table, Tag, Badge, Space, Button, Modal, Avatar } from "antd";
 import { EyeOutlined, EditOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { Hotel } from "@/types/Hotel";
+import { Branch } from "@/types/Branch";
 
 type UserTableParameter = {
-    tableData: (EmployeeTableData & { _generatedPassword?: string })[];
+    tableData: Employee[];
+    hotels: Hotel[];
+    branches: Branch[]
 }
 
-export default function UserTable({ tableData }: UserTableParameter) {
-    const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-    const [currentPassword, setCurrentPassword] = useState("");
-    const [currentEmployee, setCurrentEmployee] = useState<EmployeeTableData | null>(null);
-
-    const showPassword = (record: EmployeeTableData & { _generatedPassword?: string }) => {
-        setCurrentEmployee(record);
-        setCurrentPassword(record._generatedPassword || "");
-        setPasswordModalVisible(true);
-    };
+export default function UserTable({ tableData, hotels, branches }: UserTableParameter) {
 
     const columns = [
         {
@@ -31,7 +26,7 @@ export default function UserTable({ tableData }: UserTableParameter) {
         {
             title: "NAME",
             key: "name",
-            render: (_: unknown, record: EmployeeTableData) => {
+            render: (_: unknown, record: Employee) => {
                 const initials = `${record.firstname?.[0] || ""}${record.lastname?.[0] || ""}`.toUpperCase();
                 return (
                     <Space size="middle">
@@ -44,9 +39,9 @@ export default function UserTable({ tableData }: UserTableParameter) {
         {
             title: "ROLE",
             key: "role",
-            render: (_: unknown, record: EmployeeTableData & { role?: string }) => {
+            render: (_: unknown, record: Employee) => {
                 // If roles array exists and has items, show the first, else fallback
-                const roleName = record.roles && record.roles.length > 0 ? record.roles[0].role : record.role || "Employee";
+                const roleName = record.roles && record.roles.length > 0 ? record.roles[0].name : "Employee";
                 // Determine a tag color based on role
                 const color = roleName.includes("HOTEL") ? "blue" : roleName.includes("ROOM") ? "green" : roleName.includes("PAYMENT") ? "gold" : "purple";
                 return (
@@ -57,25 +52,24 @@ export default function UserTable({ tableData }: UserTableParameter) {
             }
         },
         {
+            title: "ASSIGNED BRANCH",
+            dataIndex: "branchid",
+            key: "hotel",
+            render: (branchid: number) => branchid && branches.some(i=>i.id==branchid) ? branches.find(i=>i.id==branchid)?.name : "Unassigned",
+            className: "text-slate-500",
+        },
+        {
             title: "ASSIGNED HOTEL",
             dataIndex: "hotelid",
             key: "hotel",
-            render: (hotelid: number) => hotelid ? `Hotel ${hotelid}` : "Unassigned",
+            render: (hotelid: number) => hotelid && hotels.some(i=>i.id==hotelid) ? hotels.find(i=>i.id==hotelid)?.name : "Unassigned",
             className: "text-slate-500",
         },
         {
             title: "ACTIONS",
             key: "actions",
-            render: (_: unknown, record: EmployeeTableData & { _generatedPassword?: string }) => (
+            render: () => (
                 <Space size="middle">
-                    {record._generatedPassword && (
-                        <Button 
-                            type="text" 
-                            icon={<EyeOutlined />} 
-                            onClick={() => showPassword(record)}
-                            className="text-slate-500 hover:text-emerald-600"
-                        />
-                    )}
                     <Button 
                         type="text" 
                         icon={<EditOutlined />} 
@@ -97,29 +91,6 @@ export default function UserTable({ tableData }: UserTableParameter) {
                 pagination={false}
                 className="w-full"
             />
-            
-            <Modal
-                title="Generated Password"
-                open={passwordModalVisible}
-                onOk={() => setPasswordModalVisible(false)}
-                onCancel={() => setPasswordModalVisible(false)}
-                footer={[
-                    <Button key="close" type="primary" onClick={() => setPasswordModalVisible(false)}>
-                        Close
-                    </Button>
-                ]}
-            >
-                <div className="flex flex-col gap-4 py-4">
-                    <p className="text-slate-600">
-                        Please securely share the following auto-generated password with the employee <b>{currentEmployee?.firstname} {currentEmployee?.lastname}</b>.
-                    </p>
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                        <span className="text-xl font-mono tracking-widest text-slate-800 select-all">
-                            {currentPassword}
-                        </span>
-                    </div>
-                </div>
-            </Modal>
         </>
     );
 }

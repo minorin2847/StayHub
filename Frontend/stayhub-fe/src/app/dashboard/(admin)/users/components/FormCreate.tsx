@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import { Button, Form, Input, Modal, Select, Row, Col, message, InputNumber } from "antd";
 import { FaCheckCircle, FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { MdContentCopy } from "react-icons/md";
+import { Branch } from "@/types/Branch";
+import { Hotel } from "@/types/Hotel";
+import { Role } from "@/types/Role";
 
 const generatePassword = () => {
   return Math.random().toString(36).slice(-8);
@@ -12,12 +15,19 @@ const FormCreate = ({
   open,
   onClose,
   onSuccess,
+  branches,
+  hotels,
+  roles
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: (user: any, generatedPassword?: string) => void;
+  branches: Branch[];
+  hotels: Hotel[];
+  roles: Role[]
 }) => {
   const [form] = Form.useForm();
+  const selectedBranch = Form.useWatch('branchid', form);
 
   useEffect(() => {
     if (open) {
@@ -54,12 +64,12 @@ const FormCreate = ({
         firstname: values.firstName,
         lastname: values.lastName,
         email: values.email,
-        roles: [values.role],
-        hotelid: values.hotelId === "none" ? null : parseInt(values.hotelId),
-        branchid: values.branchId === "none" ? null : parseInt(values.branchId),
-        salary: values.salary
+        salary: values.salary,
+        branchid: values.branchid || null,
+        hotelid: values.hotelid || null,
+        roles: values.roles || []
       };
-
+      console.log(payload)
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/employee/signup`,
         {
@@ -237,43 +247,43 @@ const SuccessContent = ({ username, password }: any) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="role"
-              label="Role"
-              rules={[{ required: true, message: "Please select a role!" }]}
+              name="roles"
+              label="Select role(s)"
+              // rules={[{ required: true, message: "Please select a role!" }]}
             >
-              <Select placeholder="Select role">
-                <Select.Option value="MANAGE_BRANCH">
-                  Branch Management
-                </Select.Option>
-                <Select.Option value="MANAGE_HOTEL">
-                  Hotel Management
-                </Select.Option>
-                <Select.Option value="MANAGE_ROOM">
-                  Room Management
-                </Select.Option>
-                <Select.Option value="PROCESS_PAYMENT">
-                  Payment Management
-                </Select.Option>
-                <Select.Option value="MANAGE_SERVICE">
-                  Service Management
-                </Select.Option>
-                <Select.Option value="MANAGE_REVIEW">
-                  Review Management
-                </Select.Option>
-              </Select>
+              <Select 
+              mode="multiple"
+              options={
+                [...roles
+                  .sort((a, b) => b.tier - a.tier)
+                  .map(i=>{
+                    return {
+                      label: i.name.split("_").map(i=>i.charAt(0).toUpperCase()+i.slice(1).toLowerCase()).join(" "),
+                      value: i.name
+                    }
+                  }),
+                ]
+              }
+              allowClear
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
-              name="branchId"
-              label="Branch"
-              rules={[{ required: true, message: "Please select a branch!" }]}
+              name="branchid"
+              label="Select branch"
+              // rules={[{ required: true, message: "Please select a branch!" }]}
             >
-              <Select placeholder="Select branch">
-                <Select.Option value="none">None</Select.Option>
-                <Select.Option value="1">Branch 1</Select.Option>
-                <Select.Option value="2">Branch 2</Select.Option>
-              </Select>
+              <Select
+              options={[...branches.map(i=>{
+                return {
+                  label: i.name,
+                  value: i.id
+                }
+              })]}
+              allowClear
+              />
+
             </Form.Item>
           </Col>
         </Row>
@@ -281,15 +291,21 @@ const SuccessContent = ({ username, password }: any) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="hotelId"
-              label="Assigned Hotel"
-              rules={[{ required: true, message: "Please select a hotel!" }]}
+              name="hotelid"
+              label="Select hotel"
+              // rules={[{ required: true, message: "Please select a hotel!" }]}
             >
-              <Select placeholder="Select hotel">
-                <Select.Option value="none">None</Select.Option>
-                <Select.Option value="1">Hotel 1</Select.Option>
-                <Select.Option value="2">Hotel 2</Select.Option>
-              </Select>
+              <Select 
+              placeholder={selectedBranch ? "Select hotel" : "Please select a branch first"}
+              disabled={!selectedBranch}
+              options={[...hotels.filter(i=>i.branchid==selectedBranch).map(i=>{
+                return {
+                  label: i.name,
+                  value: i.id
+                }
+              })]}
+              allowClear
+              />
             </Form.Item>
           </Col>
 

@@ -2,49 +2,28 @@
 
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { Modal, Form, Select, Slider, Radio, Row, Col, Divider, Space } from 'antd';
-import { UserSearchParams } from '@/app/dashboard/user/page';
 import { Role } from '@/types/Role';
+import { Branch } from '@/types/Branch';
+import { Hotel } from '@/types/Hotel';
+import { UserSearchParams } from '@/app/dashboard/(admin)/users/AdminUserView';
 
 type FilterModalProps  = {
   isFilterOpened: boolean;
   setIsFilterOpened: Dispatch<SetStateAction<boolean>>;
   query: UserSearchParams;
-  setQuery: Dispatch<SetStateAction<UserSearchParams>>
+  setQuery: Dispatch<SetStateAction<UserSearchParams>>;
+  branches: Branch[];
+  hotels: Hotel[];
+  roles: Role[]
 }
 
-export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, query, setQuery }: FilterModalProps) {
+export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, query, setQuery, branches, hotels, roles }: FilterModalProps) {
   const [form] = Form.useForm();
   
   // Watch branchId to enable/populate the Hotel dropdown
   const selectedBranch = Form.useWatch('branchid', form);
-  const [branches, setBranches] = useState<{value: number; label: string}[]>([]);
-  const [hotels, setHotels] = useState<{ value: number; label: string }[]>([]);
-  const [roles, setRoles] = useState<{value: string; label: string}[]>([]);
 
-  useEffect(()=> {
-    setBranches([
-        {id: 1, name: 'Main Branch'}, 
-        {id: 2, name: 'North Side'}
-    ].map(i=>({label: i.name, value: i.id})));
-    setRoles([
-        {role: 'ADMINISTRATOR', tier: 1},
-        {role: 'MANAGE_BRANCH', tier: 2}
-    ].map(i=>({label: i.role, value: i.role})))
-  }, [isFilterOpened])
 
-  // Mock effect: Fetch hotels when branch changes
-  useEffect(() => {
-    if (selectedBranch) {
-      // In a real app, call your API: getHotelsByBranch(selectedBranch)
-      setHotels([
-        { name: `Hotel A (Branch ${selectedBranch})`, id: 101 },
-        { name: `Hotel B (Branch ${selectedBranch})`, id: 102 },
-      ].map(i=>({label: i.name, value: i.id})));
-    } else {
-      setHotels([]);
-      form.setFieldValue('hotelid', null);
-    }
-  }, [selectedBranch, form]);
 
   const handleOk = () => {
     form.validateFields().then((values) => {
@@ -85,7 +64,12 @@ export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, que
             <Form.Item name="branchid" label="Branch">
               <Select 
               placeholder="Select Branch"
-              options={branches} 
+              options={[...branches.map(i=>{
+                return {
+                  label: i.name,
+                  value: i.id
+                }
+              })]}
               allowClear 
               />
             </Form.Item>
@@ -98,9 +82,14 @@ export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, que
           <Col span={12}>
             <Form.Item name="hotelid" label="Hotel">
               <Select 
-                placeholder="Choose Branch first" 
+                placeholder={selectedBranch ? "Select hotel" : "Choose Branch first"} 
                 disabled={!selectedBranch} 
-                options={hotels}
+              options={[...hotels.filter(i=>i.branchid==selectedBranch).map(i=>{
+                return {
+                  label: i.name,
+                  value: i.id
+                }
+              })]}
                 allowClear
               />
             </Form.Item>
@@ -110,7 +99,17 @@ export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, que
               <Select 
               mode="multiple" 
               placeholder="Select Roles"
-              options={roles} 
+              options={
+                [...roles
+                  .sort((a, b) => b.tier - a.tier)
+                  .map(i=>{
+                    return {
+                      label: i.name.split("_").map(i=>i.charAt(0).toUpperCase()+i.slice(1).toLowerCase()).join(" "),
+                      value: i.name
+                    }
+                  }),
+                ]
+              } 
               allowClear/>
             </Form.Item>
           </Col>

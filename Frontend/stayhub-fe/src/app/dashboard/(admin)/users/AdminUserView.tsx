@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { MdFilterList } from "react-icons/md";
-import EditModal from "@/components/dashboard/user/EditModal";
+import EditModal from "@/components/dashboard/user/EmployeeFilterSortModal";
 import buildQueryParams from "@/utils/BuildQueryParams";
 
 export type UserSearchParams = {
@@ -26,6 +26,9 @@ export type UserSearchParams = {
     page: string | null
 };
 import FormCreate from "./components/FormCreate";
+import { Branch } from "@/types/Branch";
+import { Hotel } from "@/types/Hotel";
+import FilterSortModal from "@/components/dashboard/user/EmployeeFilterSortModal";
 
 export default function AdminManageUser() {
     const searchParams = useSearchParams();
@@ -42,6 +45,9 @@ export default function AdminManageUser() {
         page: searchParams.get('page')
     }) 
     const [results, setResults] = useState<Employee[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [hotels, setHotels] = useState<Hotel[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [hasPrevious, setHasPrevious] = useState<boolean>(false);
     const [hasNext, setHasNext] = useState<boolean>(false);
@@ -51,6 +57,35 @@ export default function AdminManageUser() {
     const [open, setOpen] = useState(false)
     const showModal = () => setOpen(true)
     const closeModal = () => setOpen(false)
+
+    useEffect(() => {
+        const init = async () => {
+            setLoading(true)
+            const branchRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/branches/`, {
+                method: "GET",
+                credentials: "include"
+            });
+            const branchData = await branchRes.json();
+            setBranches(branchData as Branch[]);
+
+            const hotelRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/`, {
+                method: "GET",
+                credentials: "include"
+            });
+            const hotelData = await hotelRes.json();
+            setHotels(hotelData as Hotel[]);
+
+            const rolesRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/roles/`, {
+                method: "GET",
+                credentials: "include"
+            });
+            const rolesData = await rolesRes.json();
+            setRoles(rolesData as Role[]);
+            setLoading(false)
+        }
+
+        init()
+    }, [])
 
     useEffect(() => {
         const controller = new AbortController();
@@ -112,6 +147,9 @@ export default function AdminManageUser() {
                     onSuccess={(newEmployee) => {
                         setResults([newEmployee, ...results]);
                     }}
+                    hotels={hotels}
+                    branches={branches}
+                    roles={roles}
                 />
                  {/* filter button */}
                 <Button 
@@ -123,9 +161,13 @@ export default function AdminManageUser() {
                 />
 
                 {
-                    <EditModal isFilterOpened={isFilterOpened} setIsFilterOpened={setIsFilterOpened}
+                    <FilterSortModal isFilterOpened={isFilterOpened} setIsFilterOpened={setIsFilterOpened}
                     query={query}
-                    setQuery={setQuery} />
+                    setQuery={setQuery} 
+                    branches={branches}
+                    hotels={hotels}
+                    roles={roles}
+                    />
                 }
                 </div>
 
@@ -140,7 +182,7 @@ export default function AdminManageUser() {
                 : (
                     <div className="flex flex-col gap-6">
                         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                            <UserTable tableData={results} />
+                            <UserTable tableData={results} branches={branches} hotels={hotels}/>
                         </div>
             
                         <div className="flex items-center justify-center gap-4 py-2">
