@@ -1,36 +1,19 @@
 import db from "@/database/db.js";
 import type { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
+import type Hotel from "./hotels.js";
 
-export function hasPermission(role: string) {
-    return async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const requiredRole = await getRole(role);
-            const roles = req.user.roles;
-            if (roles.length===0) {
-                throw new Error("Employee doesn't have any roles!");
-            }
-            for (const role of roles) {
-                if (role.tier < requiredRole.tier || role.name == requiredRole.name) {
-                    next();
-                    return;
-                }
-            }
-            res.status(401).send("Unauthorized!");
-        } catch (err) {
-            if (err instanceof Error) res.status(404).send(err.message);
-            res.status(404).send("An unknown error occured!");
-        }
-    }
-}
+
 
 
 export async function getHotels(req: Request, res: Response, next: NextFunction) {
   try {
-    const hotels = await db.any("SELECT id, name, classification, branchid, location, description, amenities, policies, previewimages, contact_email, contact_phone FROM hotels");
-    return res.status(200).json({ response: hotels });
+    const hotels = await db.map("SELECT * FROM hotels", [], row => row as Hotel);
+    return res.status(200).json(hotels);
   } catch (error) {
-    next(error);
+    if (error instanceof Error) {
+      console.error(`There's a problem getting hotels:\n${error.stack}`)
+    } else console.error("There's an unknown error getting hotels!")
   }
 }
 
