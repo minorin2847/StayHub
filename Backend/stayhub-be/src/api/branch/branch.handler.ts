@@ -16,6 +16,19 @@ export async function findBranchesByName(
     return branch as Branch;
 }
 
+export async function getAllBranches(req: Request, res: Response, next: NextFunction) {
+    rlsWrapper(
+        "get-all-branch",
+        req.user,
+        async t => {
+            return await t.map("SELECT * FROM branch", [], row => row as Branch)
+        },
+        result => {
+            res.status(200).json(result);
+        }
+    )
+}
+
 export function createBranch(req: Request, res: Response, next: NextFunction) {
     const {
         name,
