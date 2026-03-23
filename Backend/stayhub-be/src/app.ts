@@ -17,6 +17,7 @@ import homeGuestsRouter from './api/homeGuests/homeGuests.routes.js';
 import employeeRoute from './api/employee/employee.routes.js';
 import hotelsRouter from './api/hotels/hotels.routes.js';
 import branchRoute from './api/branch/branch.routes.js';
+import roleRoutes from './api/roles/roles.routes.js';
 
 /* Middleware */
 app.use(cors({credentials: true, origin: process.env.FRONTEND_URL}));
@@ -46,6 +47,7 @@ employee.use("/", employeeRoute);
 employee.use("/dashboard", dashboardRoute);
 employee.use("/hotels", hotelsRouter);
 employee.use("/branches", branchRoute);
+employee.use("/roles", roleRoutes);
 app.use("/employee", employee);
 
 /* No login */
