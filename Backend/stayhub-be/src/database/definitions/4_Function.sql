@@ -79,7 +79,7 @@ BEGIN
             SELECT 
                 e.id, e.username, e.email, e.hotelid, e.branchid, e.firstname, e.lastname, e.salary,
                 COALESCE(
-                    (SELECT jsonb_agg(jsonb_build_object(''role'', er.role, ''tier'', r.tier) ORDER BY r.tier ASC)
+                    (SELECT jsonb_agg(jsonb_build_object(''name'', er.role, ''tier'', r.tier) ORDER BY r.tier ASC)
                      FROM employee_roles er JOIN roles r ON er.role = r.name
                      WHERE er.employeeID = e.id), ''[]''::jsonb
                 ) AS roles
@@ -233,7 +233,7 @@ BEGIN
         COALESCE(
             (
                 SELECT jsonb_agg(
-                    jsonb_build_object('role', er.role, 'tier', r.tier) 
+                    jsonb_build_object('name', er.role, 'tier', r.tier) 
                     ORDER BY r.tier ASC
                 )
                 FROM employee_roles er

@@ -37,7 +37,7 @@ export default function Header() {
                 <div className="flex items-center gap-3 cursor-pointer group">
                     <div className="text-right hidden sm:block">
                         <p className="text-sm font-bold text-slate-800 leading-none mb-1">{(user?.firstname ?? "") + " " + (user?.lastname ?? "")}</p>
-                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{user?.roles.sort((a, b) => b.tier - a.tier)[0].role}</p>
+                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{user?.roles.sort((a, b) => b.tier - a.tier)[0].name}</p>
                     </div>
                     
                     <div className="relative">

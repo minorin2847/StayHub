@@ -8,11 +8,11 @@ export default function DashboardUserDispatcher() {
 
     if (!user) redirect("/dashboard/login");
 
-    if (user.roles.some(i => i.role == "ADMINISTRATOR")) {
+    if (user.roles.some(i => i.name == "ADMINISTRATOR")) {
         return <AdminManageUser />
     }
 
-    if (user.roles.some(i => i.role == "MANAGE_BRANCH")) {
+    if (user.roles.some(i => i.name == "MANAGE_BRANCH")) {
         return <></>
     }
 

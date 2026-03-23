@@ -12,9 +12,9 @@ export default function SidebarUpdater() {
     if (!user) return;
 
     // Logic to determine which menu to show
-    if (user.roles.some(r => r.role === "ADMINISTRATOR")) {
+    if (user.roles.some(r => r.name === "ADMINISTRATOR")) {
       setConfig({ items: MENU_CONFIG.ADMINISTRATOR });
-    } else if (user.roles.some(r => r.role === "MANAGE_BRANCH")) {
+    } else if (user.roles.some(r => r.name === "MANAGE_BRANCH")) {
       //setConfig({ items: MENU_CONFIG.MANAGE_BRANCH });
     } else {
       //setConfig({ items: MENU_CONFIG.DEFAULT });

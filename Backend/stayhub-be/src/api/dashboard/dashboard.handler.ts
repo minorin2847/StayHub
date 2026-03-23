@@ -19,7 +19,7 @@ export function hasPermission(roles: string[]) {
             }
             for (const requiredRole of roles) {
                 for (const userRole of userRoles) {
-                    if (requiredRole == userRole.role) {
+                    if (requiredRole == userRole.name) {
                         next();
                         return;
                     }
