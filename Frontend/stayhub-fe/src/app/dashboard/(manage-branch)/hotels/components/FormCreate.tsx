@@ -2,9 +2,6 @@
 import React, { useEffect } from "react";
 import { Button, Form, Input, Modal, Select, Row, Col, message } from "antd";
 
-const generatePassword = () => {
-  return Math.random().toString(36).slice(-8);
-};
 
 const FormCreate = ({
   open,
@@ -27,14 +24,10 @@ const FormCreate = ({
           branchid: editRecord.branchid?.toString(),
           location: editRecord.location,
           contact_email: editRecord.contact_email,
-          contact_phone: editRecord.contact_phone,
-          previewimages: editRecord.previewimages?.join(", "),
+          contact_phone: editRecord.contact_phone
         });
       } else {
         form.resetFields();
-        form.setFieldsValue({
-          password: generatePassword(),
-        });
       }
     } else {
       form.resetFields();
@@ -43,11 +36,6 @@ const FormCreate = ({
 
   const onReset = () => {
     form.resetFields();
-    if (!editRecord) {
-      form.setFieldsValue({
-        password: generatePassword(),
-      });
-    }
   };
 
   const handleFinish = async (values: any) => {
@@ -57,9 +45,7 @@ const FormCreate = ({
         branchid: values.branchid === "none" ? null : parseInt(values.branchid),
         location: values.location,
         contact_email: values.contact_email,
-        contact_phone: values.contact_phone,
-        password: values.password, // only used on create
-        previewimages: values.previewimages ? values.previewimages.split(",").map((i: string) => i.trim()) : [],
+        contact_phone: values.contact_phone
       };
 
       const url = editRecord 

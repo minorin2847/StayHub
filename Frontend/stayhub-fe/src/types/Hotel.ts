@@ -1,6 +1,7 @@
 export type Hotel = {
     id: number;
     name: string;
+    branchid: number;
     classification: number;
     location: string;
     description: string;
@@ -9,5 +10,4 @@ export type Hotel = {
     previewimages: Array<string>;
     contact_email?: string;
     contact_phone?: string;
-    _generatedPassword?: string;
 }
