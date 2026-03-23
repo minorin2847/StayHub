@@ -5,6 +5,19 @@ import type { CreateEmployeeInput } from "./employee.type.js";
 import crypto from "node:crypto";
 import type Employee from "./employee.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
+import pgPromise from "pg-promise";
+
+const employeeColumns = new pgPromise.ColumnSet(
+  [
+    'branchid?',
+    'hotelid?',
+    'firstname?',
+    'lastname?',
+    'salary?'
+  ], {
+    table: "employees"
+  }
+)
 
 export async function findEmployeeByUsername(
   username: string,
@@ -108,4 +121,24 @@ export function createEmployee(
         )
       });
     });
+}
+
+
+export function editEmployee(req: Request, res: Response, next: NextFunction) {
+  const id = parseInt(req.params.id);
+  const body = req.body;
+
+  if (Object.keys(body).length == 0) {
+    return res.status(400).send("No data provided!")
+  }
+
+  const query = pgPromise().helpers.update(body, employeeColumns)
+              + pgPromise().as.format(' WHERE id=$1 RETURNING *', [id])
+  const updatedEmployee = db.map(query, [], row => row as Employee);
+
+  if (!updatedEmployee) {
+    return res.status(404).send("User not found!")
+  }
+
+  res.status(200).json(updatedEmployee)
 }
