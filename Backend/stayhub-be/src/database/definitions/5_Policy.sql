@@ -26,27 +26,26 @@ $$;
 -- ============================================================================
 DO $$ 
 BEGIN
-IF NOT EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE schemaname = 'public' 
-          AND tablename = 'employees' 
-          AND policyname = 'branch_manager_all_employees'
-    ) THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'branch_manager_all_employees' AND tablename = 'employees') THEN
         EXECUTE $POLICY$
-            CREATE POLICY branch_manager_all_employees ON employees
-            FOR ALL
+            CREATE POLICY branch_manager_all_employees ON employees FOR ALL
             USING (
                 'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 AND 
-                hotelid IN (
-                    SELECT id FROM hotels 
-                    WHERE branchid = NULLIF(current_setting('app.branchid', true), '')::INT
-                )
+                hotelid IN (SELECT id FROM hotels WHERE branchid = NULLIF(current_setting('app.branchid', true), '')::INT)
+                AND
+                -- Manager's best tier
+                (SELECT MIN(tier) FROM roles WHERE name = ANY(string_to_array(current_setting('app.roles', true), ','))) 
+                < 
+                -- Employee's best tier (Defaults to 999 if no roles exist)
+                (SELECT COALESCE(MIN(r.tier), 999) 
+                 FROM employee_roles er 
+                 JOIN roles r ON er.role = r.name 
+                 WHERE er.employeeID = employees.id)
             );
         $POLICY$;
     END IF;
-END
-$$;
+END $$;
 
 
 -- ============================================================================
@@ -54,24 +53,26 @@ $$;
 -- ============================================================================
 DO $$ 
 BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE schemaname = 'public' 
-          AND tablename = 'employees' 
-          AND policyname = 'hotel_manager_all_employees'
-    ) THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'hotel_manager_all_employees' AND tablename = 'employees') THEN
         EXECUTE $POLICY$
-            CREATE POLICY hotel_manager_all_employees ON employees
-            FOR ALL
+            CREATE POLICY hotel_manager_all_employees ON employees FOR ALL
             USING (
                 'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 AND 
                 hotelid = NULLIF(current_setting('app.hotelid', true), '')::INT
+                AND
+                -- Manager's best tier
+                (SELECT MIN(tier) FROM roles WHERE name = ANY(string_to_array(current_setting('app.roles', true), ','))) 
+                < 
+                -- Employee's best tier (Defaults to 999 if no roles exist)
+                (SELECT COALESCE(MIN(r.tier), 999) 
+                 FROM employee_roles er 
+                 JOIN roles r ON er.role = r.name 
+                 WHERE er.employeeID = employees.id)
             );
         $POLICY$;
     END IF;
-END
-$$;
+END $$;
 
 -- ============================================================================
 -- 4. ADMINISTRATOR POLICIES FOR BRANCH TABLE
