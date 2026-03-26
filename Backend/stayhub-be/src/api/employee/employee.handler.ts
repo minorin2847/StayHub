@@ -3,21 +3,30 @@ import { passport } from "@/utils/initializeSession.js";
 import type { NextFunction, Request, Response } from "express";
 import type { CreateEmployeeInput } from "./employee.type.js";
 import crypto from "node:crypto";
-import type Employee from "./employee.js";
+import Employee from "./employee.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import pgPromise from "pg-promise";
 
-const employeeColumns = new pgPromise.ColumnSet(
-  [
-    'branchid?',
-    'hotelid?',
-    'firstname?',
-    'lastname?',
-    'salary?'
-  ], {
+const employeeColumns = new (pgPromise().helpers.ColumnSet)(
+[
+    { name: 'branchid', skip: (c: any) => c.value === undefined },
+    { name: 'hotelid', skip: (c: any) => c.value === undefined },
+    { name: 'firstname', skip: (c: any) => c.value === undefined },
+    { name: 'lastname', skip: (c: any) => c.value === undefined },
+    { name: 'salary', skip: (c: any) => c.value === undefined }
+  ],
+  {
     table: "employees"
   }
-)
+);
+
+const roleColumnSet = new (pgPromise().helpers.ColumnSet)(
+  [
+    'employeeid', 
+    'role'
+  ], 
+  { table: 'employee_roles' }
+);
 
 export async function findEmployeeByUsername(
   username: string,
@@ -29,7 +38,7 @@ export async function findEmployeeByUsername(
   if (!employee) {
     throw Error(`Can't find employee with username ${username}!`);
   }
-  return employee as Employee;
+  return new Employee(employee);
 }
 
 export function login(req: Request, res: Response, next: NextFunction) {
@@ -124,21 +133,88 @@ export function createEmployee(
 }
 
 
+
+
 export function editEmployee(req: Request, res: Response, next: NextFunction) {
   const id = parseInt(req.params.id);
-  const body = req.body;
+  const { roles, ...employeeData } = req.body; // Separate roles from the rest
 
-  if (Object.keys(body).length == 0) {
-    return res.status(400).send("No data provided!")
+
+  if (Object.keys(req.body).length === 0) {
+    return res.status(400).send("No data provided!");
   }
 
-  const query = pgPromise().helpers.update(body, employeeColumns)
-              + pgPromise().as.format(' WHERE id=$1 RETURNING *', [id])
-  const updatedEmployee = db.map(query, [], row => row as Employee);
+  rlsWrapper('update-employee', req.user,
+    async t => {
+      let updatedRow;
 
-  if (!updatedEmployee) {
-    return res.status(404).send("User not found!")
-  }
+      // 1. Update Employee Table (if there is data besides roles)
+      if (Object.keys(employeeData).length > 0) {
+        const query = pgPromise().helpers.update(employeeData, employeeColumns)
+                    + pgPromise().as.format(' WHERE id=$1 RETURNING *', [id]);
+        updatedRow = await t.oneOrNone(query);
+      } else {
+        // If only roles were sent, we need to fetch the current employee to return it
+        updatedRow = await t.oneOrNone('SELECT * FROM employees WHERE id = $1', [id]);
+      }
 
-  res.status(200).json(updatedEmployee)
+      if (!updatedRow) return null;
+
+      // 2. Update Roles (if provided in body)
+      if (roles && Array.isArray(roles)) {
+        // First, wipe existing roles for this user
+        await t.none('DELETE FROM employee_roles WHERE employeeID = $1', [id]);
+
+        // If the new list isn't empty, insert them
+        if (roles.length > 0) {
+          const roleValues = roles.map(roleName => ({ employeeid: id, role: roleName }));
+          const roleQuery = pgPromise().helpers.insert(roleValues, roleColumnSet);
+          await t.none(roleQuery);
+        }
+      }
+
+      // 3. Return the fully re-constructed Employee (using your SQL function to get the fresh roles)
+      const finalResult = await t.one('SELECT * FROM get_user_from_id($1)', [id]);
+      return new Employee(finalResult);
+    },
+    updatedEmployee => {
+      if (!updatedEmployee) {
+        return res.status(404).send("Employee not found!");
+      }
+      res.status(200).json(updatedEmployee);
+    }
+  );
+}
+
+export function getEmployee(req: Request, res: Response, next: NextFunction) {
+  const id = parseInt(req.params.id);
+
+  rlsWrapper('find-employee', req.user,
+    async t => {
+      return t.oneOrNone("SELECT * FROM get_user_from_id($1)", [id], row => new Employee(row))
+    },
+    employee => {
+      if (!employee) {
+        return res.status(404).send("Employee not found!")
+      }
+      console.log(employee)
+      res.status(200).json(employee)
+    }
+  )
+}
+
+export function deleteEmployee(req: Request, res: Response, next: NextFunction) {
+  const id = parseInt(req.params.id);
+
+  rlsWrapper('delete-employee', req.user,
+    async t => {
+      return await t.oneOrNone("DELETE FROM employees WHERE id=$1 RETURNING id", [id]);
+    },
+    result => {
+      if (!result) {
+        return res.status(404).send("Employee not found or already deleted!");
+      }
+      res.status(200).send("Employee deleted successfully");
+    }
+  )
 }
