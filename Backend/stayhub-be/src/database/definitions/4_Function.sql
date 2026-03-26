@@ -19,7 +19,7 @@ DECLARE
     v_max_pages INT;
     v_actual_page INT;
     v_offset INT;
-    v_where TEXT := ' WHERE TRUE';
+    v_where TEXT := ' WHERE e.username <> ' || p_name;
     v_query TEXT;
     v_sort_clause TEXT;
 BEGIN
@@ -322,5 +322,57 @@ BEGIN
     SELECT e.id, e.username, e.email, e.firstName, e.lastName, e.salary, e.hotelid, e.branchid
     FROM employees e
     WHERE e.username = p_username;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION get_user_from_id(p_id INT)
+RETURNS TABLE (
+    id INT,
+    username VARCHAR,
+    email VARCHAR,
+    hotelid INT,
+    firstname VARCHAR,
+    lastname VARCHAR,
+    salary INT,
+    branchid INT,
+    roles JSONB
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        e.id,
+        e.username,
+        e.email,
+        e.hotelid,
+        e.firstname,
+        e.lastname,
+        e.salary,
+        e.branchid,
+        -- Aggregate roles and tiers into a JSON array, sorted by tier
+        COALESCE(
+            (
+                SELECT jsonb_agg(
+                    jsonb_build_object('name', er.role, 'tier', r.tier) 
+                    ORDER BY r.tier ASC
+                )
+                FROM employee_roles er
+                JOIN roles r ON er.role = r.name
+                WHERE er.employeeID = e.id
+            ), 
+            '[]'::jsonb -- Default to an empty JSON array
+        ) AS roles
+    FROM employees e
+    WHERE e.id = p_id -- Now filters based on the passed-in username
+    GROUP BY 
+        e.id, 
+        e.username, 
+        e.email, 
+        e.hotelid, 
+        e.firstname, 
+        e.lastname, 
+        e.salary;
 END;
 $$;
