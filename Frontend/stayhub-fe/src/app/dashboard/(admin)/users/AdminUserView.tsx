@@ -86,13 +86,7 @@ export default function AdminManageUser() {
 
         init()
     }, [])
-
-    useEffect(() => {
-        const controller = new AbortController();
-        const signal = controller.signal;
-        setLoading(true);
-        const queryHandler = setTimeout(async () => {
-            try {
+    const fetchEmployee = async () => {
                 const params = buildQueryParams(query).toString()
                 router.push(`/dashboard/users?${params}`);
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/user?${params}`, {
@@ -103,6 +97,14 @@ export default function AdminManageUser() {
                 setResults(data.response as Employee[]);
                 setHasPrevious(parseInt(query.page ?? '1') > 1);
                 setHasNext(data.hasNext);
+    }
+    useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        setLoading(true);
+        const queryHandler = setTimeout(async () => {
+            try {
+                await fetchEmployee()
             } catch (error) {
                 if (error instanceof Error && error.name !== 'AbortError') {
                     console.error("An error occured: ", error);
@@ -144,8 +146,10 @@ export default function AdminManageUser() {
                 <FormCreate 
                     open={open} 
                     onClose={closeModal} 
-                    onSuccess={(newEmployee) => {
-                        setResults([newEmployee, ...results]);
+                    onSuccess={async () => {
+                        setLoading(true);
+                        await fetchEmployee();
+                        setLoading(false);
                     }}
                     hotels={hotels}
                     branches={branches}
@@ -182,7 +186,7 @@ export default function AdminManageUser() {
                 : (
                     <div className="flex flex-col gap-6">
                         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                            <UserTable tableData={results} branches={branches} hotels={hotels}/>
+                            <UserTable tableData={results} branches={branches} hotels={hotels} roles={roles} onRefresh={async () => {setLoading(true);await fetchEmployee();setLoading(false)}}/>
                         </div>
             
                         <div className="flex items-center justify-center gap-4 py-2">

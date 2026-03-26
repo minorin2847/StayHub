@@ -1,19 +1,60 @@
 "use client";
 
 import { Employee} from "@/types/Employee";
-import { Table, Tag, Badge, Space, Button, Modal, Avatar } from "antd";
-import { EyeOutlined, EditOutlined } from "@ant-design/icons";
+import { Table, Tag, Badge, Space, Button, Modal, Avatar, message } from "antd";
+import { EyeOutlined, EditOutlined, DeleteOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import { useState } from "react";
 import { Hotel } from "@/types/Hotel";
 import { Branch } from "@/types/Branch";
+import { Role } from "@/types/Role";
+import FormEdit from "@/app/dashboard/(admin)/users/components/FormEdit";
+
+const { confirm } = Modal;
 
 type UserTableParameter = {
     tableData: Employee[];
     hotels: Hotel[];
-    branches: Branch[]
+    branches: Branch[];
+    roles: Role[]; // Added roles prop
+    onRefresh: () => void; // Added refresh callback
 }
 
-export default function UserTable({ tableData, hotels, branches }: UserTableParameter) {
+export default function UserTable({ tableData, hotels, branches, roles, onRefresh }: UserTableParameter) {
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+
+    const showDeleteConfirm = (record: Employee) => {
+        confirm({
+            title: `Do you want to delete ${record.firstname} ${record.lastname}?`,
+            icon: <ExclamationCircleFilled />,
+            content: 'This action cannot be undone.',
+            okText: 'Yes',
+            okType: 'danger',
+            cancelText: 'No',
+            async onOk() {
+                try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/delete/${record.id}`, {
+                        method: 'DELETE',
+                        credentials: "include"
+                    });
+                    if (res.ok) {
+                        message.success("Employee deleted");
+                        onRefresh();
+                    } else {
+                        message.error("Failed to delete");
+                    }
+                } catch (e) {
+                    message.error("Error deleting employee");
+                }
+            },
+        });
+    };
+
+    const handleEditClick = (id: number) => {
+        setSelectedEmployeeId(id);
+        setIsEditModalOpen(true);
+    };
+
 
     const columns = [
         {
@@ -41,14 +82,18 @@ export default function UserTable({ tableData, hotels, branches }: UserTablePara
             key: "role",
             render: (_: unknown, record: Employee) => {
                 // If roles array exists and has items, show the first, else fallback
-                const roleName = record.roles && record.roles.length > 0 ? record.roles[0].name : "Employee";
+                const roleName = record.roles && record.roles.length > 0 ? record.roles.map(i=>i.name) : ["Employee"];
                 // Determine a tag color based on role
-                const color = roleName.includes("HOTEL") ? "blue" : roleName.includes("ROOM") ? "green" : roleName.includes("PAYMENT") ? "gold" : "purple";
-                return (
-                    <Tag color={color} className="rounded-full px-3 py-1 font-semibold border-none">
-                        {roleName.replace("MANAGE_", "").replace("_", " ")}
-                    </Tag>
-                );
+                return roleName.map((role, index) => {
+                    const color = role.includes("HOTEL") ? "blue" : role.includes("ROOM") ? "green" : role.includes("PAYMENT") ? "gold" : "purple";
+                    return (
+                        <Tag key={index} color={color} className="rounded-full px-3 py-1 font-semibold border-none">
+                            {role.replace("MANAGE_", "").replace("_", " ")}
+                        </Tag>
+                    );
+                })
+
+                
             }
         },
         {
@@ -65,17 +110,27 @@ export default function UserTable({ tableData, hotels, branches }: UserTablePara
             render: (hotelid: number) => hotelid && hotels.some(i=>i.id==hotelid) ? hotels.find(i=>i.id==hotelid)?.name : "Unassigned",
             className: "text-slate-500",
         },
-        {
+       {
             title: "ACTIONS",
             key: "actions",
-            render: () => (
+            render: (_: unknown, record: Employee) => (
                 <Space size="middle">
                     <Button 
                         type="text" 
                         icon={<EditOutlined />} 
-                        className="text-slate-500 hover:text-blue-600 font-semibold"
+                        className="text-blue-500 hover:text-blue-700 font-semibold"
+                        onClick={() => handleEditClick(record.id)}
                     >
                         Edit
+                    </Button>
+                    <Button 
+                        type="text" 
+                        danger
+                        icon={<DeleteOutlined />} 
+                        className="font-semibold"
+                        onClick={() => showDeleteConfirm(record)}
+                    >
+                        Delete
                     </Button>
                 </Space>
             )
@@ -90,6 +145,18 @@ export default function UserTable({ tableData, hotels, branches }: UserTablePara
                 rowKey="id"
                 pagination={false}
                 className="w-full"
+            />
+            <FormEdit 
+                open={isEditModalOpen}
+                employeeId={selectedEmployeeId}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedEmployeeId(null);
+                }}
+                onSuccess={onRefresh}
+                branches={branches}
+                hotels={hotels}
+                roles={roles}
             />
         </>
     );
