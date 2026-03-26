@@ -4,8 +4,8 @@ import local from "passport-local";
 import session from "express-session";
 import * as crypto from "node:crypto";
 import connect_pg from "connect-pg-simple";
-import type User from "@/api/user/user.js";
-import type Employee from "@/api/employee/employee.js";
+import User from "@/api/user/user.js";
+import Employee from "@/api/employee/employee.js";
 
 const pgSession = connect_pg(session);
 const connectionString =
@@ -110,13 +110,13 @@ passport.deserializeUser(async (obj: any, cb) => {
       const row = await pg.oneOrNone("SELECT * FROM users WHERE username=$1", [
         obj.username,
       ]);
-      return cb(null, row ? row as User : false);
+      return cb(null, row ? new User(row) : false);
     } else {
       const row = await pg.oneOrNone(
         "SELECT * FROM get_user_auth_context($1);",
         [obj.username],
       );
-      return cb(null, row ? row as Employee : false);
+      return cb(null, row ? new Employee(row) : false);
     }
   } catch (err) {
     cb(err);

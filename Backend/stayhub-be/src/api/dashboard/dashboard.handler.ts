@@ -1,10 +1,9 @@
 
 import type { NextFunction, Request, Response } from "express";
 import db from "@/database/db.js";
-import type Role from "../roles/roles.js";
+import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
-import type Employee from "../employee/employee.js";
-import type { EmployeeDTO } from "../employee/employee.type.js";
+import Employee from "../employee/employee.js";
 import type { BranchTable } from "../branch/branch.type.js";
 
 
@@ -68,7 +67,7 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
                 page: page ?? 1
             })
         });
-        res.status(200).json(response.length > 0 ? {hasNext: response[0].hasNext, response: response.map(i=>i as Employee)}: []);
+        res.status(200).json(response.length > 0 ? {hasNext: response[0].hasNext, response: response.map(i=>new Employee(i))}: []);
     } catch (err) {
         if (err instanceof Error) {
             res.status(404).send(err.stack);

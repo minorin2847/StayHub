@@ -1,14 +1,14 @@
 import db from "@/database/db.js";
 import type { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
-import type Hotel from "./hotels.js";
+import Hotel from "./hotels.js";
 
 
 
 
 export async function getHotels(req: Request, res: Response, next: NextFunction) {
   try {
-    const hotels = await db.map("SELECT * FROM hotels", [], row => row as Hotel);
+    const hotels = await db.map("SELECT * FROM hotels", [], row => new Hotel(row));
     return res.status(200).json(hotels);
   } catch (error) {
     if (error instanceof Error) {

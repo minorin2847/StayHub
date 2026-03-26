@@ -1,4 +1,4 @@
-import type User from "./user.js";
+import User from "./user.js";
 import db from "@/database/db.js";
 
 export async function findUser(id: number): Promise<User> {
@@ -6,7 +6,7 @@ export async function findUser(id: number): Promise<User> {
     if (!user) {
         throw Error(`Can't find user with id ${id}!`);
     }
-    return user as User;
+    return new User(user);
 }
 
 export async function findUserByUsername(username: string): Promise<User> {
@@ -14,5 +14,5 @@ export async function findUserByUsername(username: string): Promise<User> {
     if (!user) {
         throw Error(`Can't find user with username ${username}!`);
     }
-    return user as User;
+    return new User(user);
 }

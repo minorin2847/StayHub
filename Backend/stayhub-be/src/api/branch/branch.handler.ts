@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import type Branch from "./branch.js";
+import Branch from "./branch.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import db from "@/database/db.js";
 
@@ -13,7 +13,7 @@ export async function findBranchesByName(
     if (!branch) {
         throw Error(`Can't find branch with name ${name}!`)
     }
-    return branch as Branch;
+    return new Branch(branch);
 }
 
 export async function getAllBranches(req: Request, res: Response, next: NextFunction) {
@@ -21,7 +21,7 @@ export async function getAllBranches(req: Request, res: Response, next: NextFunc
         "get-all-branch",
         req.user,
         async t => {
-            return await t.map("SELECT * FROM branch", [], row => row as Branch)
+            return await t.map("SELECT * FROM branch", [], row => new Branch(row))
         },
         result => {
             res.status(200).json(result);
