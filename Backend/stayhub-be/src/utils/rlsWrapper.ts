@@ -3,8 +3,8 @@ import db from "@/database/db.js";
 export default function rlsWrapper(
     transactionName: string,
     user: any, 
-    query: (_: any) => Promise<any>,
-    result: (_: any) => any) {
+    query: (t: any) => Promise<any>,
+    result: (row: any) => any) {
     db.tx(transactionName, async t => {
         const roleStr = user.roles.join(",");
         await t.none("SET LOCAL app.current_username = $1", [
