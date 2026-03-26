@@ -181,3 +181,100 @@ BEGIN
         ALTER TABLE home_Guests ADD CONSTRAINT unique_home_guests_title_location UNIQUE (title, location);
     END IF; 
 END $$;
+
+-- employee_roles: Delete roles if employee is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employee_roles_emp' AND conrelid = 'employee_roles'::regclass) THEN 
+        ALTER TABLE employee_roles ADD CONSTRAINT fk_employee_roles_emp FOREIGN KEY (employeeID) REFERENCES employees(id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- employee_roles: Delete reference if the role name itself is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employee_roles_role' AND conrelid = 'employee_roles'::regclass) THEN 
+        ALTER TABLE employee_roles ADD CONSTRAINT fk_employee_roles_role FOREIGN KEY (role) REFERENCES roles(name) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- shifts: Delete shifts if employee is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_shifts_employee' AND conrelid = 'shifts'::regclass) THEN 
+        ALTER TABLE shifts ADD CONSTRAINT fk_shifts_employee FOREIGN KEY (employeeID) REFERENCES employees(id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- works: Delete work records if employee is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_works_employee' AND conrelid = 'works'::regclass) THEN 
+        ALTER TABLE works ADD CONSTRAINT fk_works_employee FOREIGN KEY (employeeID) REFERENCES employees(id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- employees: Unassign branch if branch is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employees_branch' AND conrelid = 'employees'::regclass) THEN 
+        ALTER TABLE employees ADD CONSTRAINT fk_employees_branch FOREIGN KEY (branchID) REFERENCES branch(id) ON DELETE SET NULL;
+    END IF; 
+END $$;
+
+-- employees: Unassign hotel if hotel is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employees_hotel' AND conrelid = 'employees'::regclass) THEN 
+        ALTER TABLE employees ADD CONSTRAINT fk_employees_hotel FOREIGN KEY (hotelID) REFERENCES hotels(id) ON DELETE SET NULL;
+    END IF; 
+END $$;
+
+-- hotels: Unassign from branch if branch is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotels_branch' AND conrelid = 'hotels'::regclass) THEN 
+        ALTER TABLE hotels ADD CONSTRAINT fk_hotels_branch FOREIGN KEY (branchID) REFERENCES branch(id) ON DELETE SET NULL;
+    END IF; 
+END $$;
+
+-- employees: Unassign branch if branch is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employees_branch' AND conrelid = 'employees'::regclass) THEN 
+        ALTER TABLE employees ADD CONSTRAINT fk_employees_branch FOREIGN KEY (branchID) REFERENCES branch(id) ON DELETE SET NULL;
+    END IF; 
+END $$;
+
+-- employees: Unassign hotel if hotel is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_employees_hotel' AND conrelid = 'employees'::regclass) THEN 
+        ALTER TABLE employees ADD CONSTRAINT fk_employees_hotel FOREIGN KEY (hotelID) REFERENCES hotels(id) ON DELETE SET NULL;
+    END IF; 
+END $$;
+
+-- hotels: Unassign from branch if branch is deleted
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotels_branch' AND conrelid = 'hotels'::regclass) THEN 
+        ALTER TABLE hotels ADD CONSTRAINT fk_hotels_branch FOREIGN KEY (branchID) REFERENCES branch(id) ON DELETE SET NULL;
+    END IF; 
+END $$;
+
+-- employees: Ensure salary is positive
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_employee_salary_positive' AND conrelid = 'employees'::regclass) THEN 
+        ALTER TABLE employees ADD CONSTRAINT check_employee_salary_positive CHECK (salary >= 0);
+    END IF; 
+END $$;
+
+-- branch: Unique location names per branch (optional integrity)
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_branch_name_location' AND conrelid = 'branch'::regclass) THEN 
+        ALTER TABLE branch ADD CONSTRAINT unique_branch_name_location UNIQUE (name, location);
+    END IF; 
+END $$;
+
