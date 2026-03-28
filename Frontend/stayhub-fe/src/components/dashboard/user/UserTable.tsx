@@ -82,16 +82,14 @@ export default function UserTable({ tableData, hotels, branches, roles, onRefres
             key: "role",
             render: (_: unknown, record: Employee) => {
                 // If roles array exists and has items, show the first, else fallback
-                const roleName = record.roles && record.roles.length > 0 ? record.roles.map(i=>i.name) : ["Employee"];
+                const roleName = record.roles && record.roles.length > 0 ? record.roles[0].name : "Employee";
                 // Determine a tag color based on role
-                return roleName.map((role, index) => {
-                    const color = role.includes("HOTEL") ? "blue" : role.includes("ROOM") ? "green" : role.includes("PAYMENT") ? "gold" : "purple";
+                    const color = roleName.includes("HOTEL") ? "blue" : roleName.includes("ROOM") ? "green" : roleName.includes("PAYMENT") ? "gold" : "purple";
                     return (
-                        <Tag key={index} color={color} className="rounded-full px-3 py-1 font-semibold border-none">
-                            {role.replace("MANAGE_", "").replace("_", " ")}
+                        <Tag color={color} className="rounded-full px-3 py-1 font-semibold border-none">
+                            {roleName.replace("MANAGE_", "").replace("_", " ")}
                         </Tag>
                     );
-                })
 
                 
             }
