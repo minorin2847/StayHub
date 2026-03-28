@@ -55,7 +55,8 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
             await t.none("SET LOCAL app.roles = $1", [userRoles]);
             await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || '']);
             await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || '']);
-            return t.manyOrNone("SELECT * FROM get_employees_by_page($(name),$(hotelid),$(branchid),$(roles),$(salaryMin),$(salaryMax),$(sort),$(order),$(page))", {
+            return t.manyOrNone("SELECT * FROM get_employees_by_page($(current), $(name),$(hotelid),$(branchid),$(roles),$(salaryMin),$(salaryMax),$(sort),$(order),$(page))", {
+                current: req.user.username ?? null,
                 name: name ?? null,
                 hotelid: hotelid ?? null,
                 branchid: branchid ?? null,

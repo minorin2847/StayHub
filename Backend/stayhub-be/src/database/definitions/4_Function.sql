@@ -1,4 +1,5 @@
 CREATE OR REPLACE FUNCTION get_employees_by_page(
+    current_username TEXT DEFAULT NULL,
     p_name TEXT DEFAULT NULL,
     p_hotel_id INT DEFAULT NULL,
     p_branch_id INT DEFAULT NULL,
@@ -19,7 +20,7 @@ DECLARE
     v_max_pages INT;
     v_actual_page INT;
     v_offset INT;
-    v_where TEXT := ' WHERE e.username <> ' || p_name;
+    v_where TEXT := ' WHERE e.username <> ''' || current_username || '''';
     v_query TEXT;
     v_sort_clause TEXT;
 BEGIN
