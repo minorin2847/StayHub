@@ -11,7 +11,7 @@ const generatePassword = () => {
   return Math.random().toString(36).slice(-8);
 };
 
-const FormCreate = ({
+const CreateModal = ({
   open,
   onClose,
   onSuccess,
@@ -325,4 +325,4 @@ const SuccessContent = ({ username, password }: any) => {
   );
 };
 
-export default FormCreate;
+export default CreateModal;

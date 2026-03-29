@@ -5,18 +5,19 @@ import { Branch } from "@/types/Branch";
 import { Hotel } from "@/types/Hotel";
 import { Role } from "@/types/Role";
 import { Employee } from "@/types/Employee";
+import { EmployeeTableData } from "../AdminUserView";
 
 interface FormEditProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  employeeId: number | null;
+  current: EmployeeTableData | null;
   branches: Branch[];
   hotels: Hotel[];
   roles: Role[];
 }
 
-const FormEdit = ({ open, onClose, onSuccess, employeeId, branches, hotels, roles }: FormEditProps) => {
+const EditModal = ({ open, onClose, onSuccess, current, branches, hotels, roles }: FormEditProps) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [initialData, setInitialData] = useState<any>(null); // Store original data here
@@ -24,30 +25,24 @@ const FormEdit = ({ open, onClose, onSuccess, employeeId, branches, hotels, role
 
   // Fetch employee data when modal opens
   useEffect(() => {
-    if (open && employeeId) {
-      fetchEmployeeData();
+    if (open && current) {
+      fetchEmployeeData(current);
     } else {
       form.resetFields();
     }
-  }, [open, employeeId]);
+  }, [open, current]);
 
-  const fetchEmployeeData = async () => {
+  const fetchEmployeeData = async (current: EmployeeTableData) => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/get/${employeeId}`, {
-        method: "GET",
-        credentials: "include"
-      });
-      if (!res.ok) throw new Error("Failed to fetch employee");
-      const data: Employee = await res.json();
       const formattedData = {
-        firstname: data.firstname,
-        lastname: data.lastname,
-        email: data.email,
-        salary: data.salary,
-        branchid: data.branchid,
-        hotelid: data.hotelid,
-        roles: data.roles?.map(r => r.name) || [],
+        firstname: current.firstname,
+        lastname: current.lastname,
+        email: current.email,
+        salary: current.salary,
+        branchid: current.branchid,
+        hotelid: current.hotelid,
+        roles: current.roles?.map(r => r.name) || [],
       };
       setInitialData(formattedData); // Save for comparison later
       // Map API data to Form fields
@@ -92,7 +87,7 @@ const FormEdit = ({ open, onClose, onSuccess, employeeId, branches, hotels, role
       console.log("Submitting changes:", changedData);
 
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/edit/${employeeId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/edit/${current?.id}`, {
         method: "PATCH", // or POST depending on your backend
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -133,7 +128,7 @@ const handleCancel = () => {
       onCancel={handleCancel}
       onOk={form.submit}
       title="Edit Employee Information"
-      destroyOnClose
+      destroyOnHidden
       footer={[
     <Button key="cancel" onClick={onClose}>
       Cancel
@@ -217,4 +212,4 @@ const handleCancel = () => {
   );
 };
 
-export default FormEdit;
+export default EditModal;

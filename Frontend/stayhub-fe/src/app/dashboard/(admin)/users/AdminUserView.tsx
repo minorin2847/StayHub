@@ -1,20 +1,17 @@
 "use client";
-
-import UserTable from "@/components/dashboard/user/UserTable";
-import { Account } from "@/types/Account";
 import { Employee } from "@/types/Employee";
+import { Branch } from "@/types/Branch";
+import { Hotel } from "@/types/Hotel";
 import { Role } from "@/types/Role";
-import { Button, Modal } from "antd";
-import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { Avatar, Space, Tag } from "antd";
 import { useEffect, useState } from "react";
-import { FaPlus } from "react-icons/fa";
-import { FaMagnifyingGlass } from "react-icons/fa6";
-import { MdFilterList } from "react-icons/md";
-import EditModal from "@/components/dashboard/user/EmployeeFilterSortModal";
-import buildQueryParams from "@/utils/BuildQueryParams";
+import EditModal from "@/app/dashboard/(admin)/users/components/EditModal";
+import GenericTableView from "@/components/ui/GenericTableView";
+import CreateModal from "./components/CreateModal";
+import FilterModal from "@/app/dashboard/(admin)/users/components/FilterModal";
 
-export type UserSearchParams = {
+
+export type EmployeeFilterData = {
     name: string | null;
     hotelid: string | null;
     branchid: string | null;
@@ -25,38 +22,17 @@ export type UserSearchParams = {
     order: string | null;
     page: string | null
 };
-import FormCreate from "./components/FormCreate";
-import { Branch } from "@/types/Branch";
-import { Hotel } from "@/types/Hotel";
-import FilterSortModal from "@/components/dashboard/user/EmployeeFilterSortModal";
+
+export type EmployeeTableData = Employee
+
 
 export default function AdminManageUser() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const [query, setQuery] = useState<UserSearchParams>({
-        name: searchParams.get('name'),
-        hotelid: searchParams.get('hotelid'),
-        branchid: searchParams.get('branchid'),
-        roles: searchParams.getAll('roles').filter(Boolean),
-        salaryMin: searchParams.get('salaryMin'),
-        salaryMax: searchParams.get('salaryMax'),
-        sort: searchParams.get('sort'),
-        order: searchParams.get('order'),
-        page: searchParams.get('page')
-    }) 
-    const [results, setResults] = useState<Employee[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [hotels, setHotels] = useState<Hotel[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
+
     const [loading, setLoading] = useState<boolean>(false);
-    const [hasPrevious, setHasPrevious] = useState<boolean>(false);
-    const [hasNext, setHasNext] = useState<boolean>(false);
-    const [isFilterOpened, setIsFilterOpened] = useState<boolean>(false);
-
-
-    const [open, setOpen] = useState(false)
-    const showModal = () => setOpen(true)
-    const closeModal = () => setOpen(false)
+    const [currentRecord, setCurrentRecord] = useState<EmployeeTableData | null>(null);
 
     useEffect(() => {
         const init = async () => {
@@ -86,144 +62,95 @@ export default function AdminManageUser() {
 
         init()
     }, [])
-    const fetchEmployee = async () => {
-                const params = buildQueryParams(query).toString()
-                router.push(`/dashboard/users?${params}`);
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/user?${params}`, {
-                    method: "GET",
-                    credentials: "include",
-                });
-                const data = await res.json();
-                setResults(data.response as Employee[]);
-                setHasPrevious(parseInt(query.page ?? '1') > 1);
-                setHasNext(data.hasNext);
-    }
-    useEffect(() => {
-        const controller = new AbortController();
-        const signal = controller.signal;
-        setLoading(true);
-        const queryHandler = setTimeout(async () => {
-            try {
-                await fetchEmployee()
-            } catch (error) {
-                if (error instanceof Error && error.name !== 'AbortError') {
-                    console.error("An error occured: ", error);
-                }
-            } finally {
-                if (!signal.aborted) setLoading(false);
-            }
-        }, 500);
-
-        return () => {
-            clearTimeout(queryHandler);
-            controller.abort();
-        }
-    }, [query])
     return (
-        <div className="flex flex-col gap-y-[30px] px-[30px] pt-[30px]">
-            <div className="flex justify-between items-center gap-4 w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                {/* Searching */}
-            <div className="flex grow group items-center gap-x-4 h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 shadow-inner transition-all">
-                <FaMagnifyingGlass 
-                    className="text-slate-400 group-focus-within:text-emerald-500 transition-colors" 
-                    size={18} 
-                />
-                <input
-                    className="outline-none text-m font-medium placeholder:text-slate-400 transition-all group-focus-within:border-emerald-500 w-full" 
-                    type="text" 
-                    placeholder="Search by username, email or full name..."
-                    name="query"
-                    onChange={e => setQuery({...query, name: e.target.value})}
-                    value={query.name ?? ""} 
-                    />
-                </div>
-                <div className="flex items-center gap-x-3">
-                {/* Create button */}
-                <Button onClick={showModal} className="!flex-1 !md:flex-none !flex !items-center !justify-center !gap-2 !h-11 !px-6 !rounded-xl !bg-emerald-600 !text-white !font-bold !text-sm  !shadow-emerald-100" type="primary">
-                    <FaPlus size={16} />
-                    Create New User
-                </Button>
-                <FormCreate 
-                    open={open} 
-                    onClose={closeModal} 
-                    onSuccess={async () => {
-                        setLoading(true);
-                        await fetchEmployee();
-                        setLoading(false);
-                    }}
-                    hotels={hotels}
+        <GenericTableView<EmployeeTableData, EmployeeFilterData>
+            resourceName="Employee"
+            searchPlaceholder="Search by username, full name or email..."
+            tableDataEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/user`}
+            loading={loading}
+            setLoading={setLoading}
+            renderCreateModal={(injected) => (
+                <CreateModal
+                    {...injected}
                     branches={branches}
+                    hotels={hotels}
                     roles={roles}
                 />
-                 {/* filter button */}
-                <Button 
-                size="large" 
-                shape="default" 
-                icon={<MdFilterList size={25} className="text-blue-600"/>}
-                className="!text-emerald-600 hover:!border-emerald-600 !flex !justify-center"
-                onClick={()=>{setIsFilterOpened(true)}}
+            )}
+            renderFilterModal={(injected) => (
+                <FilterModal
+                    {...injected}
+                    branches={branches}
+                    hotels={hotels}
+                    roles={roles}
                 />
+            )}
+            renderEditModal={(injected) => (
+                <EditModal
+                    {...injected}
+                    branches={branches}
+                    hotels={hotels}
+                    roles={roles}
+                />
+            )}
 
+            tableColumns={[
                 {
-                    <FilterSortModal isFilterOpened={isFilterOpened} setIsFilterOpened={setIsFilterOpened}
-                    query={query}
-                    setQuery={setQuery} 
-                    branches={branches}
-                    hotels={hotels}
-                    roles={roles}
-                    />
+                    title: "ID",
+                    dataIndex: "id",
+                    key: "id",
+                    render: (id: number) => `EMP-${id.toString().padStart(3, '0')}`,
+                    className: "text-gray-500 font-medium",
+                },
+                {
+                    title: "NAME",
+                    key: "name",
+                    render: (_: unknown, record: EmployeeTableData) => {
+                        const initials = `${record.firstname?.[0] || ""}${record.lastname?.[0] || ""}`.toUpperCase();
+                        return (
+                            <Space size="middle">
+                                <Avatar className="bg-slate-200 text-slate-800 font-bold">{initials}</Avatar>
+                                <span className="font-semibold text-slate-800">{record.firstname} {record.lastname}</span>
+                            </Space>
+                        );
+                    }
+                },
+                {
+                    title: "ROLE",
+                    key: "role",
+                    render: (_: unknown, record: EmployeeTableData) => {
+                        // If roles array exists and has items, show the first, else fallback
+                        const roleName = record.roles && record.roles.length > 0 ? record.roles[0].name : "Employee";
+                        // Determine a tag color based on role
+                            const color = roleName.includes("HOTEL") ? "blue" : roleName.includes("ROOM") ? "green" : roleName.includes("PAYMENT") ? "gold" : "purple";
+                            return (
+                                <Tag color={color} className="rounded-full px-3 py-1 font-semibold border-none">
+                                    {roleName.replace("MANAGE_", "").replace("_", " ")}
+                                </Tag>
+                            );
+                    }
+                },
+                {
+                    title: "ASSIGNED BRANCH",
+                    dataIndex: "branchid",
+                    key: "branch",
+                    render: (branchid: number) => branchid && branches.some(i=>i.id==branchid) ? branches.find(i=>i.id==branchid)?.name : "Unassigned",
+                    className: "text-slate-500",
+                },
+                {
+                    title: "ASSIGNED HOTEL",
+                    dataIndex: "hotelid",
+                    key: "hotel",
+                    render: (hotelid: number) => hotelid && hotels.some(i=>i.id==hotelid) ? hotels.find(i=>i.id==hotelid)?.name : "Unassigned",
+                    className: "text-slate-500",
                 }
-                </div>
+            ]}
 
-            </div>
-            {   
-                loading ? (
-                    <div className="flex flex-col items-center justify-center h-64 gap-4 bg-white rounded-[32px] border border-slate-100 shadow-sm">
-                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-slate-500 text-sm font-medium">Loading...</p>
-                    </div>
-                )
-                : (
-                    <div className="flex flex-col gap-6">
-                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                            <UserTable tableData={results} branches={branches} hotels={hotels} roles={roles} onRefresh={async () => {setLoading(true);await fetchEmployee();setLoading(false)}}/>
-                        </div>
-            
-                        <div className="flex items-center justify-center gap-4 py-2">
-                            <button 
-                                className={`flex justify-center items-center w-10 h-10 rounded-xl border transition-all ${
-                                    hasPrevious 
-                                    ? "bg-white border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 shadow-sm cursor-pointer" 
-                                    : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
-                                }`}
-                                disabled={!hasPrevious} 
-                                onClick={() => setQuery({...query, page: (Math.max(parseInt(query.page ?? '1') - 1, 1)).toString()})}
-                            >
-                                <span className="text-lg font-light">{"<"}</span>
-                            </button>
-            
-                            <div className="px-6 py-2 bg-white border border-slate-100 rounded-xl shadow-sm">
-                                <p className="select-none text-sm font-bold text-slate-700">
-                                    Trang <span className="text-emerald-600">{query.page ?? '1'}</span>
-                                </p>
-                            </div>
-            
-                            <button 
-                                className={`flex justify-center items-center w-10 h-10 rounded-xl border transition-all ${
-                                    hasNext 
-                                    ? "bg-white border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 shadow-sm cursor-pointer" 
-                                    : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
-                                }`}
-                                disabled={!hasNext} 
-                                onClick={() => setQuery({...query, page: (parseInt(query.page ?? '1') + 1).toString()})}
-                            >
-                                <span className="text-lg font-light">{">"}</span>
-                            </button>
-                        </div>
-                    </div>
-                )
-            }
+            currentRecord={currentRecord}
+            setCurrentRecord={setCurrentRecord}
 
-        </div>
+            generatedDeletePrompt={(record: EmployeeTableData) => `Do you want to delete ${record.firstname} ${record.lastname}?`}
+            generatedDeleteEndpoint={(record: EmployeeTableData) => `${process.env.NEXT_PUBLIC_API_URL}/employee/delete/${record.id}`}
+        />
     )
 };

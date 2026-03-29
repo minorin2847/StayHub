@@ -5,19 +5,19 @@ import { Modal, Form, Select, Slider, Radio, Row, Col, Divider, Space } from 'an
 import { Role } from '@/types/Role';
 import { Branch } from '@/types/Branch';
 import { Hotel } from '@/types/Hotel';
-import { UserSearchParams } from '@/app/dashboard/(admin)/users/AdminUserView';
+import { EmployeeFilterData } from '@/app/dashboard/(admin)/users/AdminUserView';
 
 type FilterModalProps  = {
-  isFilterOpened: boolean;
-  setIsFilterOpened: Dispatch<SetStateAction<boolean>>;
-  query: UserSearchParams;
-  setQuery: Dispatch<SetStateAction<UserSearchParams>>;
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  query: EmployeeFilterData;
+  setQuery: Dispatch<SetStateAction<EmployeeFilterData>>;
   branches: Branch[];
   hotels: Hotel[];
   roles: Role[]
 }
 
-export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, query, setQuery, branches, hotels, roles }: FilterModalProps) {
+export default function FilterModal({ open, setOpen, query, setQuery, branches, hotels, roles }: FilterModalProps) {
   const [form] = Form.useForm();
   
   // Watch branchId to enable/populate the Hotel dropdown
@@ -28,24 +28,29 @@ export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, que
   const handleOk = () => {
     form.validateFields().then((values) => {
       // Split the salary array [min, max] back into separate fields for your API
+      const min = values.salaryRange?.[0]
+      const max = values.salaryRange?.[1]
       const newQuery = {
         ...query,
         ...values,
-        salaryMin: values.salaryRange?.[0],
-        salaryMax: values.salaryRange?.[1],
+        // Insert salaryMin ONLY if it has a value and is not 0
+        ...(min !== undefined && min !== 0 && { salaryMin: min }),
+        
+        // Insert salaryMax ONLY if it has a value and is not 100000
+        ...(max !== undefined && max !== 100000 && { salaryMax: max }),
       };
       delete newQuery.salaryRange;
       setQuery(newQuery);
-      setIsFilterOpened(false);
+      setOpen(false);
     });
   };
 
   return (
     <Modal
       title="Advanced options"
-      open={isFilterOpened}
+      open={open}
       onOk={handleOk}
-      onCancel={()=>setIsFilterOpened(false)}
+      onCancel={()=>setOpen(false)}
       width={700}
       okText="Apply"
     >
@@ -54,7 +59,7 @@ export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, que
         layout="vertical" 
         initialValues={{
           ...query,
-          salaryRange: [query.salaryMin ?? 0, query.salaryMax ?? 2147483647]
+          salaryRange: [query.salaryMin ?? 0, query.salaryMax ?? 100000]
         }}
       >
         {/* --- FILTER SECTION --- */}
@@ -76,7 +81,7 @@ export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, que
           </Col>
           <Col span={12}>
             <Form.Item name="salaryRange" label="Salary Range ($)">
-              <Slider range min={0} max={100000} step={5000} />
+              <Slider range min={0} max={100000} step={100} />
             </Form.Item>
           </Col>
           <Col span={12}>
