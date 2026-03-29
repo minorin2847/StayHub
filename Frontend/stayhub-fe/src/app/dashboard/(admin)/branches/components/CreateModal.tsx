@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { Button, Form, Input, Modal, Select, Row, Col, message } from "antd";
 
-const FormCreate = ({
+const CreateModal = ({
   open,
   onClose,
   onSuccess,
@@ -140,4 +140,4 @@ const FormCreate = ({
   );
 };
 
-export default FormCreate;
+export default CreateModal;

@@ -6,18 +6,18 @@ import { Role } from '@/types/Role';
 import { BranchListQuery } from '@/app/dashboard/(admin)/branches/page';
 
 type FilterModalProps  = {
-  isFilterOpened: boolean;
-  setIsFilterOpened: Dispatch<SetStateAction<boolean>>;
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
   query: BranchListQuery;
   setQuery: Dispatch<SetStateAction<BranchListQuery>>
 }
 
-export default function BranchFilterSortModal({ isFilterOpened, setIsFilterOpened, query, setQuery }: FilterModalProps) {
+export default function FilterModal({ open, setOpen, query, setQuery }: FilterModalProps) {
   const [form] = Form.useForm();
   
 
   useEffect(()=> {
-  }, [isFilterOpened])
+  }, [open])
 
 
   const handleOk = () => {
@@ -31,16 +31,16 @@ export default function BranchFilterSortModal({ isFilterOpened, setIsFilterOpene
       };
       delete newQuery.hotelRange;
       setQuery(newQuery);
-      setIsFilterOpened(false);
+      setOpen(false);
     });
   };
 
   return (
     <Modal
       title="Advanced options"
-      open={isFilterOpened}
+      open={open}
       onOk={handleOk}
-      onCancel={()=>setIsFilterOpened(false)}
+      onCancel={()=>setOpen(false)}
       width={700}
       okText="Apply"
     >

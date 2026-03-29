@@ -1,25 +1,22 @@
 "use client";
 
 import { Branch } from "@/types/Branch";
-import { Button, Table } from "antd";
-import { useEffect, useState } from "react";
-import { FaPen, FaPlus, FaTrash } from "react-icons/fa";
-import { FaArrowTrendUp, FaMagnifyingGlass } from "react-icons/fa6";
-import { MdFilterList, MdLocationCity } from "react-icons/md";
-import FormCreate from "./components/FormCreate";
-import { useDashboardAuth } from "@/context/DashboardAuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
-import buildQueryParams from "@/utils/BuildQueryParams";
-import BranchFilterSortModal from "@/components/dashboard/branch/BranchFilterModal";
+import { useState } from "react";
+import { FaPen, FaTrash } from "react-icons/fa";
+import { FaArrowTrendUp} from "react-icons/fa6";
+import { MdLocationCity } from "react-icons/md";
+import GenericTableView from "@/components/ui/GenericTableView";
+import CreateModal from "./components/CreateModal";
+import FilterModal from "./components/FilterModal";
 
-export type BranchListData = Branch & { 
+export type BranchTableData = Branch & { 
     manager_firstname: string | null; 
     manager_lastname: string | null; 
     manager_email: string | null; 
     hotel_count: number | null; 
     revenue: number | null; 
     status: string | null }
-export type BranchListQuery = {
+export type BranchFilterData = {
     name: string | null;
     hotelCountMin: string | null;
     hotelCountMax: string | null;
@@ -28,31 +25,15 @@ export type BranchListQuery = {
     page: string | null
 }
 export default function BranchList() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const [data, setData] = useState<BranchListData[]>([]);
-    const [query, setQuery] = useState<BranchListQuery>({
-        name: searchParams.get('name'),
-        hotelCountMin: searchParams.get('hotelCountMin'),
-        hotelCountMax: searchParams.get('hotelCountMax'),
-        sort: searchParams.get('sort'),
-        order: searchParams.get('order'),
-        page: searchParams.get('page')
-    });
-    const [hasPrevious, setHasPrevious] = useState<boolean>(false);
-    const [hasNext, setHasNext] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
-    const [isFilterOpened, setIsFilterOpened] = useState<boolean>(false);
-    const [open, setOpen] = useState(false)
-    const showModal = () => setOpen(true)
-    const closeModal = () => setOpen(false)
-    
+    const [currentRecord, setCurrentRecord] = useState<BranchTableData | null>(null);
+
     const columns = [
         {
             title: 'BRANCH ID',
             dataIndex: 'id',
             key: 'id',
-            render: (id) => (
+            render: (id: number) => (
                 <span className="text-gray-500">
                     BR-{String(id).padStart(3, '0')}
                 </span>
@@ -62,18 +43,18 @@ export default function BranchList() {
             title: 'BRANCH NAME',
             dataIndex: 'name',
             key: 'name',
-            render: (text) => <span className="font-semibold text-gray-900">{text}</span>,
+            render: (text: string) => <span className="font-semibold text-gray-900">{text}</span>,
         },
         {
             title: 'LOCATION',
             dataIndex: 'location',
             key: 'location',
-            render: (text) => <span className="text-gray-700">{text}</span>,
+            render: (text: string) => <span className="text-gray-700">{text}</span>,
         },
         {
             title: 'REGIONAL MANAGER',
             key: 'manager',
-            render: (_, record) => (
+            render: (_: unknown, record: BranchTableData) => (
                 <span className="text-gray-900">
                     {record.manager_firstname ? record.manager_firstname + " " + record.manager_lastname : "Unassigned"}
                 </span>
@@ -83,19 +64,19 @@ export default function BranchList() {
             title: 'EMAIL',
             dataIndex: 'manager_email',
             key: 'manager_email',
-            render: (email) => <span className="text-gray-500">{email ? email : "Unassigned"}</span>,
+            render: (email: string) => <span className="text-gray-500">{email ? email : "Unassigned"}</span>,
         },
         {
             title: 'HOTELS',
             dataIndex: 'hotel_count',
             key: 'hotel_count',
-            render: (count) => <span className="text-gray-700">{count ? count : 0}</span>,
+            render: (count: number) => <span className="text-gray-700">{count ? count : 0}</span>,
         },
         {
             title: 'REVENUE',
             dataIndex: 'revenue',
             key: 'revenue',
-            render: (revenue) => (
+            render: (revenue: number) => (
                 <span className="font-semibold text-gray-900">
                     {new Intl.NumberFormat('en-US', {
                         style: 'currency',
@@ -109,7 +90,7 @@ export default function BranchList() {
             title: 'STATUS',
             dataIndex: 'status',
             key: 'status',
-            render: (status) => {
+            render: (status: string) => {
                 const isActive = status ? status.toUpperCase() === 'ACTIVE' : true;
                 return (
                     <span
@@ -122,58 +103,8 @@ export default function BranchList() {
                     </span>
                 );
             },
-        },
-        {
-            title: 'ACTIONS',
-            key: 'actions',
-            render: (_, record) => (
-                <div className="flex items-center gap-3">
-                    <button
-                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded transition-colors"
-                        onClick={() => console.log('Edit', record.id)}
-                    >
-                        <FaPen size={20} />
-                    </button>
-                    <button
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors"
-                        onClick={() => console.log('Delete', record.id)}
-                    >
-                        <FaTrash size={20} />
-                    </button>
-                </div>
-            ),
-        },
-    ];
-    useEffect(() => {
-        const controller = new AbortController();
-        const signal = controller.signal;
-        setLoading(true);
-        const queryHandler = setTimeout(async () => {
-            try {
-                const params = buildQueryParams(query).toString()
-                router.push(`/dashboard/branches?${params}`);
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/branches?${params}`, {
-                    method: "GET",
-                    credentials: "include",
-                });
-                const data = await res.json();
-                setData(data.response as BranchListData[]);
-                setHasPrevious(parseInt(query.page ?? '1') > 1);
-                setHasNext(data.hasNext);
-            } catch (error) {
-                if (error instanceof Error && error.name !== 'AbortError') {
-                    console.error("An error occured: ", error);
-                }
-            } finally {
-                if (!signal.aborted) setLoading(false);
-            }
-        }, 500);
-
-        return () => {
-            clearTimeout(queryHandler);
-            controller.abort();
         }
-    }, [query])
+    ];
 
     return (
         <div className="flex flex-col mx-16 my-12 gap-y-[32px]">
@@ -241,93 +172,40 @@ export default function BranchList() {
             </div>
 
 
-            <div className="flex justify-between items-center gap-4 w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                {/* Searching */}
-            <div className="flex grow group items-center gap-x-4 h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 shadow-inner transition-all">
-                <FaMagnifyingGlass 
-                    className="text-slate-400 group-focus-within:text-emerald-500 transition-colors" 
-                    size={18} 
+        <GenericTableView<BranchTableData, BranchFilterData>
+            resourceName="Branch"
+            searchPlaceholder="Search by branch name, location or manager full name..."
+            tableDataEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/branches`}
+            loading={loading}
+            setLoading={setLoading}
+            renderCreateModal={(injected) => (
+                <CreateModal
+                    {...injected}
                 />
-                <input
-                    className="outline-none text-m font-medium placeholder:text-slate-400 transition-all group-focus-within:border-emerald-500 w-full" 
-                    type="text" 
-                    placeholder="Search by name, location or manager full name..."
-                    name="query"
-                    onChange={e => setQuery({...query, name: e.target.value})}
-                    value={query.name ?? ""} 
-                    />
-            </div>
-                <div className="flex items-center gap-x-3">
-                {/* Create button */}
-                <Button onClick={showModal} className="!flex-1 !md:flex-none !flex !items-center !justify-center !gap-2 !h-11 !px-6 !rounded-xl !bg-emerald-600 !text-white !font-bold !text-sm  !shadow-emerald-100" type="primary">
-                    <FaPlus size={16} />
-                    Create New Branch
-                </Button>
-                <FormCreate 
-                    open={open} 
-                    onClose={closeModal} 
-                    onSuccess={(newBranch) => {
-                        setData([newBranch, ...data]);
-                    }}
+            )}
+            renderFilterModal={(injected) => (
+                <FilterModal
+                    {...injected}
                 />
-                 {/* filter button */}
-                <Button 
-                size="large" 
-                shape="default" 
-                icon={<MdFilterList size={25} className="text-blue-600"/>}
-                className="!text-emerald-600 hover:!border-emerald-600 !flex !justify-center !items-center"
-                onClick={()=>{setIsFilterOpened(true)}}
-                />
+            )}
+            renderEditModal={(injected) => (
+                // <EditModal
+                //     {...injected}
+                //     branches={branches}
+                //     hotels={hotels}
+                //     roles={roles}
+                // />
+                <></>
+            )}
 
-                {
-                    <BranchFilterSortModal
-                    isFilterOpened={isFilterOpened} setIsFilterOpened={setIsFilterOpened}
-                    query={query}
-                    setQuery={setQuery} />
-                }
-                </div>
+            tableColumns={columns}
 
-            </div>
-            {/* Main Table */}
-            <Table
-                columns={columns}
-                dataSource={data}
-                rowKey="id"
-                loading={loading}
-                pagination={false}
-                size="middle"
-                bordered={false}
-            />
+            currentRecord={currentRecord}
+            setCurrentRecord={setCurrentRecord}
 
-            <div className="flex items-center justify-center gap-4 py-2">
-                <button
-                    className={`flex justify-center items-center w-10 h-10 rounded-xl border transition-all ${hasPrevious
-                            ? "bg-white border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 shadow-sm cursor-pointer"
-                            : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
-                        }`}
-                    disabled={!hasPrevious}
-                    onClick={() => setQuery({...query, page: (Math.max(parseInt(query.page ?? '1') - 1, 1)).toString()})}
-                >
-                    <span className="text-lg font-light">{"<"}</span>
-                </button>
-
-                <div className="px-6 py-2 bg-white border border-slate-100 rounded-xl shadow-sm">
-                    <p className="select-none text-sm font-bold text-slate-700">
-                        Trang <span className="text-emerald-600">{query.page ?? "1"}</span>
-                    </p>
-                </div>
-
-                <button
-                    className={`flex justify-center items-center w-10 h-10 rounded-xl border transition-all ${hasNext
-                            ? "bg-white border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 shadow-sm cursor-pointer"
-                            : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
-                        }`}
-                    disabled={!hasNext}
-                    onClick={() => setQuery({...query, page: (parseInt(query.page ?? '1') + 1).toString()})}
-                >
-                    <span className="text-lg font-light">{">"}</span>
-                </button>
-            </div>
+            generatedDeletePrompt={(record: BranchTableData) => `Do you want to delete ${record.name}?`}
+            generatedDeleteEndpoint={(record: BranchTableData) => `${process.env.NEXT_PUBLIC_API_URL}/employee/branches/delete/${record.id}`}
+        />
         </div>
     )
 }
