@@ -106,7 +106,7 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
             title: generatedDeletePrompt(record),
             icon: <ExclamationCircleFilled />,
             content: 'This action cannot be undone.',
-            okText: 'Yes',
+            okText: 'Continue',
             okType: 'danger',
             cancelText: 'No',
             async onOk() {
