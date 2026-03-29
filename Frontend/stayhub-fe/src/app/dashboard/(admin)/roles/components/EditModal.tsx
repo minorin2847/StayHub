@@ -5,32 +5,33 @@ import { Branch } from "@/types/Branch";
 import { Hotel } from "@/types/Hotel";
 import { Role } from "@/types/Role";
 import { Employee } from "@/types/Employee";
+import { RoleTableData } from "../page";
 
 interface FormEditProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  name: string | null;
+  current: RoleTableData | null;
 }
 
-const FormEdit = ({ open, onClose, onSuccess, name }: FormEditProps) => {
+const EditModal = ({ open, onClose, onSuccess, current }: FormEditProps) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [initialData, setInitialData] = useState<any>(null); // Store original data here
 
   // Fetch employee data when modal opens
   useEffect(() => {
-    if (open && name) {
+    if (open && current) {
       fetchRoleData();
     } else {
       form.resetFields();
     }
-  }, [open, name]);
+  }, [open, current]);
 
   const fetchRoleData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/roles/get/${name}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/roles/get/${current?.name}`, {
         method: "GET",
         credentials: "include"
       });
@@ -83,7 +84,7 @@ const FormEdit = ({ open, onClose, onSuccess, name }: FormEditProps) => {
       console.log("Submitting changes:", changedData);
 
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/roles/edit/${name}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/roles/edit/${current?.name}`, {
         method: "PATCH", // or POST depending on your backend
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -91,7 +92,7 @@ const FormEdit = ({ open, onClose, onSuccess, name }: FormEditProps) => {
       });
 
       if (res.ok) {
-        message.success("Employee updated successfully");
+        message.success("Role updated successfully");
         onSuccess();
         onClose();
       } else {
@@ -174,4 +175,4 @@ const handleCancel = () => {
   );
 };
 
-export default FormEdit;
+export default EditModal;

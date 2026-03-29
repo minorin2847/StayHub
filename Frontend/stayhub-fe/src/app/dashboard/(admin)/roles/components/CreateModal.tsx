@@ -5,7 +5,7 @@ import { FaCheckCircle, FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { MdContentCopy } from "react-icons/md";
 
 
-const FormCreate = ({
+const CreateModal = ({
   open,
   onClose,
   onSuccess,
@@ -50,6 +50,7 @@ const FormCreate = ({
         return;
       }
       onSuccess();
+      message.success("Role created successfully!")
       form.resetFields();
       onClose();
     } catch (error) {
@@ -126,4 +127,4 @@ const FormCreate = ({
   );
 };
 
-export default FormCreate;
+export default CreateModal;

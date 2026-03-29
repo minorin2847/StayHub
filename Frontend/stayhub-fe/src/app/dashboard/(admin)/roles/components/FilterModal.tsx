@@ -5,16 +5,16 @@ import { Modal, Form, Select, Slider, Radio, Row, Col, Divider, Space } from 'an
 import { Role } from '@/types/Role';
 import { Branch } from '@/types/Branch';
 import { Hotel } from '@/types/Hotel';
-import { RoleSearchParams } from '@/app/dashboard/(admin)/roles/page';
+import { RoleFilterData } from '@/app/dashboard/(admin)/roles/page';
 
 type FilterModalProps  = {
-  isFilterOpened: boolean;
-  setIsFilterOpened: Dispatch<SetStateAction<boolean>>;
-  query: RoleSearchParams;
-  setQuery: Dispatch<SetStateAction<RoleSearchParams>>;
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  query: RoleFilterData;
+  setQuery: Dispatch<SetStateAction<RoleFilterData>>;
 }
 
-export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, query, setQuery }: FilterModalProps) {
+export default function FilterModal({ open, setOpen, query, setQuery }: FilterModalProps) {
   const [form] = Form.useForm();
 
 
@@ -22,24 +22,26 @@ export default function FilterSortModal({ isFilterOpened, setIsFilterOpened, que
   const handleOk = () => {
     form.validateFields().then((values) => {
       // Split the salary array [min, max] back into separate fields for your API
+      const min = values.userRange?.[0]
+      const max = values.userRange?.[1]
       const newQuery = {
         ...query,
         ...values,
-        mincount: values.userRange?.[0],
-        maxcount: values.userRange?.[1],
+        ...( min !== undefined && min !== 0 && {mincount: min} ),
+        ...( max !== undefined && max !== 1000 && {maxcount: max} )
       };
       delete newQuery.userRange;
       setQuery(newQuery);
-      setIsFilterOpened(false);
+      setOpen(false);
     });
   };
 
   return (
     <Modal
       title="Advanced options"
-      open={isFilterOpened}
+      open={open}
       onOk={handleOk}
-      onCancel={()=>setIsFilterOpened(false)}
+      onCancel={()=>setOpen(false)}
       width={700}
       okText="Apply"
     >
