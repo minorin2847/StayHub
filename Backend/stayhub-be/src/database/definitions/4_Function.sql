@@ -203,6 +203,99 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION get_roles_by_page(
+    p_query TEXT DEFAULT NULL,
+    p_tier INT DEFAULT NULL,
+    p_min_user_count INT DEFAULT 0,
+    p_max_user_count INT DEFAULT 1000,
+    p_sort_column TEXT DEFAULT 'tier',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    name VARCHAR,
+    tier INT,
+    usercount INT,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    --- ### 1. Define base source
+    v_base_from := '
+        FROM roles r
+        LEFT JOIN (
+            SELECT role, COUNT(*)::INT as usercount
+            FROM employee_roles
+            GROUP BY role 
+        ) er ON r.name = er.role';
+
+    
+    --- ### 2. Build WHERE clause
+
+    -- Filter by role name
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND r.name ILIKE %L', '%' || p_query || '%');
+    END IF;
+
+    -- Filter by tier
+    IF p_tier IS NOT NULL THEN
+        v_where := v_where || format(' AND COALESCE(r.tier, 999) = %L', p_tier);
+    END IF;
+    
+    -- Filter by user count
+    v_where := v_where || format(' AND COALESCE(er.usercount, 0) BETWEEN %L AND %L', p_min_user_count, p_max_user_count);
+
+    --- ### 3. Boundary check & pagination
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    -- ### 4. Dynamic Sort
+    v_sort_clause := CASE p_sort_column
+        WHEN 'name'         THEN 'r.name'
+        WHEN 'tier'         THEN 'COALESCE(r.tier, 999)'
+        WHEN 'user_count'   THEN 'COALESCE(er.usercount, 0)'
+        ELSE 'COALESCE(r.tier, 999)'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    
+    -- ### 5. Execution ###
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                r.name, r.tier,
+                COALESCE(er.usercount, 0) as usercount
+            %s
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 CREATE OR REPLACE FUNCTION get_user_auth_context(p_username VARCHAR)
 RETURNS TABLE (
     id INT,
@@ -271,6 +364,21 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT * FROM branch WHERE branch.name = name;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_roles_auth_context(p_name VARCHAR)
+RETURNS TABLE (
+    name VARCHAR,
+    tier INT
+) 
+SECURITY DEFINER 
+SET search_path = public 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM roles WHERE roles.name = name;
 END;
 $$;
 
