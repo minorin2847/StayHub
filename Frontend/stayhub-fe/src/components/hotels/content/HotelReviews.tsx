@@ -1,13 +1,13 @@
 "use client";
 
-import { Review, ReviewCategory } from "@/types/Review";
+import { Review, ReviewCategory, HotelView} from "@/types/Review";
 import RoomOverview from "./RoomOverview";
 import { User } from "@/types/User";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export default function RoomReviews({ reviewData }: {
-    reviewData: RoomReview[]
+export default function HotelReviews({ reviewData }: {
+    reviewData: HotelView[]
 }) {
     const [userData, setUserData] = useState<{[userid: number]: User}>({
         1: {
@@ -15,6 +15,12 @@ export default function RoomReviews({ reviewData }: {
             username: "memaybeo",
             name: "Your Mom",
             email: "yourmom@gmail.com",
+            avatar: ""
+        },
+        2: {
+            id: 2,
+            username: "sdfdffdgdfg",
+            email: "dfdsffd@gmail.com",
             avatar: ""
         }
     })
@@ -27,9 +33,11 @@ export default function RoomReviews({ reviewData }: {
         return {name: "Excellent", color: "#2b7fff"};
     }
     const getAverageScore = (categories: ReviewCategory[]): number => {
+        if(!categories || categories.length == 0) return 0;
         return categories.map(i=>i.rating).reduce((agg, val) => agg + val)/categories.length;
     }
     const getTotalAverageScore = (reviewData: Review[]): number => {
+        if(!reviewData || reviewData.length == 0) return 0;
         return reviewData.map(i=>getAverageScore(i.rating)).reduce((agg, val) => agg+val)/reviewData.length;
     }
     const getCategoryAverageScore = (reviewData: Review[], category: string): number => {
