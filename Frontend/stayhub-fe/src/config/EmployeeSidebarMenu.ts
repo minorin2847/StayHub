@@ -9,7 +9,7 @@ export const MENU_CONFIG = {
             path: "/dashboard/users",
             subItems: [
               { name: "All Users", path: "/dashboard/users" },
-              { name: "User Roles", path: "/dashboard/users/roles" },
+              { name: "User Roles", path: "/dashboard/roles" },
             ],
           },
           {
