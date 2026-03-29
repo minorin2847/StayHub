@@ -1,7 +1,8 @@
 "use client";
 
-import Header from "@/components/layout/DashboardHeader"
-import SideBar from "@/components/layout/DashboardSideBar"
+import Header from "@/components/dashboard/DashboardHeader"
+import SideBar from "@/components/dashboard/DashboardSideBar"
+import HotelChainList from "@/components/dashboard/HotelChainList";
 import { DashboardAuthProvider } from "@/context/DashboardAuthContext"
 
 export default function DashBoardLayout({
@@ -16,6 +17,7 @@ export default function DashBoardLayout({
                 <SideBar />
                 <div className="flex-1 flex flex-col coverflow-hidden">
                 <Header />
+                <HotelChainList />
                 {children}  
                 </div>
             </div>
