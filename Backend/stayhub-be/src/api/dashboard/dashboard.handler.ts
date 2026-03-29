@@ -5,6 +5,8 @@ import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
 import Employee from "../employee/employee.js";
 import type { BranchTable } from "../branch/branch.type.js";
+import rlsWrapper from "@/utils/rlsWrapper.js";
+import type { RoleTableData } from "../roles/roles.type.js";
 
 
 
@@ -112,3 +114,25 @@ export async function getBranches(req: Request, res: Response, next: NextFunctio
 
 }
 
+export async function getRoles(req: Request, res: Response, next: NextFunction) {
+    let { name, tier, minCount, maxCount, sort, order, page } = req.query;
+    rlsWrapper(
+        'get-roles',
+        req.user,
+        async t => {
+            return await t.manyOrNone("SELECT * FROM get_roles_by_page($(name), $(tier), $(minCount), $(maxCount), $(sort), $(order), $(page))", {
+                name: name ?? null,
+                tier: tier ?? null,
+                minCount: minCount ?? 0,
+                maxCount: maxCount ?? 1000,
+                sort: sort ?? 'tier',
+                order: order ?? 'ASC',
+                page: page ?? '1'
+            })
+        },
+        result => {
+            res.status(200).json(result.length > 0 ? {hasNext: result[0].hasNext, response: result.map(i=>i as RoleTableData)}: []);
+        }
+    )
+
+}
