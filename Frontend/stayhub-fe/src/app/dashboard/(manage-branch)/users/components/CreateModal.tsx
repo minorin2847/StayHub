@@ -15,28 +15,19 @@ const CreateModal = ({
   open,
   onClose,
   onSuccess,
-  branches,
+  branch,
   hotels,
   roles
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: (user: any, generatedPassword?: string) => void;
-  branches: Branch[];
+  branch: Branch | undefined;
   hotels: Hotel[];
   roles: Role[]
 }) => {
   const [form] = Form.useForm();
   const selectedBranch = Form.useWatch('branchid', form);
-  const selectedRoleNames = Form.useWatch('roles', form) || [];
-
-
-  const maxTier = roles
-    .filter(r => selectedRoleNames.includes(r.name))
-    .reduce((max, r) => Math.max(max, r.tier), 0);
-
-  const isBranchRequired = maxTier >= 2;
-  const isHotelRequired = maxTier >= 3;
 
   useEffect(() => {
     if (open) {
@@ -74,7 +65,7 @@ const CreateModal = ({
         lastname: values.lastName,
         email: values.email,
         salary: values.salary,
-        branchid: values.branchid || null,
+        branchid: branch?.id,
         hotelid: values.hotelid || null,
         roles: values.roles || []
       };
@@ -281,21 +272,17 @@ const SuccessContent = ({ username, password }: any) => {
             <Form.Item
               name="branchid"
               label="Select branch"
-              dependencies={['roles']}
-              rules={[{ 
-                required: isBranchRequired, 
-                message: 'A branch must be assigned for this role level!' 
-              }]}
+              // rules={[{ required: true, message: "Please select a branch!" }]}
             >
               <Select
-              options={[...branches.map(i=>{
-                return {
-                  label: i.name,
-                  value: i.id
+              defaultValue={branch?.name}
+              options={[{
+                  label: branch?.name,
+                  value: branch?.id
                 }
-              })]}
+              ]}
+              disabled
               allowClear
-              onChange={() => form.setFieldValue('hotelid', undefined)} // Reset hotel if branch changes
               />
 
             </Form.Item>
@@ -307,15 +294,10 @@ const SuccessContent = ({ username, password }: any) => {
             <Form.Item
               name="hotelid"
               label="Select hotel"
-              dependencies={['roles', 'branchid']} 
-              rules={[{ 
-                required: isHotelRequired, 
-                message: 'A hotel must be assigned for this role level!' 
-              }]}
+              // rules={[{ required: true, message: "Please select a hotel!" }]}
             >
               <Select 
-              placeholder={selectedBranch ? "Select hotel" : "Please select a branch first"}
-              disabled={!selectedBranch}
+              placeholder={"Select hotel"}
               options={[...hotels.filter(i=>i.branchid==selectedBranch).map(i=>{
                 return {
                   label: i.name,

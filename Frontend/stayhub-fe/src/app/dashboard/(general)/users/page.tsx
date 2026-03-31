@@ -2,6 +2,7 @@
 import { useDashboardAuth } from "@/context/DashboardAuthContext";
 import { redirect } from "next/navigation";
 import AdminManageUser from "../../(admin)/users/AdminUserView";
+import ManageBranchManageUser from "../../(manage-branch)/users/ManageBranchUserView";
 
 export default function DashboardUserDispatcher() {
     const { user } = useDashboardAuth();
@@ -13,7 +14,7 @@ export default function DashboardUserDispatcher() {
     }
 
     if (user.roles.some(i => i.name == "MANAGE_BRANCH")) {
-        return <></>
+        return <ManageBranchManageUser />
     }
 
 }

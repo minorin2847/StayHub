@@ -57,4 +57,14 @@ export const MENU_CONFIG = {
           },
           { name: "Reviews", icon: FaComments, path: "/dashboard/reviews" },
         ],
+    "MANAGE_BRANCH": [
+                {
+            name: "Users",
+            icon: FaUsers,
+            path: "/dashboard/users",
+            subItems: [
+              { name: "All Users", path: "/dashboard/users" },
+            ],
+          },
+    ]
 }
