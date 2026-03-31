@@ -48,16 +48,13 @@ export async function getEmployee(req: Request, res: Response, next: NextFunctio
 export async function getEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
     let { name, hotelid, branchid, roles, salaryMin, salaryMax, sort, order, page } = req.query;
 
-    const userRoles = (req.user.roles || []).join(",");;
+    const userRoles = (req.user.roles.map(i=>i.name) || []).join(",");
     const rolesArray = Array.isArray(roles) ? roles : [roles].filter(Boolean);
-    try {
-        const response = await db.tx(async t => {
-            
-            await t.none("SET LOCAL app.current_username = $1", [req.user.username]);
-            await t.none("SET LOCAL app.roles = $1", [userRoles]);
-            await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || '']);
-            await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || '']);
-            return t.manyOrNone("SELECT * FROM get_employees_by_page($(current), $(name),$(hotelid),$(branchid),$(roles),$(salaryMin),$(salaryMax),$(sort),$(order),$(page))", {
+    rlsWrapper(
+        "get-employees-table",
+        req.user,
+        async t => {
+            return await t.manyOrNone("SELECT * FROM get_employees_by_page($(current), $(name),$(hotelid),$(branchid),$(roles),$(salaryMin),$(salaryMax),$(sort),$(order),$(page))", {
                 current: req.user.username ?? null,
                 name: name ?? null,
                 hotelid: hotelid ?? null,
@@ -69,16 +66,12 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
                 order: order ?? 'asc',
                 page: page ?? 1
             })
-        });
-        res.status(200).json(response.length > 0 ? {hasNext: response[0].hasNext, response: response.map(i=>new Employee(i))}: []);
-    } catch (err) {
-        if (err instanceof Error) {
-            res.status(404).send(err.stack);
+        },
+        result => {
+            res.status(200).json(result.length > 0 ? {hasNext: result[0].hasNext, response: result.map(i=>new Employee(i))}: []);
+
         }
-        else {
-            res.status(404).send("An unknown error occured!");
-        }
-    }
+    )
 
 }
 
