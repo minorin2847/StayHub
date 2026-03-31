@@ -29,6 +29,21 @@ export async function getAllBranches(req: Request, res: Response, next: NextFunc
     )
 }
 
+export async function getBranchFromId(req: Request, res: Response, next: NextFunction) {
+    const id = req.params.id
+    rlsWrapper(
+        "find-branch-by-id",
+        req.user,
+        async t => {
+            return await t.oneOrNone("SELECT * FROM branch WHERE id=$1", [id], (row: any) => new Branch(row));
+        },
+        result => {
+            if (!result) res.status(404).send("Branch not found!")
+            res.status(200).json(result);
+        }
+    )
+}
+
 export function createBranch(req: Request, res: Response, next: NextFunction) {
     const {
         name,
