@@ -7,8 +7,15 @@ import Hotel from "./hotels.js";
 
 
 export async function getHotels(req: Request, res: Response, next: NextFunction) {
+  const {branchid} = req.params;
   try {
-    const hotels = await db.map("SELECT * FROM hotels", [], row => new Hotel(row));
+    let hotels;
+    if (branchid) {
+      hotels = await db.map("SELECT * FROM hotels WHERE branchid = $1", [branchid], row => new Hotel(row));  
+    }
+    else {
+      hotels = await db.map("SELECT * FROM hotels", [], row => new Hotel(row));
+    }
     return res.status(200).json(hotels);
   } catch (error) {
     if (error instanceof Error) {
