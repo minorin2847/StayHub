@@ -1,3 +1,4 @@
+import type Role from "@/api/roles/roles.js";
 import db from "@/database/db.js";
 
 export default function rlsWrapper(
@@ -6,7 +7,8 @@ export default function rlsWrapper(
     query: (t: any) => Promise<any>,
     result: (row: any) => any) {
     db.tx(transactionName, async t => {
-        const roleStr = user.roles.join(",");
+        const roleStr = user.roles.map((i: Role)=>i.name).join(",");
+        await t.none('SET ROLE stayhub');
         await t.none("SET LOCAL app.current_username = $1", [
             user.username,
         ]);
