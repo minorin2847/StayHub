@@ -9,7 +9,8 @@ CREATE OR REPLACE FUNCTION get_employees_by_page(
     p_sort_column TEXT DEFAULT 'id',
     p_sort_dir TEXT DEFAULT 'ASC',
     p_page INT DEFAULT 1
-) 
+)
+
 RETURNS TABLE (
     id INT, username VARCHAR, email VARCHAR, hotelID INT, branchID INT,
     firstName VARCHAR, lastName VARCHAR, salary INT, roles JSONB, has_next BOOLEAN
@@ -380,6 +381,17 @@ BEGIN
     RETURN QUERY
     SELECT * FROM roles WHERE roles.name = name;
 END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_current_user_best_tier() 
+RETURNS INT 
+LANGUAGE sql 
+SECURITY DEFINER -- Crucial: This bypasses the recursion
+SET search_path = public, pg_temp
+AS $$
+    SELECT MIN(tier) 
+    FROM roles 
+    WHERE name = ANY(string_to_array(current_setting('app.roles', true), ','));
 $$;
 
 CREATE OR REPLACE FUNCTION create_initial_admin(

@@ -32,16 +32,7 @@ BEGIN
             USING (
                 'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 AND 
-                hotelid IN (SELECT id FROM hotels WHERE branchid = NULLIF(current_setting('app.branchid', true), '')::INT)
-                AND
-                -- Manager's best tier
-                (SELECT MIN(tier) FROM roles WHERE name = ANY(string_to_array(current_setting('app.roles', true), ','))) 
-                < 
-                -- Employee's best tier (Defaults to 999 if no roles exist)
-                (SELECT COALESCE(MIN(r.tier), 999) 
-                 FROM employee_roles er 
-                 JOIN roles r ON er.role = r.name 
-                 WHERE er.employeeID = employees.id)
+                branchid = NULLIF(current_setting('app.branchid', true), '')::INT
             );
         $POLICY$;
     END IF;
@@ -60,15 +51,6 @@ BEGIN
                 'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 AND 
                 hotelid = NULLIF(current_setting('app.hotelid', true), '')::INT
-                AND
-                -- Manager's best tier
-                (SELECT MIN(tier) FROM roles WHERE name = ANY(string_to_array(current_setting('app.roles', true), ','))) 
-                < 
-                -- Employee's best tier (Defaults to 999 if no roles exist)
-                (SELECT COALESCE(MIN(r.tier), 999) 
-                 FROM employee_roles er 
-                 JOIN roles r ON er.role = r.name 
-                 WHERE er.employeeID = employees.id)
             );
         $POLICY$;
     END IF;
@@ -131,16 +113,12 @@ BEGIN
         EXECUTE $POLICY$
             CREATE POLICY roles_view_policy ON roles FOR SELECT
             USING (
-                -- 1. If the user is an ADMINISTRATOR, evaluate to TRUE (view all)
+                -- 1. Admins see everything
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 OR 
-                -- 2. If NOT an admin, only allow viewing roles where the tier is numerically greater
-                --    than the user's minimum (best) tier.
-                tier > (
-                    SELECT MIN(r.tier) 
-                    FROM roles r 
-                    WHERE r.name = ANY(string_to_array(current_setting('app.roles', true), ','))
-                )
+                -- 2. Others only see tiers numerically GREATER than their own
+                -- No more subquery here, just a function call!
+                tier > get_current_user_best_tier()
             );
         $POLICY$;
     END IF;
