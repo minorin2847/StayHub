@@ -21,32 +21,22 @@ export default function MainHeader() {
 
     return (
         <header className="w-full h-20 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100 px-6 lg:px-24 flex items-center justify-between">
-            {/* Logo Section */}
             <div className="flex items-center gap-2">
                 <Link href="/" className="flex items-center gap-2 group">
-                    <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
-                    <Image
-                        className=""
-                        src="/images/logo.png"
-                        alt="Stayhub logo"
-                        width={60}
-                        height={60}
-                    />
+                    <div className="w-10 h-10 flex items-center justify-center transition-transform">
+                         <Image src="/images/logo.png" alt="Stayhub" width={32} height={32} className="brightness-0 invert" />
                     </div>
                     <span className="text-xl font-bold text-slate-800 tracking-tight">StayHub</span>
                 </Link>
             </div>
 
-            {/* Actions Section */}
             <div className="flex items-center gap-4 lg:gap-8">
-                {/* Language Switcher */}
                 <div className="relative group py-2">
                     <button className="flex items-center gap-1 text-slate-600 hover:text-emerald-600 transition-colors">
                         <FcGlobe size={24} />
                         <LuChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                     </button>
                     
-                    {/* Dropdown Menu */}
                     <ul className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute top-full right-0 w-40 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 mt-1 transition-all duration-200 transform origin-top-right">
                         {languages.map(lang => (
                             <li key={lang.abbr} className="px-4 py-2 hover:bg-emerald-50 text-sm font-medium text-slate-600 hover:text-emerald-700 cursor-pointer transition-colors">
@@ -56,15 +46,13 @@ export default function MainHeader() {
                     </ul>
                 </div>
 
-                {/* Support Link */}
                 <Link href="/support" className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">
                     <BiSupport size={24} />
                 </Link>
 
-                {/* User Section */}
                 {isAuthenticated ? (
                     <div className="relative group py-2">
-                        <button className="flex items-center gap-3 p-1 pr-3 bg-slate-50 border border-slate-100 rounded-full hover:border-emerald-200 transition-all">
+                        <button className="flex items-center gap-3 p-1 pr-3 bg-slate-50 border border-slate-100 rounded-full hover:border-blue-500 transition-all">
                             <div className="w-8 h-8 rounded-full overflow-hidden border border-white">
                                 <Image 
                                     unoptimized 
@@ -77,7 +65,6 @@ export default function MainHeader() {
                             <LuChevronDown size={14} className="text-slate-400 group-hover:rotate-180 transition-transform duration-300" />
                         </button>
 
-                        {/* Profile Dropdown */}
                         <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute top-full right-0 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 mt-1 transition-all duration-200">
                             <div className="px-4 py-2 border-b border-slate-50 mb-1">
                                 <p className="text-sm font-bold text-slate-800">{user?.firstname} {user?.lastname}</p>
@@ -96,7 +83,7 @@ export default function MainHeader() {
                     </div>
                 ) : (
                     <Link href="/login">
-                        <button className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 shadow-md shadow-emerald-200 transition-all active:scale-95">
+                        <button className="bg-blue-400 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-gr shadow-md shadow-blue-200 transition-all active:scale-95">
                             Login
                         </button>
                     </Link>

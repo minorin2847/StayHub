@@ -39,10 +39,7 @@ const TopSights = () => {
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
               />
-              {/* Lớp phủ đen mờ */}
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-              
-              {/* Text */}
               <div className="absolute bottom-6 left-6 flex items-center gap-2">
                 <span className="text-white font-bold text-2xl tracking-wide">
                   {item.name}

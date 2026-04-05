@@ -4,7 +4,9 @@ export type Hotel = {
     classification: number;
     location: string;
     description: string;
+    rooms: number;
+    floors: number;
     amenities: Array<{name: string, icon: string, category: string}>;
     policies: Array<{name: string, icon: string, description: string}>;
-    previewimages: Array<string>
+    reviewimages: Array<string>
 }

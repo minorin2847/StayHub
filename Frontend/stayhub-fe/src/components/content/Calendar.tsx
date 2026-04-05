@@ -2,8 +2,7 @@ import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
 
-
-export default function RoomCalendar() {
+export default function Calendar() {
     const [selectedDate, setSelectedDate] = useState<DateRange | undefined>({
         from: new Date(Date.now()),
         to: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)

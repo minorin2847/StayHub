@@ -1,6 +1,8 @@
 "use client";
-import Header from '@/components/dashboard/DashboardHeader.tsx'
-import SideBar from '@/components/dashboard/DashboardSideBar.tsx'
+
+import Header from "@/components/dashboard/DashboardHeader"
+import SideBar from "@/components/dashboard/DashboardSideBar"
+import HotelChainList from "@/components/dashboard/HotelChainList";
 import { DashboardAuthProvider } from "@/context/DashboardAuthContext"
 
 export default function DashBoardLayout({
@@ -14,8 +16,9 @@ export default function DashBoardLayout({
             <div className="flex h-screen overflow-hidden">
                 <SideBar />
                 <div className="flex-1 flex flex-col coverflow-hidden">
-                  <Header />
-                  {children}  
+                <Header />
+                <HotelChainList />
+                {children}  
                 </div>
             </div>
        </div>

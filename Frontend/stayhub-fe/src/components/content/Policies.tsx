@@ -1,6 +1,6 @@
 import { Hotel } from "@/types/Hotel";
 
-export default function HotelPolicies({ hotelData }: {
+export default function Policies({ hotelData }: {
     hotelData: Hotel
 }) {
     return (
