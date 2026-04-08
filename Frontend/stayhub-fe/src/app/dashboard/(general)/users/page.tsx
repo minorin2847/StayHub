@@ -6,19 +6,19 @@ import ManageBranchManageUser from "../../(manage-branch)/users/ManageBranchUser
 import ManageHotelManageUser from "../../(manage-hotel)/users/ManageHotelUserView";
 
 export default function DashboardUserDispatcher() {
-    const { user } = useDashboardAuth();
+    const { user, isLoading } = useDashboardAuth();
 
-    if (!user) redirect("/dashboard/login");
+    if (!isLoading && !user) redirect("/dashboard/login");
 
-    if (user.roles.some(i => i.name == "ADMINISTRATOR")) {
+    if (user?.roles.some(i => i.name == "ADMINISTRATOR")) {
         return <AdminManageUser />
     }
 
-    if (user.roles.some(i => i.name == "MANAGE_BRANCH")) {
+    if (user?.roles.some(i => i.name == "MANAGE_BRANCH")) {
         return <ManageBranchManageUser />
     }
 
-    if (user.roles.some(i => i.name == "MANAGE_HOTEL")) {
+    if (user?.roles.some(i => i.name == "MANAGE_HOTEL")) {
         return <ManageHotelManageUser />
     }
 
