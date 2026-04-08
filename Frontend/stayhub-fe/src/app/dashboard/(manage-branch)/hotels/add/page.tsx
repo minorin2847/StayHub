@@ -3,7 +3,6 @@ import { useRouter } from "next/navigation";
 
 export default function AddHotelPage() {
   const router = useRouter();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Logic: Lấy data từ form -> Gọi API POST /hotels -> Chuyển hướng về trang list

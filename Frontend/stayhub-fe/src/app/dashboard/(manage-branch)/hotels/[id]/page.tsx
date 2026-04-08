@@ -9,6 +9,14 @@ export default function HotelDetailBranchesPage() {
   const mockBranches = [
     { id: 1, name: "Vinpearl Nha Trang", location: "Nha Trang" },
     { id: 2, name: "Vinpearl Nam Hội An", location: "Quảng Nam" },
+    { id: 1, name: "Vinpearl Nha Trang", location: "Nha Trang" },
+    { id: 2, name: "Vinpearl Nam Hội An", location: "Quảng Nam" },
+    { id: 1, name: "Vinpearl Nha Trang", location: "Nha Trang" },
+    { id: 2, name: "Vinpearl Nam Hội An", location: "Quảng Nam" },
+    { id: 1, name: "Vinpearl Nha Trang", location: "Nha Trang" },
+    { id: 2, name: "Vinpearl Nam Hội An", location: "Quảng Nam" },
+    { id: 1, name: "Vinpearl Nha Trang", location: "Nha Trang" },
+    { id: 2, name: "Vinpearl Nam Hội An", location: "Quảng Nam" },
   ];
 
   return (
