@@ -1,6 +1,7 @@
 export type Hotel = {
     id: number;
     name: string;
+    branchid: number;
     classification: number;
     location: string;
     description: string;

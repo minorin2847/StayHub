@@ -1,11 +1,12 @@
 
 import type { NextFunction, Request, Response } from "express";
-import { findEmployee } from "../employee/employee.handler.js";
 import db from "@/database/db.js";
 import Role from "../roles/roles.js";
 import { getRole } from "../roles/roles.handler.js";
 import Employee from "../employee/employee.js";
-import type { EmployeeDTO } from "../employee/employee.type.js";
+import type { BranchTable } from "../branch/branch.type.js";
+import rlsWrapper from "@/utils/rlsWrapper.js";
+import type { RoleTableData } from "../roles/roles.type.js";
 
 
 
@@ -19,7 +20,7 @@ export function hasPermission(roles: string[]) {
             }
             for (const requiredRole of roles) {
                 for (const userRole of userRoles) {
-                    if (requiredRole == userRole.role) {
+                    if (requiredRole == userRole.name) {
                         next();
                         return;
                     }
@@ -47,16 +48,14 @@ export async function getEmployee(req: Request, res: Response, next: NextFunctio
 export async function getEmployeeAccounts(req: Request, res: Response, next: NextFunction) {
     let { name, hotelid, branchid, roles, salaryMin, salaryMax, sort, order, page } = req.query;
 
-    const userRoles = (req.user.roles || []).join(",");;
+    const userRoles = (req.user.roles.map(i=>i.name) || []).join(",");
     const rolesArray = Array.isArray(roles) ? roles : [roles].filter(Boolean);
-    try {
-        const response = await db.tx(async t => {
-            
-            await t.none("SET LOCAL app.current_username = $1", [req.user.username]);
-            await t.none("SET LOCAL app.roles = $1", [userRoles]);
-            await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || '']);
-            await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || '']);
-            return t.manyOrNone("SELECT * FROM get_employees_by_page($(name),$(hotelid),$(branchid),$(roles),$(salaryMin),$(salaryMax),$(sort),$(order),$(page))", {
+    rlsWrapper(
+        "get-employees-table",
+        req.user,
+        async t => {
+            return await t.manyOrNone("SELECT * FROM get_employees_by_page($(current), $(name),$(hotelid),$(branchid),$(roles),$(salaryMin),$(salaryMax),$(sort),$(order),$(page))", {
+                current: req.user.username ?? null,
                 name: name ?? null,
                 hotelid: hotelid ?? null,
                 branchid: branchid ?? null,
@@ -67,8 +66,36 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
                 order: order ?? 'asc',
                 page: page ?? 1
             })
+        },
+        result => {
+            res.status(200).json(result.length > 0 ? {hasNext: result[0].hasNext, response: result.map(i=>new Employee(i))}: []);
+
+        }
+    )
+
+}
+
+export async function getBranches(req: Request, res: Response, next: NextFunction) {
+    let { query, hotelCountMin, hotelCountMax, sort, order, page } = req.query;
+
+    const userRoles = (req.user.roles || []).join(",");
+    try {
+        const response = await db.tx(async t => {
+            
+            await t.none("SET LOCAL app.current_username = $1", [req.user.username]);
+            await t.none("SET LOCAL app.roles = $1", [userRoles]);
+            await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || '']);
+            await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || '']);
+            return t.manyOrNone("SELECT * FROM get_branches_by_page($(query),$(hotelCountMin),$(hotelCountMax),$(sort),$(order),$(page))", {
+                query: query ?? null,
+                hotelCountMin: hotelCountMin ?? 0,
+                hotelCountMax: hotelCountMax ?? 2147483647,
+                sort: sort ?? 'id',
+                order: order ?? 'asc',
+                page: page ?? 1
+            })
         });
-        res.status(200).json(response.length > 0 ? {hasNext: response[0].hasNext, response: response.map(i=>i as Employee)}: []);
+        res.status(200).json(response.length > 0 ? {hasNext: response[0].hasNext, response: response.map(i=>i as BranchTable)}: []);
     } catch (err) {
         if (err instanceof Error) {
             res.status(404).send(err.stack);
@@ -80,3 +107,25 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
 
 }
 
+export async function getRoles(req: Request, res: Response, next: NextFunction) {
+    let { name, tier, minCount, maxCount, sort, order, page } = req.query;
+    rlsWrapper(
+        'get-roles',
+        req.user,
+        async t => {
+            return await t.manyOrNone("SELECT * FROM get_roles_by_page($(name), $(tier), $(minCount), $(maxCount), $(sort), $(order), $(page))", {
+                name: name ?? null,
+                tier: tier ?? null,
+                minCount: minCount ?? 0,
+                maxCount: maxCount ?? 1000,
+                sort: sort ?? 'tier',
+                order: order ?? 'ASC',
+                page: page ?? '1'
+            })
+        },
+        result => {
+            res.status(200).json(result.length > 0 ? {hasNext: result[0].hasNext, response: result.map(i=>i as RoleTableData)}: []);
+        }
+    )
+
+}

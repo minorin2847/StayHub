@@ -1,9 +1,12 @@
 'use client';
+import { useDashboardAuth } from '@/context/DashboardAuthContext';
 import React from 'react';
 import { IoSearchOutline, IoNotificationsOutline, IoSettingsOutline } from 'react-icons/io5';
 import { LuChevronDown } from 'react-icons/lu';
 
 export default function Header() {
+    const { user } = useDashboardAuth()
+
     return (
         <header className="flex items-center justify-between px-8 py-4 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50">
             <div className="flex-shrink-0">
@@ -33,13 +36,13 @@ export default function Header() {
 
                 <div className="flex items-center gap-3 cursor-pointer group">
                     <div className="text-right hidden sm:block">
-                        <p className="text-sm font-bold text-slate-800 leading-none mb-1">dzung</p>
-                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Admin</p>
+                        <p className="text-sm font-bold text-slate-800 leading-none mb-1">{(user?.firstname ?? "") + " " + (user?.lastname ?? "")}</p>
+                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{user?.roles.sort((a, b) => b.tier - a.tier)[0].name}</p>
                     </div>
                     
                     <div className="relative">
                         <div className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-emerald-100 overflow-hidden bg-emerald-50 flex items-center justify-center">
-                            <span className="text-emerald-600 font-bold text-sm">JD</span>
+                            <span className="text-emerald-600 font-bold text-sm">{user?.lastname ? user?.firstname[0].toUpperCase() + user?.lastname[0].toUpperCase() : user?.firstname.slice(0, 2).toUpperCase()}</span>
                         </div>
                     </div>
                     

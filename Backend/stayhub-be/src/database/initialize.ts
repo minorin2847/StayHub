@@ -17,12 +17,12 @@ export default async function initialize() {
         for (const file of files) {
             const queryFile = new QueryFile("./database/definitions/" + file);
             await db.multi(queryFile);
-            console.log(`All ${file.split(".")[0]?.toLowerCase()} initialized!`);
+            console.log(`All ${file.split(".")[0]?.toLowerCase().split("_")[1]} initialized!`);
         }
     } catch (err) {
         if (err instanceof Error) {
-            console.error(`An error occured when creating tables: ${err}`);
-        } else console.error(`An unknown error occured when creating tables`);
+            console.error(`An error occured when initializing database:\n${err.stack}`);
+        } else console.error(`An unknown error occured when initializing database`);
     }
     // Initialize admin account
     const salt = Buffer.from('k:UK�\b��r�*"`��F');
@@ -35,7 +35,11 @@ export default async function initialize() {
                 VALUES ('ADMINISTRATOR', 1),\
                 ('MANAGE_BRANCH', 2), \
                 ('MANAGE_HOTEL', 3), \
-                ('MANAGE_ROOM', 4) \
+                ('MANAGE_ROOM', 4), \
+                ('MANAGE_GUEST', 4),\
+                ('PROCESS_PAYMENT', 4),\
+                ('MANAGE_SERVICE', 4),\
+                ('MANAGE_REVIEW', 4)\
                 ON CONFLICT DO NOTHING \
                 RETURNING name, tier;\ ");
             if (!roles) {
@@ -44,7 +48,7 @@ export default async function initialize() {
             console.log(`Initialize roles with values ${roles.map(i=>"name: " + i.name + "; tier: " + i.tier).join("\n")}!`);
 
 
-            const user = await db.one("SELECT * FROM create_initial_admin($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(salary));", 
+            const user = await db.one("SELECT * FROM create_initial_admin($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(salary), $(hotelid), $(branchid));",
             {
                 username: 'admin',
                 salt: salt,
@@ -52,11 +56,13 @@ export default async function initialize() {
                 email: 'admin@stayhub.com',
                 firstName: "John",
                 lastName: "Admin",
-                salary: 36363636
+                salary: 36363636,
+                hotelid: null,
+                branchid: null
             })
             console.log(`Initialized admin account with id ${user.id}!`);
             return;
-        }).catch(err => console.error(`An error occured while creating admin account: ${err}`));
+        }).catch(err => console.error(`An error occured while creating admin account: ${err.stack}`));
 
     });
 
