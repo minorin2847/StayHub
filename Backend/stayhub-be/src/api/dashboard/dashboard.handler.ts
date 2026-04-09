@@ -1,4 +1,3 @@
-
 import type { NextFunction, Request, Response } from "express";
 import db from "@/database/db.js";
 import Role from "../roles/roles.js";
@@ -7,8 +6,6 @@ import Employee from "../employee/employee.js";
 import type { BranchTable } from "../branch/branch.type.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import type { RoleTableData } from "../roles/roles.type.js";
-
-
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -129,3 +126,57 @@ export async function getRoles(req: Request, res: Response, next: NextFunction) 
     )
 
 }
+// get getDashboardHotels
+export async function getDashboardHotels(req: Request, res: Response, next: NextFunction){
+    let {name, location, sort, order, page} = req.query;
+    const isOnlyBranchManager = req.user.roles.some((r: any) => r.name === 'MANAGE_BRANCH') && !req.user.roles.some((r: any) => r.name === 'ADMINISTRATOR');
+    const branchid = isOnlyBranchManager ? req.user.branchid : (req.query.branchid ?? null);
+
+    // use rlsWrapper
+    rlsWrapper(
+        "get-hotels-table",
+        req.user,
+        async t => {
+            return await t.manyOrNone("SELECT * FROM get_hotels_by_page($(branchid), $(name), $(location), $(sort), $(order), $(page))", {
+                branchid : branchid ?? null,
+                name: name ?? null,
+                location: location ?? null,
+                sort: sort ?? 'id',
+                order: order ?? 'asc',
+                page: page ?? 1
+            });
+        },
+        result => {
+            const hasNext = result.length > 0 && result[0].hasNext != undefined ? result[0].hasNext : false;
+            res.status(200).json(result.length > 0 ? {
+                hasNext, response: result} : [] );
+        }
+    )
+}
+
+// export async function getDashboardRooms(req: Request, res: Response, next: NextFunction) {
+//     let { type, sort, order, page } = req.query;
+    
+//     // 1. Phân lập quyền hạn (Scope Isolation)
+//     const isOnlyHotelManager = req.user.roles.some((r: any) => r.name === 'MANAGE_HOTEL') && !req.user.roles.some((r: any) => ['ADMINISTRATOR', 'MANAGE_BRANCH'].includes(r.name));
+//     const hotelid = isOnlyHotelManager ? req.user.hotelid : (req.query.hotelid ?? null);
+
+//     // 2. Chạy RLS Wrapper bọc giao dịch Database
+//     rlsWrapper(
+//         "get-rooms-table",
+//         req.user,
+//         async t => {
+//             return await t.manyOrNone("SELECT * FROM get_rooms_by_page($(hotelid), $(type), $(sort), $(order), $(page))", {
+//                 hotelid: hotelid ?? null,
+//                 type: type ?? null,
+//                 sort: sort ?? 'id',
+//                 order: order ?? 'asc',
+//                 page: page ?? 1
+//             });
+//         },
+//         result => {
+//              const hasNext = result.length > 0 && result[0].hasNext !== undefined ? result[0].hasNext : false;
+//              res.status(200).json(result.length > 0 ? { hasNext, response: result } : []);
+//         }
+//     )
+// }
