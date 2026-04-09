@@ -3,7 +3,9 @@ import type Role from "../roles/roles.js";
 export default class Employee {
     id: number = 0;
     username: string = "";
+    avatar: string = "";
     email: string = "";
+    phone: string = "";
     hotelid: number = 0;
     branchid: number = 0;
     firstname: string = "";
