@@ -35,10 +35,6 @@ export default function Header() {
                 <div className="h-8 w-[1px] bg-slate-200" />
 
                 <div className="flex items-center gap-3 cursor-pointer group">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-sm font-bold text-slate-800 leading-none mb-1">{(user?.firstname ?? "") + " " + (user?.lastname ?? "")}</p>
-                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{user?.roles.sort((a, b) => b.tier - a.tier)[0].name}</p>
-                    </div>
                     
                     <div className="relative">
                         <div className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-emerald-100 overflow-hidden bg-emerald-50 flex items-center justify-center">
@@ -46,6 +42,10 @@ export default function Header() {
                         </div>
                     </div>
                     
+                    <div className="text-right hidden sm:block">
+                        <p className="text-sm font-bold text-slate-800 leading-none mb-1">{(user?.firstname ?? "") + " " + (user?.lastname ?? "")}</p>
+                        {/* <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{user?.roles.sort((a, b) => b.tier - a.tier)[0].name}</p> */}
+                    </div>
                     <LuChevronDown className="text-slate-400 group-hover:text-slate-600 transition-colors" size={16} />
                 </div>
             </div>

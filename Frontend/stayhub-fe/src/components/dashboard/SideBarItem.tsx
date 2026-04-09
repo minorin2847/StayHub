@@ -25,7 +25,7 @@ const SideBarItem = ({
       <li className="list-none w-full">
         <button
           onClick={onClick}
-          className={`flex items-center w-full p-3 rounded-xl transition-all group ${
+          className={`flex items-center w-full p-3 rounded-xl transition-all cursor-pointer group ${
             isActive
               ? "bg-emerald-500 text-white shadow-md hover:bg-emerald-600"
               : "hover:bg-emerald-50 text-slate-500 hover:text-emerald-600"
@@ -46,7 +46,7 @@ const SideBarItem = ({
     <li className="list-none w-full">
       <button
         type="button"
-        className={`flex items-center w-full p-3 rounded-xl transition-all group ${
+        className={`flex items-center w-full p-3 rounded-xl transition-all cursor-pointer group ${
           isActive
             ? "bg-emerald-500 text-white shadow-md hover:bg-emerald-600"
             : "hover:bg-emerald-50 text-slate-500 hover:text-emerald-600"
