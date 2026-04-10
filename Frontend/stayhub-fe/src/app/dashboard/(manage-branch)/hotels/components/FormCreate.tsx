@@ -11,26 +11,28 @@ const FormCreate = ({
 }: {
   open: boolean;
   onClose: () => void;
-  onSuccess: (hotel: any, generatedPassword?: string, isEdit?: boolean) => void;
+  onSuccess: (hotel: any, isEdit?: boolean) => void;
   editRecord?: any | null;
 }) => {
   const [form] = Form.useForm();
 
   useEffect(() => {
     if (open) {
-      if (editRecord) {
-        form.setFieldsValue({
-          name: editRecord.name,
-          branchid: editRecord.branchid?.toString(),
-          location: editRecord.location,
-          contact_email: editRecord.contact_email,
-          contact_phone: editRecord.contact_phone
-        });
-      } else {
-        form.resetFields();
-      }
-    } else {
       form.resetFields();
+      if (editRecord) {
+        // Use a tiny delay to ensure Modal renders Form into DOM before setting values
+        setTimeout(() => {
+          form.setFieldsValue({
+            name: editRecord.name,
+            branchid: editRecord.branchid?.toString(),
+            location: editRecord.location,
+            contact_email: editRecord.contact_email,
+            contact_phone: editRecord.contact_phone,
+            classification: editRecord.classification,
+            description: editRecord.description
+          });
+        }, 10);
+      }
     }
   }, [open, form, editRecord]);
 
@@ -42,15 +44,17 @@ const FormCreate = ({
     try {
       const payload = {
         name: values.name,
-        branchid: values.branchid === "none" ? null : parseInt(values.branchid),
+        branchid: values.branchid ? parseInt(values.branchid) : null,
         location: values.location,
         contact_email: values.contact_email,
-        contact_phone: values.contact_phone
+        contact_phone: values.contact_phone,
+        classification: values.classification || 0,
+        description: values.description || ""
       };
 
       const url = editRecord 
-        ? `${process.env.NEXT_PUBLIC_API_URL}/hotels/${editRecord.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/hotels`;
+        ? `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/${editRecord.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels`;
         
       const method = editRecord ? "PUT" : "POST";
 
@@ -74,11 +78,10 @@ const FormCreate = ({
       
       const newHotel = {
          id: editRecord ? editRecord.id : responseData.hotel?.id || Date.now(),
-         ...payload,
-         _generatedPassword: editRecord ? undefined : values.password
+         ...payload
       };
       
-      onSuccess(newHotel, values.password, !!editRecord);
+      onSuccess(newHotel, !!editRecord);
       form.resetFields();
       onClose();
     } catch (error) {
@@ -91,6 +94,7 @@ const FormCreate = ({
     <Modal
       width={700}
       open={open}
+      destroyOnHidden
       onCancel={onClose}
       onOk={form.submit}
       title={editRecord ? "Edit Hotel" : "Add New Hotel"}
@@ -131,17 +135,9 @@ const FormCreate = ({
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item
-              name="branchid"
-              label="Branch"
-            >
-              <Select placeholder="Select branch">
-                <Select.Option value="none">None</Select.Option>
-                <Select.Option value="1">Miami Waterfront</Select.Option>
-                <Select.Option value="2">London Central</Select.Option>
-                <Select.Option value="3">Swiss Alps</Select.Option>
-                <Select.Option value="4">Phuket South</Select.Option>
-              </Select>
+            {/* Branch selector hidden as requested */}
+            <Form.Item name="branchid" hidden>
+              <Input />
             </Form.Item>
           </Col>
         </Row>
