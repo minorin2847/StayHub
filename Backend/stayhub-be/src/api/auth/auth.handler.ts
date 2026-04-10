@@ -105,10 +105,14 @@ export function login(req: Request, res: Response, next: NextFunction) {
         .then(() => {
           req.login(user, (err) => {
             if (err) return next(err);
-            res.status(200).send("Login successful!");
+            return res.status(200).send("Login successful!");
           });
         })
-        .catch(() => res.status(404).send("Incorrect username or password!"));
+        .catch(() => {
+          if (!res.headersSent) {
+            return res.status(404).send("Incorrect username or password!");
+          }
+        });
     },
   )(req, res, next);
 }
@@ -149,7 +153,9 @@ export function signUp(req: Request, res: Response, next: NextFunction) {
     return res.status(400).json({ message: "Vui lòng nhập đủ thông tin!" });
   }
   findUserByUsername(username)
-    .then(() => res.status(409).send("User already exists!"))
+    .then(() => {
+      return res.status(409).send("User already exists!");
+    })
     .catch(() => {
       crypto.pbkdf2(password, salt, 310000, 32, "sha256", (err, hashed) => {
         if (err) return next(err);
