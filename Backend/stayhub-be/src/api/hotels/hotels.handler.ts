@@ -32,6 +32,8 @@ export async function createHotel(req: Request, res: Response, next: NextFunctio
     location,
     contact_email,
     contact_phone,
+    classification,
+    description,
     password,
     previewimages,
   } = req.body;
@@ -40,31 +42,29 @@ export async function createHotel(req: Request, res: Response, next: NextFunctio
     return res.status(400).json({ message: "Vui lòng nhập đủ thông tin bắt buộc!" });
   }
 
+  // Enforce branchid based on user role
+  const user = (req as any).user;
+  const isOnlyBranchManager = user && user.roles.some((r: any) => r.name === 'MANAGE_BRANCH') && !user.roles.some((r: any) => r.name === 'ADMINISTRATOR');
+  // If the user's highest role is branch manager, force the branch ID to theirs!
+  const effectiveBranchId = isOnlyBranchManager ? user.branchid : (branchid || null);
+
   try {
-    crypto.pbkdf2(password || "123456", salt, 310000, 32, "sha256", async (err, hashed) => {
-      if (err) return next(err);
-      try {
-        const hotel = await db.one(
-          `INSERT INTO hotels (name, classification, branchid, location, previewimages, contact_email, contact_phone, salt, hash)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-           RETURNING id, name, classification, branchid, location, previewimages, contact_email, contact_phone`,
-          [
-            name,
-            0, // Default classification
-            branchid || null,
-            location,
-            previewimages || [],
-            contact_email || null,
-            contact_phone || null,
-            salt,
-            hashed,
-          ]
-        );
-        res.status(200).json({ message: "Created successfully", hotel });
-      } catch (dbError) {
-        next(dbError);
-      }
-    });
+    const hotel = await db.one(
+      `INSERT INTO hotels (name, classification, description, branchid, location, previewimages, contact_email, contact_phone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, name, classification, branchid, location, previewimages, contact_email, contact_phone`,
+      [
+        name,
+        classification || 0,
+        description || '',
+        effectiveBranchId,
+        location,
+        previewimages || [],
+        contact_email || null,
+        contact_phone || null,
+      ]
+    );
+    res.status(200).json({ message: "Created successfully", hotel });
   } catch (error) {
     next(error);
   }
@@ -78,22 +78,32 @@ export async function updateHotel(req: Request, res: Response, next: NextFunctio
     location,
     contact_email,
     contact_phone,
+    classification,
+    description,
     previewimages,
   } = req.body;
+
+  // Enforce branchid based on user role
+  const user = (req as any).user;
+  const isOnlyBranchManager = user && user.roles.some((r: any) => r.name === 'MANAGE_BRANCH') && !user.roles.some((r: any) => r.name === 'ADMINISTRATOR');
+  // If the user's highest role is branch manager, force the branch ID to theirs!
+  const effectiveBranchId = isOnlyBranchManager ? user.branchid : (branchid || null);
 
   try {
     const hotel = await db.oneOrNone(
       `UPDATE hotels 
-       SET name = $1, branchid = $2, location = $3, contact_email = $4, contact_phone = $5, previewimages = $6
-       WHERE id = $7 
-       RETURNING id, name, branchid, location, contact_email, contact_phone`,
+       SET name = $1, branchid = $2, location = $3, contact_email = $4, contact_phone = $5, previewimages = $6, classification = $7, description = $8
+       WHERE id = $9 
+       RETURNING id, name, branchid, location, classification, contact_email, contact_phone`,
       [
         name,
-        branchid || null,
+        effectiveBranchId,
         location,
         contact_email || null,
         contact_phone || null,
         previewimages || [],
+        classification || 0,
+        description || '',
         id,
       ]
     );
