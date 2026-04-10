@@ -119,7 +119,7 @@ export default function SideBar() {
                     <li key={subItem.name}>
                       <button
                         onClick={() => router.push(subItem.path)}
-                        className={`flex items-center w-full py-2 px-3 text-sm rounded-lg transition-colors ${
+                        className={`flex items-center w-full py-2 px-3 text-sm rounded-lg transition-colors cursor-pointer ${
                           pathname === subItem.path
                             ? "bg-emerald-100 text-emerald-700 font-semibold"
                             : "text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
@@ -136,7 +136,7 @@ export default function SideBar() {
 
       {/* Footer Section (Settings & Logout) */}
       <div className="p-3 border-t border-slate-100 space-y-2">
-        <button className="flex items-center w-full p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-50">
+        <button onClick={()=> router.push("/dashboard/settings")} className="flex items-center w-full p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-50 cursor-pointer">
           <FaCog size={22} className="flex-shrink-0" />
           {expanded && (
             <span className="ml-4 text-sm font-semibold">Settings</span>
@@ -145,7 +145,7 @@ export default function SideBar() {
 
         <button
           onClick={handleLogout}
-          className="flex items-center w-full p-3 rounded-xl transition-all text-red-500 hover:bg-red-50"
+          className="flex items-center w-full p-3 rounded-xl transition-all cursor-pointer text-red-500 hover:bg-red-50"
         >
           <MdExitToApp size={22} className="flex-shrink-0" />
           {expanded && (

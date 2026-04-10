@@ -221,3 +221,63 @@ export function deleteEmployee(req: Request, res: Response, next: NextFunction) 
     }
   )
 }
+
+export async function changeEmployeePassword(req: Request, res: Response, next: NextFunction) {
+    const { oldpassword, newpassword } = req.body;
+    const user = req.user;
+
+    // Helper for hashing
+    const pbkdf2Promise = (pwd: string, salt: Buffer) =>
+        new Promise<Buffer>((resolve, reject) => {
+            crypto.pbkdf2(pwd, salt, 310000, 32, 'sha256', (err, key) => {
+                if (err) reject(err);
+                resolve(key);
+            });
+        });
+
+    rlsWrapper(
+        "change-employee-password",
+        user,
+        async (t) => {
+            // 1. Fetch current auth data
+            // In pg-promise, bytea columns come back as Buffers
+            const employee = await t.oneOrNone(
+                'SELECT salt, hash FROM employees WHERE id = $1',
+                [user.id]
+            );
+
+            if (!employee) {
+                res.status(404).json({ message: "User not found" });
+                return { aborted: true }; 
+            }
+
+            // 2. Verify old password
+            const hashedOld = await pbkdf2Promise(oldpassword, employee.salt);
+
+            if (!crypto.timingSafeEqual(employee.hash, hashedOld)) {
+                res.status(400).json({ message: "Incorrect old password" });
+                // We return this to the 'result' callback to let it know we already responded
+                return { aborted: true }; 
+            }
+
+            // 3. Generate new salt and hash
+            const newSalt = crypto.randomBytes(16);
+            const newHash = await pbkdf2Promise(newpassword, newSalt);
+
+            // 4. Update the database
+            await t.none(
+                'UPDATE employees SET salt = $1, hash = $2 WHERE id = $3',
+                [newSalt, newHash, user.id]
+            );
+
+            return { success: true };
+        },
+        (row) => {
+            // This is the 'result' callback from your wrapper
+            // If the query logic already sent a 400 or 404, 'row' will contain aborted: true
+            if (row && row.success) {
+                return res.status(200).json({ message: "Password updated successfully" });
+            }
+        }
+    );
+};
