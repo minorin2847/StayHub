@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels } from "./dashboard.handler.js";
+import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/api/auth/auth.handler.js";
 
 const dashboardRoute = Router();
