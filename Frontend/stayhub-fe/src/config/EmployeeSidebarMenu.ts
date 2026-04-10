@@ -46,8 +46,7 @@ export const MENU_CONFIG = {
       icon: FaHotel, // We can reuse FaHotel or another icon
       path: "/dashboard/branches",
       subItems: [
-        { name: "View All Branches", path: "/dashboard/branches" },
-        { name: "Add New Branch", path: "/dashboard/branches/add" },
+        { name: "View All Branches", path: "/dashboard/branches" }
       ],
     },
     {
@@ -81,7 +80,7 @@ export const MENU_CONFIG = {
       path: "/dashboard/hotels",
       // subitems for each hotel
       subItems: [
-        {name: "Add Hotel", path: "/dashboard/hotels/"}
+        { name: "Add Hotel", path: "/dashboard/hotels/" }
       ]
     },
   ],

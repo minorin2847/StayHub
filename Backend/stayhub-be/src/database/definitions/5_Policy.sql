@@ -141,3 +141,54 @@ BEGIN
         $POLICY$;
     END IF;
 END $$;
+
+-- ============================================================================
+-- 8. ENABLE ROW LEVEL SECURITY AND ADMINISTRATOR POLICIES FOR HOTELS TABLE
+-- ============================================================================
+ALTER TABLE hotels ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'admin_all_hotels' AND tablename = 'hotels') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY admin_all_hotels ON hotels FOR ALL
+            USING (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+-- ============================================================================
+-- 9. MANAGE_BRANCH POLICIES FOR HOTELS TABLE
+-- ============================================================================
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'manage_branch_all_hotels' AND tablename = 'hotels') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY manage_branch_all_hotels ON hotels FOR ALL
+            USING (
+                'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                AND
+                branchid = NULLIF(current_setting('app.branchid', true), '')::INT
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+-- ============================================================================
+-- 10. MANAGE_HOTEL POLICIES FOR HOTELS TABLE
+-- ============================================================================
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'manage_hotel_own_hotel' AND tablename = 'hotels') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY manage_hotel_own_hotel ON hotels FOR ALL
+            USING (
+                'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                AND
+                id = NULLIF(current_setting('app.hotelid', true), '')::INT
+            );
+        $POLICY$;
+    END IF;
+END $$;

@@ -497,3 +497,118 @@ BEGIN
         e.salary;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION get_hotels_by_page(
+    p_branch_id INT DEFAULT NULL,
+    p_id INT DEFAULT 0,
+    p_name TEXT DEFAULT '',
+    p_classification INT DEFAULT 0,
+    p_contact_email TEXT DEFAULT '',
+    p_contact_phone TEXT DEFAULT '',
+    p_location TEXT DEFAULT '',
+    p_min_room_count INT DEFAULT 0,
+    p_max_room_count INT DEFAULT 2147483647,
+    p_sort_column TEXT DEFAULT 'id',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT, 
+    name VARCHAR, 
+    classification INT, 
+    branchid INT, 
+    location VARCHAR, 
+    description TEXT, 
+    amenities amenities[], 
+    policies policies[], 
+    previewimages TEXT[], 
+    contact_email VARCHAR, 
+    contact_phone VARCHAR,
+    room_count INT,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    v_base_from := '
+        FROM hotels h
+        LEFT JOIN (
+            SELECT hotelid, COUNT(*)::INT as r_count
+            FROM rooms
+            GROUP BY hotelid
+        ) rc ON h.id = rc.hotelid';
+
+    IF p_branch_id IS NOT NULL THEN
+        v_where := v_where || format(' AND h.branchid = %L', p_branch_id);
+    END IF;
+
+    IF p_id > 0 THEN
+        v_where := v_where || format(' AND h.id = %L', p_id);
+    END IF;
+
+    IF p_name <> '' THEN
+        v_where := v_where || format(' AND h.name ILIKE %L', '''%'' || %L || ''%''', p_name);
+    END IF;
+
+    IF p_classification > 0 THEN
+        v_where := v_where || format(' AND h.classification = %L', p_classification);
+    END IF;
+
+    IF p_contact_email <> '' THEN
+        v_where := v_where || format(' AND h.contact_email ILIKE %L', '''%'' || %L || ''%''', p_contact_email);
+    END IF;
+
+    IF p_contact_phone <> '' THEN
+        v_where := v_where || format(' AND h.contact_phone ILIKE %L', '''%'' || %L || ''%''', p_contact_phone);
+    END IF;
+
+    IF p_location <> '' THEN
+        v_where := v_where || format(' AND h.location ILIKE %L', '''%'' || %L || ''%''', p_location);
+    END IF;
+
+    v_where := v_where || format(' AND COALESCE(rc.r_count, 0) BETWEEN %L AND %L', p_min_room_count, p_max_room_count);
+
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+    
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    v_sort_clause := CASE p_sort_column
+        WHEN 'classification' THEN 'h.classification'
+        WHEN 'room_count' THEN 'COALESCE(rc.r_count, 0)'
+        ELSE 'h.id'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                h.id, h.name, h.classification, h.branchid, h.location, h.description, 
+                h.amenities, h.policies, h.previewimages, h.contact_email, h.contact_phone,
+                COALESCE(rc.r_count, 0) as room_count
+            %s
+            %s
+            ORDER BY %s %s, h.id ASC
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;

@@ -1,4 +1,3 @@
-
 import type { NextFunction, Request, Response } from "express";
 import db from "@/database/db.js";
 import Role from "../roles/roles.js";
@@ -7,8 +6,6 @@ import Employee from "../employee/employee.js";
 import type { BranchTable } from "../branch/branch.type.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import type { RoleTableData } from "../roles/roles.type.js";
-
-
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -68,7 +65,7 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
             })
         },
         result => {
-            res.status(200).json(result.length > 0 ? {hasNext: result[0].hasNext, response: result.map(i=>new Employee(i))}: []);
+            res.status(200).json(result.length > 0 ? {hasNext: result[0].hasNext, response: result.map(i =>new Employee(i))}: []);
 
         }
     )
@@ -128,4 +125,62 @@ export async function getRoles(req: Request, res: Response, next: NextFunction) 
         }
     )
 
+}
+// get getDashboardHotels
+export async function getDashboardHotels(req: Request, res: Response, next: NextFunction){
+    let {name, location, classification, contact_email, contact_phone, room_count_min, room_count_max, sort, order, page, id} = req.query;
+    const isOnlyBranchManager = req.user.roles.some((r: any) => r.name === 'MANAGE_BRANCH') && !req.user.roles.some((r: any) => r.name === 'ADMINISTRATOR');
+    const branchid = isOnlyBranchManager ? req.user.branchid : (req.query.branchid ?? null);
+
+    // use rlsWrapper
+    rlsWrapper(
+        "get-hotels-table",
+        req.user,
+        async t => {
+            return await t.manyOrNone("SELECT * FROM get_hotels_by_page($(branchid), $(id), $(name), $(classification), $(contact_email), $(contact_phone), $(location), $(room_count_min), $(room_count_max), $(sort), $(order), $(page))", {
+                branchid : branchid ?? null,
+                id: id ? parseInt(id as string) : 0,
+                name: name ?? '',
+                classification: classification ? parseInt(classification as string) : 0,
+                contact_email: contact_email ?? '',
+                contact_phone: contact_phone ?? '',
+                location: location ?? '',
+                room_count_min: room_count_min ? parseInt(room_count_min as string) : 0,
+                room_count_max: room_count_max ? parseInt(room_count_max as string) : 2147483647,
+                sort: sort ?? 'id',
+                order: order ?? 'asc',
+                page: page ?? 1
+            });
+        },
+        result => {
+            const hasNext = result.length > 0 && result[0].hasNext != undefined ? result[0].hasNext : false;
+            res.status(200).json(result.length > 0 ? {
+                hasNext, response: result} : [] );
+        }
+    )
+}
+
+export async function getDashboardRooms(req: Request, res: Response, next: NextFunction) {
+    let { type, sort, order, page } = req.query;
+    
+    const isOnlyHotelManager = req.user.roles.some((r: any) => r.name === 'MANAGE_HOTEL') && !req.user.roles.some((r: any) => ['ADMINISTRATOR', 'MANAGE_BRANCH'].includes(r.name));
+    const hotelid = isOnlyHotelManager ? req.user.hotelid : (req.query.hotelid ?? null);
+
+    rlsWrapper(
+        "get-rooms-table",
+        req.user,
+        async t => {
+            return await t.manyOrNone("SELECT * FROM get_rooms_by_page($(hotelid), $(type), $(sort), $(order), $(page))", {
+                hotelid: hotelid ?? null,
+                type: type ?? null,
+                sort: sort ?? 'id',
+                order: order ?? 'asc',
+                page: page ?? 1
+            });
+        },
+        result => {
+             const hasNext = result.length > 0 && result[0].hasNext !== undefined ? result[0].hasNext : false;
+             res.status(200).json(result.length > 0 ? { hasNext, response: result } : []);
+        }
+    )
 }

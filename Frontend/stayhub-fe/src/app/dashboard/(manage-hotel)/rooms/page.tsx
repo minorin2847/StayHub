@@ -99,6 +99,38 @@ export default function ManageRooms() {
             render: (size: number) => <span className="text-slate-600 font-medium">{size} m²</span>
         },
         {
+            title: "BEDDING",
+            dataIndex: "beds",
+            key: "beds",
+            render: (beds: Array<{name: string; count: number}>) => (
+                <div className="flex flex-col gap-1">
+                    {beds && beds.length > 0 ? beds.map((bed, idx) => (
+                        <span key={idx} className="text-slate-600 text-sm">{bed.count}x {bed.name}</span>
+                    )) : <span className="text-slate-400 text-sm">Not specified</span>}
+                </div>
+            )
+        },
+        {
+            title: "AMENITIES",
+            dataIndex: "amenities",
+            key: "amenities",
+            render: (amenities: Array<{name: string; icon: string; category: string}>) => (
+                <span className="text-slate-600 font-medium">
+                    {amenities ? amenities.length : 0} items
+                </span>
+            )
+        },
+        {
+            title: "DISCOUNT",
+            dataIndex: "discount",
+            key: "discount",
+            render: (discount: number) => (
+                <span className={`font-semibold ${discount > 0 ? "text-emerald-600" : "text-slate-400"}`}>
+                    {discount > 0 ? `${discount}% OFF` : "None"}
+                </span>
+            )
+        },
+        {
             title: "ACTIONS",
             key: "actions",
             render: (_: unknown, record: Room) => (

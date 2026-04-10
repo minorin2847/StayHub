@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission } from "./dashboard.handler.js";
+import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/api/auth/auth.handler.js";
 
 const dashboardRoute = Router();
@@ -11,7 +11,7 @@ dashboardRoute.get("/", isLoggedIn, getEmployee);
 // Query: {name: string, start: number, end: number}
 // Function: Search and return non-employee accounts (accounts without an employee profile)
 //  with pagination [start, end)
-dashboardRoute.get("/user", isLoggedIn, 
+dashboardRoute.get("/user", isLoggedIn,
     hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), getEmployeeAccounts);
 
 dashboardRoute.get("/branches", isLoggedIn,
@@ -21,4 +21,16 @@ dashboardRoute.get("/branches", isLoggedIn,
 dashboardRoute.get("/roles", isLoggedIn,
     hasPermission(["ADMINISTRATOR"]), getRoles
 )
+// get /employee/dashboard/hotels
+dashboardRoute.get("/hotels", isLoggedIn,
+    hasPermission(["MANAGE_BRANCH", "ADMINISTRATOR"]),
+    getDashboardHotels
+);
+
+// get /employee/dashboard/rooms
+dashboardRoute.get("/rooms", isLoggedIn,
+    hasPermission(["MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+    getDashboardRooms
+);
+
 export default dashboardRoute;
