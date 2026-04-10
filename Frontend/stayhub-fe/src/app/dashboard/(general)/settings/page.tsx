@@ -25,8 +25,8 @@ export default function SettingPage() {
         phone: "",
     });
     const [originalData, setOriginalData] = useState({});
-    const [branchName, setBranchName] = useState("");
-    const [hotelName, setHotelName] = useState("");
+    const [branchName, setBranchName] = useState("Unassigned");
+    const [hotelName, setHotelName] = useState("Unassigned");
 
     // Modal State
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -54,13 +54,16 @@ export default function SettingPage() {
             const fetchData = async () => {
                 setIsPageLoading(true);
                 try {
-                    // Added credentials: "include" to GET requests
-                    const bRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/branches/get/${user.branchid}`, { credentials: "include" });
-                    //const hRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/get/${user.hotelid}`, { credentials: "include" });
-                    const bData = await bRes.json();
-                    //const hData = await hRes.json();
-                    setBranchName(bData.name || "N/A");
-                    //setHotelName(hData.name || "N/A");
+                    if (user.branchid) {
+                        const bRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/branches/get/${user.branchid}`, { credentials: "include" });
+                        const bData = await bRes.json();
+                        setBranchName(bData.name);
+                    }
+                    if (user.hotelid) {
+                        const hRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/get/${user.hotelid}`, { credentials: "include" });
+                        const hData = await hRes.json();
+                        setHotelName(hData.name);
+                    }
                 } catch (err) {
                     messageApi.error("Failed to fetch organizational details");
                 } finally {
