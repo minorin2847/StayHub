@@ -51,6 +51,8 @@ export interface GenericTableViewProps<TData extends Record<string, any>, TFilte
 
     generatedDeletePrompt: (record: TData) => string;
     generatedDeleteEndpoint: (record: TData) => string;
+
+    tableRowKey?: string; // Optional custom row key, defaults to 'id'
 }
 
 
@@ -72,7 +74,8 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
     setCurrentRecord,
 
     generatedDeletePrompt,
-    generatedDeleteEndpoint
+    generatedDeleteEndpoint,
+    tableRowKey = "id"
 
 }: GenericTableViewProps<TData, TFilter>) {
     const router = useRouter();
@@ -256,7 +259,7 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                                 <Table
                                     columns={columns}
                                     dataSource={results}
-                                    rowKey="id"
+                                    rowKey={tableRowKey}
                                     pagination={false}
                                     className="w-full"
                                 />

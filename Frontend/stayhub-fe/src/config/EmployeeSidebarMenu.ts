@@ -89,13 +89,27 @@ export const MENU_CONFIG = {
     { name: "Dashboard", icon: FaHome, path: "/dashboard" },
     {
       name: "Bookings",
-      icons: FaHotel, // change later
+      icon: FaHotel, 
       path: "/dashboard/bookings",
+      subItems: [{ name: "All Bookings", path: "/dashboard/bookings"}],
     },
     {
       name: "Frontdesk",
       icon: TiThMenuOutline,
       path: "/dashboard/frontdesk",
+      subItems: [{name: "All Frontdesk", path: "/dashboard/frontdesk"}],
+    },
+    {
+      name: "Amenities",
+      icon: FaHotel,
+      path: "/dashboard/amenities",
+      subItems: [{name: "All Amenities", path: "/dashboard/amenities"}],
+    },
+    {
+      name: "Policies",
+      icon: FaHotel,
+      path: "/dashboard/policies",
+      subItems: [{name: "All Policies", path: "/dashboard/policies"}],
     },
     {
       name: "Guests",
