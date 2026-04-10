@@ -141,3 +141,29 @@ BEGIN
         $POLICY$;
     END IF;
 END $$;
+
+
+
+ALTER TABLE amenities ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'view_all_amenities' AND tablename = 'amenities') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY view_all_amenities ON amenities FOR SELECT USING (true);
+        $POLICY$;
+    END IF;
+END $$;
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'hotel_manager_manage_amenities' AND tablename = 'amenities') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY hotel_manager_manage_amenities ON amenities FOR ALL
+            USING (
+                'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+            );
+        $POLICY$;
+    END IF;
+END $$;
