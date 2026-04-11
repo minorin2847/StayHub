@@ -1,14 +1,16 @@
 import db from "@/database/db.js";
 import type { NextFunction, Request, Response } from "express";
 import Bed from "./bed.js";
+import rlsWrapper from "@/utils/rlsWrapper.js";
 
-export async function findBedByName(name: string): Promise<Bed> {
+export async function findBedByName(name: string): Promise<Bed | null> {
     try {
         const bed = await db.oneOrNone("SELECT * FROM beds WHERE name=$1", [name], row => new Bed(row));
         if (!bed) throw new Error("Bed doesn't exist!");
         return bed;
     } catch (error) {
         console.error("Error while fetching bed by name!");
+        return null;
     }
 }
 
@@ -50,5 +52,11 @@ export async function addBeds(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function insertBedToHotel(req: Request, res: Response, next: NextFunction) {
-    
+    rlsWrapper(
+        "insert-bed-to-hotel",
+        req.user,
+        async t => {
+            
+        }
+    )
 }
