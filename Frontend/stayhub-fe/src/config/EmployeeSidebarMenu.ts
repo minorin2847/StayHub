@@ -87,8 +87,14 @@ export const MENU_CONFIG = {
   MANAGE_HOTEL: [
     { name: "Dashboard", icon: FaHome, path: "/dashboard" },
     {
+      name: "Beds",
+      icon: FaHotel, // change later
+      path: "/dashboard/beds",
+      subItems: [{ name: "Manage Beds", path: "/dashboard/beds" }],
+    },
+    {
       name: "Bookings",
-      icons: FaHotel, // change later
+      icon: FaHotel, // change later
       path: "/dashboard/bookings",
     },
     {
