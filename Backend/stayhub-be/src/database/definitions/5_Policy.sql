@@ -192,3 +192,204 @@ BEGIN
         $POLICY$;
     END IF;
 END $$;
+
+
+-- ===================================================================================
+-- 11. POLICIES FOR HOTEL AMENITIES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'hotel_amenities_policy' AND tablename = 'hotel_amenities') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY hotel_amenities_policy ON hotel_amenities FOR ALL
+            USING (
+                -- Public Read Access
+                (current_user = current_user) -- Always true for SELECT
+                OR
+                -- Administrator Full Access
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                -- Manage Branch Own Hotel
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            )
+            WITH CHECK (
+                -- Restrict Mutations (CUD) to Admin or Branch Manager
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+-- ===================================================================================
+-- 12. POLICIES FOR HOTEL POLICIES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'hotel_policies_policy' AND tablename = 'hotel_policies') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY hotel_policies_policy ON hotel_policies FOR ALL
+            USING (
+                true -- Everyone can read
+            )
+            WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+-- ===================================================================================
+-- 13. POLICIES FOR HOTEL BEDS TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'hotel_beds_policy' AND tablename = 'hotel_beds') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY hotel_beds_policy ON hotel_beds FOR ALL
+            USING (true)
+            WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+-- ===================================================================================
+-- 13. POLICIES FOR HOTEL IMAGES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'hotel_images_policy' AND tablename = 'hotel_images') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY hotel_images_policy ON hotel_images FOR ALL
+            USING (true)
+            WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+-- ===================================================================================
+-- 14. POLICIES FOR ROOM AMENITIES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_amenities_policy' AND tablename = 'room_amenities') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY room_amenities_policy ON room_amenities FOR ALL
+            USING (true)
+            WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    EXISTS (
+                        SELECT 1 FROM rooms 
+                        WHERE rooms.id = roomID 
+                        AND rooms.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                    )
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+-- ===================================================================================
+-- 14. POLICIES FOR ROOM BEDS TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_beds_policy' AND tablename = 'room_beds') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY room_beds_policy ON room_beds FOR ALL
+            USING (true)
+            WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    EXISTS (
+                        SELECT 1 FROM rooms 
+                        WHERE rooms.id = roomID 
+                        AND rooms.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                    )
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+-- ===================================================================================
+-- 15. POLICIES FOR ROOM IMAGES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_images_policy' AND tablename = 'room_images') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY room_images_policy ON room_images FOR ALL
+            USING (true)
+            WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    EXISTS (
+                        SELECT 1 FROM rooms 
+                        WHERE rooms.id = roomID 
+                        AND rooms.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                    )
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;

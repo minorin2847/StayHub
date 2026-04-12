@@ -85,8 +85,7 @@ CREATE TABLE IF NOT EXISTS policies (
 );
 
 CREATE TABLE IF NOT EXISTS beds (
-  name varchar(100) PRIMARY KEY,
-  count int NOT NULL DEFAULT 0
+  name varchar(100) PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS hotels (
