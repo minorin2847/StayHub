@@ -6,6 +6,7 @@ import Employee from "../employee/employee.js";
 import type { BranchTable } from "../branch/branch.type.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import type { RoleTableData } from "../roles/roles.type.js";
+import type { BedRecord, HotelBedRecord } from "../bed/bed.type.js";
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -183,4 +184,66 @@ export async function getDashboardRooms(req: Request, res: Response, next: NextF
              res.status(200).json(result.length > 0 ? { hasNext, response: result } : []);
         }
     )
+}
+
+export async function getDashboardBeds(req: Request, res: Response, next: NextFunction) {
+    const { query, minCount, maxCount, sort, order, page, excludeCurrent } = req.query;
+
+    try {
+        const result = await db.manyOrNone(
+            "SELECT * FROM get_beds_by_page($(query), $(excludeId), $(minCount), $(maxCount), $(sort), $(order), $(page))",
+            {
+                query: query ?? null,
+                excludeId: excludeCurrent === 'true' ? req.user.hotelid : null,
+                minCount: minCount ? parseInt(minCount as string) : 0,
+                maxCount: maxCount ? parseInt(maxCount as string) : 1000,
+                sort: sort ?? 'name',
+                order: order ?? 'asc',
+                page: page ? parseInt(page as string) : 1
+            }
+        );
+
+        const hasNext = result.length > 0 && result[0].has_next;
+        
+        // Coerce the response by removing the has_next property from the objects
+        // (Optional: Postgres returns it, but you can filter it out if you want a clean array)
+        const response: BedRecord[] = result.map(({ has_next, ...data }) => data);
+
+        res.status(200).json({ hasNext: !!hasNext, response });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getDashboardHotelBeds(req: Request, res: Response, next: NextFunction) {
+    const { query, minCount, maxCount, sort, order, page } = req.query;
+
+
+    rlsWrapper(
+        "get-hotel-beds-table",
+        req.user,
+        async t => {
+            // Coercing the return type here
+            return await t.manyOrNone(
+                "SELECT * FROM get_hotel_beds_by_page($(hotelid), $(query), $(minCount), $(maxCount), $(sort), $(order), $(page))", 
+                {
+                    hotelid: req.user.hotelid,
+                    query: query ?? null,
+                    minCount: minCount ? parseInt(minCount as string) : 0,
+                    maxCount: maxCount ? parseInt(maxCount as string) : 100,
+                    sort: sort ?? 'name',
+                    order: order ?? 'asc',
+                    page: page ? parseInt(page as string) : 1
+                }
+            );
+        },
+        (result: (HotelBedRecord & {has_next: boolean})[]) => {
+            const hasNext = result.length > 0 && result[0].has_next;
+            
+            // Clean the response so it only contains HotelBedRecord data
+            const response: HotelBedRecord[] = result.map(({ has_next, ...data }) => data);
+
+            res.status(200).json({ hasNext: !!hasNext, response });
+        }
+    );
 }

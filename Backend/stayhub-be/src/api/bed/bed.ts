@@ -1,6 +1,5 @@
 export default class Bed {
     name: string = "";
-    count: number = 0;
 
     constructor(_: Partial<Bed>) {
         // This only copies properties that exist on the instance (the whitelist)

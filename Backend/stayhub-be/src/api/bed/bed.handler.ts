@@ -2,6 +2,17 @@ import db from "@/database/db.js";
 import type { NextFunction, Request, Response } from "express";
 import Bed from "./bed.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
+import pgPromise from "pg-promise";
+
+const bedColumns = new (pgPromise().helpers.ColumnSet)(
+    [
+        { name: 'name', skip: (c: any) => c.value === undefined },
+    ],
+    {
+        table: "beds"
+    }
+)
+
 
 export async function findBedByName(name: string): Promise<Bed | null> {
     try {
@@ -26,8 +37,7 @@ export async function getBeds(req: Request, res: Response, next: NextFunction) {
 
 export async function addBeds(req: Request, res: Response, next: NextFunction) {
     const {
-        name,
-        count
+        name
     } = req.body;
     
     try {
@@ -36,11 +46,10 @@ export async function addBeds(req: Request, res: Response, next: NextFunction) {
             return res.status(409).send("Bed already exists!")
         } else {
             const newBed = await db.one(
-                "INSERT INTO beds(name, count) \
-                VALUES ($(name), $(count)) \
-                RETURNING name, count", {
+                "INSERT INTO beds(name) \
+                VALUES ($(name)) \
+                RETURNING name", {
                     name: name,
-                    count: count
                 }, row => new Bed(row));
 
             return res.status(200).send("Bed created successfully!")
@@ -51,12 +60,91 @@ export async function addBeds(req: Request, res: Response, next: NextFunction) {
     }
 }
 
+
+export async function editBed(req: Request, res: Response, next: NextFunction) {
+    const { name } = req.params;
+    const bedData = req.body;
+    
+    try {
+        if (bedData.name) {
+            const bed = await findBedByName(bedData)
+            if (bed) {
+                return res.status(409).send(`Bed with name ${bedData.name} already exists!`)
+            }
+        } 
+        const newBed = await pgPromise().helpers.update(bedData, bedColumns)
+                        + pgPromise().as.format(' WHERE name=$1 RETURNING *', [name]);
+        if (!newBed) return res.status(404).send("Bed not found!")
+        return res.status(200).json(newBed);
+    } catch (error) {
+        console.error("Error while editing bed!")
+        return res.status(500).send("Error while editing bed!");
+    }
+}
+
+export async function deleteBed(req: Request, res: Response, next: NextFunction) {
+    const { name } = req.params;
+    
+    try {
+        const bed = await db.oneOrNone(`
+                DELETE FROM beds \
+                WHERE name=$1 \
+                RETURNING name
+            `)
+        if (!bed) return res.status(404).send("Bed not found or already deleted!")
+        return res.status(200).json(bed);
+    } catch (error) {
+        console.error("Error while deleting bed!")
+        return res.status(500).send("Error while deleting bed!");
+    }
+}
+
+
 export async function insertBedToHotel(req: Request, res: Response, next: NextFunction) {
+    const { name } = req.body;
     rlsWrapper(
         "insert-bed-to-hotel",
         req.user,
         async t => {
-            
+            return await t.oneOrNone(`
+                INSERT INTO hotel_beds(hotelid, bed_name) \
+                VALUES ($(hotelid), $(name)) \
+                ON CONFLICT (hotelid, bed_name) DO NOTHING \
+                RETURNING hotelid, bed_name
+                `, {
+                    hotelid: req.user.hotelid,
+                    name: name
+                }, (row: Partial<Bed>) => new Bed(row)
+            );
+        },
+        result => {
+            if (!result) return res.status(409).send("Bed already exists for the hotel!");
+            return res.status(200).json(result);
         }
     )
 }
+
+export async function removeBedFromHotel(req: Request, res: Response, next: NextFunction) {
+    const { name } = req.params;
+    rlsWrapper(
+        "remove-bed-from-hotel",
+        req.user,
+        async t => {
+            return await t.oneOrNone(`
+                DELETE FROM hotel_beds \
+                WHERE hotelid=$(hotelid) AND bed_name=$(name) \
+                RETURNING hotelid, bed_name
+                `, {
+                    hotelid: req.user.hotelid,
+                    name: name
+                }, (row: Partial<Bed>) => new Bed(row)
+            );
+        },
+        result => {
+            if (!result) return res.status(404).send("Bed not found or already deleted!");
+            return res.status(200).json(result);
+        }
+    )
+}
+
+
