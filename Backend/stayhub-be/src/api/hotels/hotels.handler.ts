@@ -2,26 +2,41 @@ import db from "@/database/db.js";
 import type { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
 import Hotel from "./hotels.js";
+import rlsWrapper from "@/utils/rlsWrapper.js";
 
 
 
 
 export async function getHotels(req: Request, res: Response, next: NextFunction) {
-  const {branchid} = req.params;
-  try {
-    let hotels;
-    if (branchid) {
-      hotels = await db.map("SELECT * FROM hotels WHERE branchid = $1", [branchid], row => new Hotel(row));  
-    }
-    else {
-      hotels = await db.map("SELECT * FROM hotels", [], row => new Hotel(row));
-    }
-    return res.status(200).json(hotels);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(`There's a problem getting hotels:\n${error.stack}`)
-    } else console.error("There's an unknown error getting hotels!")
-  }
+    const { branchid } = req.params;
+
+    rlsWrapper(
+        "get-hotels-list",
+        req.user,
+        async (t) => {
+            // If branchid exists, we filter by it. 
+            // If the user is a MANAGE_BRANCH who tries to access a different branchid, 
+            // the RLS policy will automatically return an empty array.
+            if (branchid) {
+                return await t.map(
+                    "SELECT * FROM hotels WHERE branchid = $1", 
+                    [branchid], 
+                    (row: any) => new Hotel(row)
+                );
+            }
+
+            // Global fetch - RLS will still restrict this to only 
+            // the hotels the user is allowed to see.
+            return await t.map(
+                "SELECT * FROM hotels", 
+                [], 
+                (row: any) => new Hotel(row)
+            );
+        },
+        (hotels) => {
+            res.status(200).json(hotels);
+        }
+    );
 }
 
 export async function createHotel(req: Request, res: Response, next: NextFunction) {
