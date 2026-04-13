@@ -1,7 +1,7 @@
 "use client";
 
 import buildQueryParams from "@/utils/BuildQueryParams";
-import { Button, message, Space, Table } from "antd";
+import { Button, message, Space, Table, Modal } from "antd";
 import { EyeOutlined, EditOutlined, DeleteOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Dispatch, ReactNode, SetStateAction, useEffect, useState } from "react";
@@ -104,14 +104,15 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
     const [openEditModal, setOpenEditModal] = useState<boolean>(false);
     
 
-        const showDeleteConfirm = (record: TData) => {
-        confirm({
+    const showDeleteConfirm = (record: TData) => {
+        Modal.confirm({
             title: generatedDeletePrompt(record),
             icon: <ExclamationCircleFilled />,
-            content: 'This action cannot be undone.',
-            okText: 'Continue',
-            okType: 'danger',
-            cancelText: 'No',
+            content: "This action cannot be undone. Are you sure you want to proceed?",
+            okText: "Continue",
+            okType: "danger",
+            cancelText: "Cancel",
+            centered: true,
             async onOk() {
                 try {
                     const res = await fetch(generatedDeleteEndpoint(record), {
@@ -124,7 +125,8 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                         await fetchData();
                         setLoading(false);
                     } else {
-                        message.error(`Failed to delete ${resourceName}!`);
+                        const errText = await res.text();
+                        message.error(`Failed to delete ${resourceName}: ${errText}`);
                     }
                 } catch (e) {
                     message.error(`Error deleting ${resourceName}`);
@@ -132,6 +134,7 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
             },
         });
     };
+
 
 
     const columns: TableColumn[] = [
