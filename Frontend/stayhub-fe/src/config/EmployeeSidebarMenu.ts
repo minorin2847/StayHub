@@ -38,7 +38,6 @@ export const MENU_CONFIG = {
       path: "/dashboard/hotels",
       subItems: [
         { name: "View All Hotels", path: "/dashboard/hotels" },
-        { name: "Add New Hotel", path: "/dashboard/hotels/add" },
       ],
     },
     {
