@@ -5,7 +5,8 @@ export default function rlsWrapper(
     transactionName: string,
     user: any, 
     query: (t: any) => Promise<any>,
-    result: (row: any) => any) {
+    result: (row: any) => any,
+    fail?: (err: any) => any) {
     db.tx(transactionName, async t => {
         const roleStr = user.roles.map((i: Role)=>i.name).join(",");
         await t.none('SET ROLE stayhub');
@@ -23,5 +24,7 @@ export default function rlsWrapper(
         if (err instanceof Error) {
             console.error(`There's a problem in ${transactionName}:\n${err.stack}`)
         } else console.error(`There's an unknown error in ${transactionName}!`)
+        
+        if (fail) fail(err);
     })
-}
+}

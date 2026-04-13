@@ -46,7 +46,7 @@ export function login(req: Request, res: Response, next: NextFunction) {
     "employee-login",
     (err: any, user: any, info: any, status: any) => {
       if (err) return next(err);
-      if (!user) res.status(404).send("Incorrect username or password!");
+      if (!user) return res.status(404).send("Incorrect username or password!");
       findEmployeeByUsername(user.username)
         .then(() => {
           req.login(user, (err) => {
