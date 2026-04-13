@@ -497,3 +497,73 @@ BEGIN
         e.salary;
 END;
 $$;
+
+
+CREATE OR REPLACE FUNCTION get_policies_by_page(
+    p_name TEXT DEFAULT NULL,
+    p_category TEXT DEFAULT NULL,
+    p_sort_column TEXT DEFAULT 'updated_at',
+    p_sort_dir TEXT DEFAULT 'DESC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    name VARCHAR,
+    description TEXT,
+    category VARCHAR,
+    status BOOLEAN,
+    updated_at TIMESTAMP,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+BEGIN
+    IF p_name IS NOT NULL AND p_name <> '' THEN
+        v_where := v_where || format(' AND name ILIKE %L', '%' || p_name || '%');
+    END IF;
+
+    IF p_category IS NOT NULL AND p_category <> '' THEN
+        v_where := v_where || format(' AND category = %L', p_category);
+    END IF;
+
+    EXECUTE 'SELECT COUNT(*) FROM policies' || v_where INTO v_total_rows;
+    
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    v_sort_clause := CASE p_sort_column
+        WHEN 'name'         THEN 'name'
+        WHEN 'category'     THEN 'category'
+        WHEN 'status'       THEN 'status'
+        ELSE 'updated_at'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'DESC'; END IF;
+
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                name, description, category, status, updated_at
+            FROM policies
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;

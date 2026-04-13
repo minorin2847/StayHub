@@ -41,38 +41,24 @@ export function getPolicyStats(
 
 export function getPolicyList(req: Request, res: Response, next: NextFunction) {
   const page = parseInt(req.query.page as string) || 1;
-  const limit = 10;
-  const offset = (page - 1) * limit;
-  const name = req.query.name as string;
-  const category = req.query.category as string;
-  const searchName = name ? `%${name}%` : null;
+  const name = (req.query.name as string) || null;
+  const category = (req.query.category as string) || null;
+  const sortColumn = (req.query.sort as string) || "updated_at";
+  const sortDir = (req.query.order as string) || "DESC";
 
   rlsWrapper(
     "list-policies",
     req.user,
     async (t) => {
-      let baseQuery = `FROM policies WHERE 1=1`;
-      const queryParams: any[] = [];
-      let paramIndex = 1;
+      const rawData = await t.any(
+        `SELECT * FROM get_policies_by_page($1::text, $2::text, $3::text, $4::text, $5::int)`,
+        [name, category, sortColumn, sortDir, page],
+      );
 
-      if (searchName) {
-        baseQuery += ` AND name ILIKE $${paramIndex}`;
-        queryParams.push(searchName);
-        paramIndex++;
-      }
+      const hasNext = rawData.length > 0 ? rawData[0].has_next : false;
+      const response = rawData.map(({ has_next, ...rest }) => rest);
 
-      if (category) {
-        baseQuery += ` AND category = $${paramIndex}`;
-        queryParams.push(category);
-        paramIndex++;
-      }
-
-      const dataQuery = `SELECT * ${baseQuery} ORDER BY updated_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      queryParams.push(limit + 1, offset);
-
-      const rawData = await t.any(dataQuery, queryParams);
-      const hasNext = rawData.length > limit;
-      return { response: hasNext ? rawData.slice(0, limit) : rawData, hasNext };
+      return { response, hasNext };
     },
     (result) => res.status(200).json(result),
   );
@@ -80,8 +66,9 @@ export function getPolicyList(req: Request, res: Response, next: NextFunction) {
 
 export function createPolicy(req: Request, res: Response, next: NextFunction) {
   const { name, description, category, status } = req.body;
-  if (!name || !description)
+  if (!name || !description) {
     return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
+  }
 
   db.oneOrNone("SELECT name FROM policies WHERE name = $1", [name])
     .then((existingPolicy) => {
@@ -114,8 +101,9 @@ export function editPolicy(req: Request, res: Response, next: NextFunction) {
   const originalName = req.params.name;
   const updateData = req.body;
 
-  if (Object.keys(updateData).length === 0)
+  if (Object.keys(updateData).length === 0) {
     return res.status(400).send("Không có dữ liệu update!");
+  }
 
   rlsWrapper(
     "update-policy",
