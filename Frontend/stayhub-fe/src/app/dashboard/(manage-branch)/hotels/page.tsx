@@ -6,7 +6,9 @@ import { EyeOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { MdOutlineEmail, MdOutlinePhone, MdOutlineMeetingRoom } from "react-icons/md";
 import { FaStar } from "react-icons/fa";
-import FormCreate from "./components/FormCreate";
+import CreateModal from "./components/CreateModal";
+import EditModal from "./components/EditModal";
+import FilterModal from "./components/FilterModal";
 import GenericTableView, { TableColumn } from "@/components/ui/GenericTableView";
 
 export type HotelFilterData = {
@@ -122,25 +124,26 @@ export default function ManageHotels() {
                 loading={loading}
                 setLoading={setLoading}
                 renderCreateModal={(injected) => (
-                    <FormCreate
+                    <CreateModal
                         open={injected.open}
                         onClose={injected.onClose}
-                        onSuccess={async () => {
-                            await injected.onSuccess();
-                        }}
+                        onSuccess={injected.onSuccess}
                     />
                 )}
                 renderFilterModal={(injected) => (
-                    <></> // No separate Filter Modal for Hotels yet
+                    <FilterModal
+                        open={injected.open}
+                        setOpen={injected.setOpen}
+                        query={injected.query}
+                        setQuery={injected.setQuery}
+                    />
                 )}
                 renderEditModal={(injected) => (
-                    <FormCreate
+                    <EditModal
                         open={injected.open}
                         onClose={injected.onClose}
-                        editRecord={injected.current}
-                        onSuccess={async () => {
-                            await injected.onSuccess();
-                        }}
+                        current={injected.current}
+                        onSuccess={injected.onSuccess}
                     />
                 )}
                 tableColumns={columns}

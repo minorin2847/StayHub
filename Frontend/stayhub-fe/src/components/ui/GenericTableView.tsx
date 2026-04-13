@@ -17,12 +17,10 @@ export type TableColumn = {
     render: (...args: any[]) => any;
     className?: string;
 }
-
 export interface GenericTableViewProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
     resourceName: string;
     searchPlaceholder: string;
     tableDataEndpoint: string;
-
     loading: boolean;
     setLoading: Dispatch<SetStateAction<boolean>>;
 
