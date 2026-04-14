@@ -368,6 +368,7 @@ BEGIN
 END;
 $$;
 
+
 CREATE OR REPLACE FUNCTION get_roles_auth_context(p_name VARCHAR)
 RETURNS TABLE (
     name VARCHAR,
@@ -760,6 +761,93 @@ BEGIN
         )
         SELECT rd.*, 
                 (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_services_by_page(
+    p_query TEXT DEFAULT NULL,
+    p_type TEXT DEFAULT NULL,
+    p_min_price INT DEFAULT 0,
+    p_max_price INT DEFAULT 2147483647,
+    p_sort_column TEXT DEFAULT 'id',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT, 
+    hotelID INT, 
+    type VARCHAR, 
+    name VARCHAR, 
+    description TEXT, 
+    coverImage TEXT, 
+    price INT,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    -- ### 1. Define the Base Data Source ###
+    v_base_from := ' FROM services s ';
+
+    -- ### 2. Build the Dynamic WHERE clause ###
+
+    -- Filter by text query (name or description)
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND (s.name ILIKE %L OR s.description ILIKE %L)', 
+                   '%' || p_query || '%', '%' || p_query || '%');
+    END IF;
+
+    -- Filter by specific service type
+    IF p_type IS NOT NULL AND p_type <> '' THEN
+        v_where := v_where || format(' AND s.type = %L', p_type);
+    END IF;
+
+    -- Filter by price range
+    v_where := v_where || format(' AND s.price BETWEEN %L AND %L', p_min_price, p_max_price);
+
+    -- ### 3. Boundary Check & Pagination Math ###
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+    
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    -- ### 4. Dynamic Sorting Logic ###
+    v_sort_clause := CASE p_sort_column
+        WHEN 'name'  THEN 's.name'
+        WHEN 'price' THEN 's.price'
+        ELSE 's.id'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    -- ### 5. Execution ###
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                s.id, s.hotelID, s.type, s.name, s.description, s.coverImage, s.price
+            %s
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
         FROM raw_data rd
         LIMIT %L',
         v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit

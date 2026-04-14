@@ -382,5 +382,12 @@ BEGIN
     END IF; 
 END $$;
 
+-- services -> hotels
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_services_hotel' AND conrelid = 'services'::regclass) THEN 
+        ALTER TABLE services ADD CONSTRAINT fk_services_hotel FOREIGN KEY (hotelID) REFERENCES hotels (id) ON UPDATE CASCADE;
+    END IF; 
+END $$;
 
 
