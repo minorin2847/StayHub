@@ -7,6 +7,7 @@ import type { BranchTable } from "../branch/branch.type.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import type { RoleTableData } from "../roles/roles.type.js";
 import type { BedRecord, HotelBedRecord } from "../bed/bed.type.js";
+import type Service from "../services/services.js";
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -244,6 +245,44 @@ export async function getDashboardHotelBeds(req: Request, res: Response, next: N
             const response: HotelBedRecord[] = result.map(({ has_next, ...data }) => data);
 
             res.status(200).json({ hasNext: !!hasNext, response });
+        }
+    );
+}
+
+export async function getDashboardServices(req: Request, res: Response, next: NextFunction) {
+    const { query, type, minPrice, maxPrice, sort, order, page } = req.query;
+    type ServiceTable = Service & {has_next: boolean};
+    rlsWrapper(
+        "get-dashboard-services",
+        req.user,
+        async t => {
+            return await t.manyOrNone(
+                "SELECT * FROM get_services_by_page($(query), $(type), $(minPrice), $(maxPrice), $(sort), $(order), $(page))",
+                {
+                    query: query ?? null,
+                    type: type ?? null,
+                    minPrice: minPrice ? parseInt(minPrice as string) : 0,
+                    maxPrice: maxPrice ? parseInt(maxPrice as string) : 2147483647,
+                    sort: sort ?? 'id',
+                    order: order ?? 'asc',
+                    page: page ? parseInt(page as string) : 1
+                },
+                (row: any) => row as ServiceTable
+            );
+        },
+        (result: ServiceTable[]) => {
+            // Postgres returns the column as 'has_next'
+            const hasNext = result.length > 0 ? result[0].has_next : false;
+            
+            // Map over the results, strip out the 'has_next' column, and instantiate the Service class
+            const response = result.map(({ has_next, ...data }) => data);
+
+            // Return empty array if no results, otherwise return the pagination object
+            res.status(200).json(
+                result.length > 0 
+                    ? { hasNext: !!hasNext, response } 
+                    : { hasNext: false, response: [] }
+            );
         }
     );
 }
