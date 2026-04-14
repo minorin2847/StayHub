@@ -72,12 +72,13 @@ export async function editBed(req: Request, res: Response, next: NextFunction) {
                 return res.status(409).send(`Bed with name ${bedData.name} already exists!`)
             }
         } 
-        const newBed = await pgPromise().helpers.update(bedData, bedColumns)
+        const query = await pgPromise().helpers.update(bedData, bedColumns)
                         + pgPromise().as.format(' WHERE name=$1 RETURNING *', [name]);
+        const newBed = await db.oneOrNone(query);
         if (!newBed) return res.status(404).send("Bed not found!")
         return res.status(200).json(newBed);
     } catch (error) {
-        console.error("Error while editing bed!")
+        console.error("Error while editing bed!\n" + error.stack);
         return res.status(500).send("Error while editing bed!");
     }
 }
@@ -90,11 +91,11 @@ export async function deleteBed(req: Request, res: Response, next: NextFunction)
                 DELETE FROM beds \
                 WHERE name=$1 \
                 RETURNING name
-            `)
+            `, [name])
         if (!bed) return res.status(404).send("Bed not found or already deleted!")
         return res.status(200).json(bed);
     } catch (error) {
-        console.error("Error while deleting bed!")
+        console.error("Error while deleting bed!\n" + error.stack);
         return res.status(500).send("Error while deleting bed!");
     }
 }

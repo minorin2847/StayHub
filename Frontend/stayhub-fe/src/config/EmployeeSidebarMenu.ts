@@ -49,6 +49,14 @@ export const MENU_CONFIG = {
         { name: "View All Branches", path: "/dashboard/branches" }
       ],
     },
+        {
+      name: "Beds",
+      icon: FaHotel, // We can reuse FaHotel or another icon
+      path: "/dashboard/beds",
+      subItems: [
+        { name: "View All Beds", path: "/dashboard/beds" }
+      ],
+    },
     {
       name: "Front Desk",
       icon: FaCog, // Can change icon later
