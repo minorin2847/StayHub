@@ -20,7 +20,7 @@ export type TableColumn = {
 
 interface BaseProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
     resourceName: string;
-    resourceId: string;
+    resourceId?: string;
     searchPlaceholder: string;
     tableDataEndpoint: string;
     onDataFetched?: (data: TData[]) => void;

@@ -79,7 +79,7 @@ END
 $$;
 
 -- ============================================================================
--- 5. MANAGE_BRANCH POLICIES FOR BRANCH TABLE
+-- 5. POLICIES FOR BRANCH TABLE
 -- ============================================================================
 DO $$ 
 BEGIN
@@ -87,13 +87,13 @@ BEGIN
         SELECT 1 FROM pg_policies 
         WHERE schemaname = 'public' 
           AND tablename = 'branch' 
-          AND policyname = 'manage_branch_all_branch'
+          AND policyname = 'general_all_branch'
     ) THEN
         EXECUTE $POLICY$
-            CREATE POLICY manage_branch_all_branch ON branch
+            CREATE POLICY general_all_branch ON branch
             FOR ALL
             USING (
-                'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                'ADMINISTRATOR' != ALL(string_to_array(current_setting('app.roles', true), ','))
                 AND
                 id = NULLIF(current_setting('app.branchid', true), '')::INT
             );
@@ -210,7 +210,7 @@ BEGIN
                 -- Administrator Full Access
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 OR
-                -- Manage Branch Own Hotel
+                -- Manage Hotel Own Hotel
                 (
                     'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                     AND
@@ -388,6 +388,43 @@ BEGIN
                         WHERE rooms.id = roomID 
                         AND rooms.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
                     )
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+-- ===================================================================================
+-- 16. POLICIES FOR SERVICES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'services_policy' AND tablename = 'services') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY services_policy ON services FOR ALL
+            USING (
+                -- Public Read Access
+                (current_user = current_user) -- Always true for SELECT
+                OR
+                -- Administrator Full Access
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                -- Manage Hotel Own Hotel
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            )
+            WITH CHECK (
+                -- Restrict Mutations (CUD) to Admin or Branch Manager
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
                 )
             );
         $POLICY$;
