@@ -19,6 +19,6 @@ privateServicesRoute.post("/add", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), c
 privateServicesRoute.patch("/edit/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), editService);
 
 // DELETE /employee/services/delete/:id
-privateServicesRoute.delete("/delete/:id", isLoggedIn, hasPermission(["MANAGE)HOTEL"]), deleteService);
+privateServicesRoute.delete("/delete/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), deleteService);
 
 export { publicServicesRoute, privateServicesRoute };

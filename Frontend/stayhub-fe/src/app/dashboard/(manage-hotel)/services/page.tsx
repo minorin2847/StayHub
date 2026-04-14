@@ -22,10 +22,7 @@ export default function ServiceView() {
     const [serviceTypes, setServiceTypes] = useState<string[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [currentRecord, setCurrentRecord] = useState<Service | null>(null);
-
-    // Fetch unique service types for the filters and modals
-    useEffect(() => {
-        const fetchTypes = async () => {
+    const fetchTypes = async () => {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/services/types`, {
                 method: "GET",
                 credentials: "include"
@@ -33,14 +30,12 @@ export default function ServiceView() {
             const data = await res.json();
             setServiceTypes(data);
         };
-        fetchTypes();
-    }, []);
-
     return (
         <GenericTableView<Service, ServiceFilterData>
             resourceName="Service"
             searchPlaceholder="Search services by name..."
             tableDataEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/services`}
+            onDataFetched={async () => await fetchTypes()}
             loading={loading}
             setLoading={setLoading}
             renderCreateModal={(injected) => (
