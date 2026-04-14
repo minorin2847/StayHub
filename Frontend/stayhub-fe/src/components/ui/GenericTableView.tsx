@@ -18,31 +18,17 @@ export type TableColumn = {
     className?: string;
 }
 
-export interface GenericTableViewProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
+interface BaseProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
     resourceName: string;
+    resourceId: string;
     searchPlaceholder: string;
     tableDataEndpoint: string;
+    onDataFetched?: (data: TData[]) => void;
 
     loading: boolean;
     setLoading: Dispatch<SetStateAction<boolean>>;
 
-    renderCreateModal: (injected: {
-        open: boolean;
-        onClose: () => void;
-        onSuccess: () => Promise<void>;
-    }) => ReactNode;
-    renderFilterModal: (injected: {
-        open: boolean;
-        setOpen: Dispatch<SetStateAction<boolean>>;
-        query: TFilter;
-        setQuery: Dispatch<SetStateAction<TFilter>>;
-    }) => ReactNode;
-    renderEditModal: (injected: {
-        open: boolean;
-        current: TData | null;
-        onClose: () => void;
-        onSuccess: () => Promise<void>;
-    }) => ReactNode;
+    hasDelete?: boolean;
 
     tableColumns: TableColumn[];
     
@@ -51,20 +37,68 @@ export interface GenericTableViewProps<TData extends Record<string, any>, TFilte
 
     generatedDeletePrompt: (record: TData) => string;
     generatedDeleteEndpoint: (record: TData) => string;
-}
+};
+
+type CreateProps<TData extends Record<string, any>, TFilter extends Record<string, any>> =
+    | {
+        hasCreate?: true; 
+        renderCreateModal: (injected: {
+            open: boolean;
+            onClose: () => void;
+            onSuccess: () => Promise<void>;
+        }) => ReactNode;    
+    }
+    | {hasCreate: false; renderCreateModal?: never};
+
+type FilterProps<TData extends Record<string, any>, TFilter extends Record<string, any>> =
+    | {
+        hasFilter?: true; 
+        renderFilterModal?: (injected: {
+            open: boolean;
+            setOpen: Dispatch<SetStateAction<boolean>>;
+            query: TFilter;
+            setQuery: Dispatch<SetStateAction<TFilter>>;
+        }) => ReactNode;
+    }
+    | {hasFilter: false; renderFilterModal?: never};
+
+    
+type EditProps<TData extends Record<string, any>, TFilter extends Record<string, any>> =
+    | {
+        hasEdit?: true; 
+        renderEditModal?: (injected: {
+            open: boolean;
+            current: TData | null;
+            onClose: () => void;
+            onSuccess: () => Promise<void>;
+        }) => ReactNode;
+    }
+    | {hasEdit: false; renderEditModal?: never};
+
+export type GenericTableViewProps<TData extends Record<string, any>, TFilter extends Record<string, any>>
+= BaseProps<TData, TFilter>
+& CreateProps<TData, TFilter>
+& FilterProps<TData, TFilter>
+& EditProps<TData, TFilter>
 
 
 export default function GenericTableView<TData extends Record<string, any>, TFilter extends Record<string, any>>({
     resourceName,
+    resourceId = "id",
     searchPlaceholder = "Search...",
     tableDataEndpoint,
-
+    onDataFetched = () => null,
     loading,
     setLoading,
 
-    renderCreateModal,
-    renderFilterModal,
-    renderEditModal,
+    hasCreate = true,
+    hasFilter = true,
+    hasEdit = true,
+    hasDelete = true,
+
+    renderCreateModal = () => null,
+    renderFilterModal = () => null,
+    renderEditModal = () => null,
 
     tableColumns,
     
@@ -133,11 +167,12 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
 
     const columns: TableColumn[] = [
         ...tableColumns,
-        {
+        ...((hasEdit || hasDelete) ? [{
             title: "ACTIONS",
             key: "actions",
             render: (_: unknown, record: TData) => (
                 <Space size="middle">
+                    {hasEdit && (
                     <Button 
                         type="text" 
                         icon={<EditOutlined />} 
@@ -146,6 +181,9 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                     >
                         Edit
                     </Button>
+                    )}
+
+                    {hasDelete && (
                     <Button 
                         type="text" 
                         danger
@@ -155,9 +193,10 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                     >
                         Delete
                     </Button>
+                    )}
                 </Space>
             )
-        }
+        }] : [])
     ]
     const fetchData = async () => {
         const params = buildQueryParams(query).toString()
@@ -167,6 +206,7 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
             credentials: "include",
         });
         const data = await res.json();
+        onDataFetched(data);
         setResults(data.response as TData[]);
         setHasPrevious(parseInt(query.page ?? '1') > 1);
         setHasNext(data.hasNext);
@@ -213,18 +253,24 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                 </div>
                 <div className="flex items-center gap-x-3">
                     {/* Create button */}
+                    { 
+                    hasCreate && (
                     <Button onClick={() => setOpenCreateModal(true)} className="!flex-1 !md:flex-none !flex !items-center !justify-center !gap-2 !h-11 !px-6 !rounded-xl !bg-emerald-600 !text-white !font-bold !text-sm  !shadow-emerald-100" type="primary">
                         <FaPlus size={16} />
                         Create New {resourceName}
                     </Button>
+                    )}
+
                     {
-                        renderCreateModal({
+                        hasCreate && renderCreateModal({
                             open: openCreateModal,
                             onClose: () => setOpenCreateModal(false),
                             onSuccess: async () => { setLoading(true); await fetchData(); setLoading(false) }
                         })
                     }
+                    
                     {/* filter button */}
+                    { hasFilter && (
                     <Button
                         size="large"
                         shape="default"
@@ -232,8 +278,10 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                         className="!text-emerald-600 hover:!border-emerald-600 !flex !justify-center"
                         onClick={() => setOpenFilterModal(true)}
                     />
+                    )}
+
                     {
-                        renderFilterModal({
+                        hasFilter && renderFilterModal({
                             open: openFilterModal,
                             setOpen: setOpenFilterModal,
                             query: query,
@@ -256,12 +304,12 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                                 <Table
                                     columns={columns}
                                     dataSource={results}
-                                    rowKey="id"
+                                    rowKey={resourceId}
                                     pagination={false}
                                     className="w-full"
                                 />
                                 {
-                                    renderEditModal({
+                                    hasEdit && renderEditModal({
                                         open: openEditModal,
                                         current: currentRecord,
                                         onClose: () => {
