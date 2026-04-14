@@ -5,9 +5,9 @@ import { hasPermission } from "../dashboard/dashboard.handler.js";
 
 const hotelsRoute = Router();
 
-hotelsRoute.get("/", getHotels);
-hotelsRoute.post("/", isLoggedIn, hasPermission(['MANAGE_HOTEL']), createHotel);
-hotelsRoute.put("/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL']), updateHotel);
-hotelsRoute.delete("/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL']), deleteHotel);
+hotelsRoute.get("/", isLoggedIn, getHotels);
+hotelsRoute.post("/", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), createHotel);
+hotelsRoute.put("/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), updateHotel);
+hotelsRoute.delete("/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), deleteHotel);
 
 export default hotelsRoute;

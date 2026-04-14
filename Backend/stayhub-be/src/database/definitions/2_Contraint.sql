@@ -278,3 +278,109 @@ BEGIN
     END IF; 
 END $$;
 
+-- hotel_amenities -> hotels
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotel_amenities_hotelid' AND conrelid = 'hotel_amenities'::regclass) THEN 
+        ALTER TABLE hotel_amenities ADD CONSTRAINT fk_hotel_amenities_hotelid FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- hotel_policies -> hotels
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotel_policies_hotelid' AND conrelid = 'hotel_policies'::regclass) THEN 
+        ALTER TABLE hotel_policies ADD CONSTRAINT fk_hotel_policies_hotelid FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- hotel_beds -> hotels
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotel_beds_hotelid' AND conrelid = 'hotel_beds'::regclass) THEN 
+        ALTER TABLE hotel_beds ADD CONSTRAINT fk_hotel_beds_hotelid FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- hotel_images -> hotels
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotel_images_hotelid' AND conrelid = 'hotel_images'::regclass) THEN 
+        ALTER TABLE hotel_images ADD CONSTRAINT fk_hotel_images_hotelid FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- rooms -> hotels
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rooms_hotelid' AND conrelid = 'rooms'::regclass) THEN 
+        ALTER TABLE rooms ADD CONSTRAINT fk_rooms_hotelid FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- room_amenities -> rooms
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_room_amenities_roomid' AND conrelid = 'room_amenities'::regclass) THEN 
+        ALTER TABLE room_amenities ADD CONSTRAINT fk_room_amenities_roomid FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- room_beds -> rooms
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_room_beds_roomid' AND conrelid = 'room_beds'::regclass) THEN 
+        ALTER TABLE room_beds ADD CONSTRAINT fk_room_beds_roomid FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- room_images -> rooms
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_room_images_roomid' AND conrelid = 'room_images'::regclass) THEN 
+        ALTER TABLE room_images ADD CONSTRAINT fk_room_images_roomid FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
+    END IF; 
+END $$;
+
+-- hotel_amenities -> amenities master
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_ha_amenity_name' AND conrelid = 'hotel_amenities'::regclass) THEN 
+        ALTER TABLE hotel_amenities ADD CONSTRAINT fk_ha_amenity_name FOREIGN KEY (amenity_name) REFERENCES amenities (name) ON UPDATE CASCADE;
+    END IF; 
+END $$;
+
+-- room_amenities -> amenities master
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_ra_amenity_name' AND conrelid = 'room_amenities'::regclass) THEN 
+        ALTER TABLE room_amenities ADD CONSTRAINT fk_ra_amenity_name FOREIGN KEY (amenity_name) REFERENCES amenities (name) ON UPDATE CASCADE;
+    END IF; 
+END $$;
+
+-- hotel_policies -> policies master
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hp_policy_name' AND conrelid = 'hotel_policies'::regclass) THEN 
+        ALTER TABLE hotel_policies ADD CONSTRAINT fk_hp_policy_name FOREIGN KEY (policy_name) REFERENCES policies (name) ON UPDATE CASCADE;
+    END IF; 
+END $$;
+
+-- hotel_beds -> beds master
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hb_bed_name' AND conrelid = 'hotel_beds'::regclass) THEN 
+        ALTER TABLE hotel_beds ADD CONSTRAINT fk_hb_bed_name FOREIGN KEY (bed_name) REFERENCES beds (name) ON UPDATE CASCADE;
+    END IF; 
+END $$;
+
+-- room_beds -> beds master
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rb_bed_name' AND conrelid = 'room_beds'::regclass) THEN 
+        ALTER TABLE room_beds ADD CONSTRAINT fk_rb_bed_name FOREIGN KEY (bed_name) REFERENCES beds (name) ON UPDATE CASCADE;
+    END IF; 
+END $$;
+
+
+

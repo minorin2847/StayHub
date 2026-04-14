@@ -22,7 +22,9 @@ export function getAmenityStats(
     "get-amenity-stats",
     req.user,
     async (t) => {
-      const totalRes = await t.one("SELECT COUNT(*)::int as total FROM amenities");
+      const totalRes = await t.one(
+        "SELECT COUNT(*)::int as total FROM amenities",
+      );
       const totalCategoriesRes = await t.one(
         "SELECT COUNT(DISTINCT category)::int as total_categories FROM amenities",
       );
@@ -154,4 +156,3 @@ export function deleteAmenity(req: Request, res: Response, next: NextFunction) {
     },
   );
 }
-

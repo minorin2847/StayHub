@@ -46,8 +46,15 @@ export const MENU_CONFIG = {
       icon: FaHotel, // We can reuse FaHotel or another icon
       path: "/dashboard/branches",
       subItems: [
-        { name: "View All Branches", path: "/dashboard/branches" },
-        { name: "Add New Branch", path: "/dashboard/branches/add" },
+        { name: "View All Branches", path: "/dashboard/branches" }
+      ],
+    },
+        {
+      name: "Beds",
+      icon: FaHotel, // We can reuse FaHotel or another icon
+      path: "/dashboard/beds",
+      subItems: [
+        { name: "View All Beds", path: "/dashboard/beds" }
       ],
     },
     {
@@ -81,12 +88,18 @@ export const MENU_CONFIG = {
       path: "/dashboard/hotels",
       // subitems for each hotel
       subItems: [
-        {name: "Add Hotel", path: "/dashboard/hotels/"}
+        { name: "Add Hotel", path: "/dashboard/hotels/" }
       ]
     },
   ],
   MANAGE_HOTEL: [
     { name: "Dashboard", icon: FaHome, path: "/dashboard" },
+    {
+      name: "Beds",
+      icon: FaHotel, // change later
+      path: "/dashboard/beds",
+      subItems: [{ name: "Manage Beds", path: "/dashboard/beds" }],
+    },
     {
       name: "Bookings",
       icon: FaHotel, 
