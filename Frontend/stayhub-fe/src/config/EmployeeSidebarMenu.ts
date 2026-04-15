@@ -128,7 +128,15 @@ export const MENU_CONFIG = {
       name: "Rooms",
       icon: LuHouse,
       path: "/dashboard/rooms",
-      subItems: [{ name: "View All Rooms", path: "/dashboard/rooms" }],
+      subItems: [
+        { 
+          name: "View All Rooms", 
+          path: "/dashboard/rooms" 
+        },
+        {
+          name: "View Room Types",
+          path: "/dashboard/rooms/types"
+        }],
     }
   ]
 };
