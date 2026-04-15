@@ -519,10 +519,7 @@ RETURNS TABLE (
     classification INT, 
     branchid INT, 
     location VARCHAR, 
-    description TEXT, 
-    amenities amenities[], 
-    policies policies[], 
-    previewimages TEXT[], 
+    description TEXT,
     contact_email VARCHAR, 
     contact_phone VARCHAR,
     room_count INT,
@@ -595,7 +592,7 @@ BEGIN
         WITH raw_data AS (
             SELECT 
                 h.id, h.name, h.classification, h.branchid, h.location, h.description, 
-                h.amenities, h.policies, h.previewimages, h.contact_email, h.contact_phone,
+                h.contact_email, h.contact_phone,
                 COALESCE(rc.r_count, 0) as room_count
             %s
             %s
@@ -724,8 +721,8 @@ BEGIN
             FROM hotel_beds hb
             LEFT JOIN (
                 SELECT rb.bed_name, SUM(rb.bed_count) as sum_qty
-                FROM room_beds rb
-                JOIN rooms r ON rb.roomID = r.id
+                FROM room_type_beds rb
+                JOIN roomTypes r ON rb.room_typeID = r.id
                 WHERE r.hotelID = %L
                 GROUP BY rb.bed_name
             ) room_sums ON hb.bed_name = room_sums.bed_name

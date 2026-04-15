@@ -49,8 +49,6 @@ export async function createHotel(req: Request, res: Response, next: NextFunctio
     contact_phone,
     classification,
     description,
-    password,
-    previewimages,
   } = req.body;
 
   if (!name || !location) {
@@ -65,16 +63,15 @@ export async function createHotel(req: Request, res: Response, next: NextFunctio
 
   try {
     const hotel = await db.one(
-      `INSERT INTO hotels (name, classification, description, branchid, location, previewimages, contact_email, contact_phone)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, name, classification, branchid, location, previewimages, contact_email, contact_phone`,
+      `INSERT INTO hotels (name, classification, description, branchid, location, contact_email, contact_phone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, classification, branchid, location, contact_email, contact_phone`,
       [
         name,
         classification || 0,
         description || '',
         effectiveBranchId,
         location,
-        previewimages || [],
         contact_email || null,
         contact_phone || null,
       ]
@@ -95,7 +92,6 @@ export async function updateHotel(req: Request, res: Response, next: NextFunctio
     contact_phone,
     classification,
     description,
-    previewimages,
   } = req.body;
 
   // Enforce branchid based on user role
@@ -107,8 +103,8 @@ export async function updateHotel(req: Request, res: Response, next: NextFunctio
   try {
     const hotel = await db.oneOrNone(
       `UPDATE hotels 
-       SET name = $1, branchid = $2, location = $3, contact_email = $4, contact_phone = $5, previewimages = $6, classification = $7, description = $8
-       WHERE id = $9 
+       SET name = $1, branchid = $2, location = $3, contact_email = $4, contact_phone = $5, classification = $6, description = $7
+       WHERE id = $8 
        RETURNING id, name, branchid, location, classification, contact_email, contact_phone`,
       [
         name,
@@ -116,7 +112,6 @@ export async function updateHotel(req: Request, res: Response, next: NextFunctio
         location,
         contact_email || null,
         contact_phone || null,
-        previewimages || [],
         classification || 0,
         description || '',
         id,
