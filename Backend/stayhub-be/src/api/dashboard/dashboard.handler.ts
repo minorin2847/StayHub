@@ -290,7 +290,7 @@ export async function getDashboardServices(req: Request, res: Response, next: Ne
 
 export async function getDashboardRoomTypes(req: Request, res: Response, next: NextFunction) {
     const { 
-        query, 
+        name, 
         minSize, maxSize, 
         minCapacity, maxCapacity, 
         minPrice, maxPrice, 
@@ -326,7 +326,7 @@ export async function getDashboardRoomTypes(req: Request, res: Response, next: N
                     $(sort), $(order), $(page)
                 )`,
                 {
-                    query: query ?? null,
+                    query: name ?? null,
                     minSize: minSize ? parseInt(minSize as string) : 0,
                     maxSize: maxSize ? parseInt(maxSize as string) : 1000,
                     minCapacity: minCapacity ? parseInt(minCapacity as string) : 0,

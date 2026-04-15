@@ -10,7 +10,7 @@ import FilterModal from "./components/FilterModal";
 import EditModal from "./components/EditModal";
 
 export type RoomTypeFilterData = {
-    query: string | null;           // Text search for room name
+    name: string | null;           // Text search for room name
     minSize: string | null;         // Numeric range as string for URL/Form compatibility
     maxSize: string | null;
     minCapacity: string | null;     // Guests capacity
