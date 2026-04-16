@@ -1071,3 +1071,84 @@ BEGIN
 
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_rooms_by_page(
+    p_query TEXT DEFAULT NULL,
+    p_type_id INT DEFAULT NULL,
+    p_sort_column TEXT DEFAULT 'id',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT, 
+    hotelID INT, 
+    name VARCHAR, 
+    typeID INT, 
+    note TEXT,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    -- ### 1. Define the Base Data Source ###
+    v_base_from := ' FROM rooms r ';
+
+    -- ### 2. Build the Dynamic WHERE clause ###
+
+    -- Filter by text query (search by name)
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND r.name ILIKE %L', '%' || p_query || '%');
+    END IF;
+
+    -- Filter by specific room type (using typeID)
+    IF p_type_id IS NOT NULL THEN
+        v_where := v_where || format(' AND r.typeID = %L', p_type_id);
+    END IF;
+
+    -- ### 3. Boundary Check & Pagination Math ###
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+    
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    -- ### 4. Dynamic Sorting Logic ###
+    v_sort_clause := CASE p_sort_column
+        WHEN 'name' THEN 'r.name'
+        ELSE 'r.id'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN 
+        p_sort_dir := 'ASC'; 
+    END IF;
+
+    -- ### 5. Execution ###
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                r.id, r.hotelID, r.name, r.typeID, r.note
+            %s
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
