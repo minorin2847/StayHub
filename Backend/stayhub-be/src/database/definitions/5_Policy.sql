@@ -15,6 +15,7 @@ ALTER TABLE hotel_beds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hotel_images ENABLE ROW LEVEL SECURITY;
 
 -- Room Detail Tables (based on your RoomType normalization)
+ALTER TABLE roomTypes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_type_amenities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_type_beds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_type_images ENABLE ROW LEVEL SECURITY;
@@ -448,6 +449,33 @@ BEGIN
             )
             WITH CHECK (
                 -- Restrict Mutations (CUD) to Admin or Branch Manager
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+
+-- ===================================================================================
+-- 17. POLICIES FOR ROOM TYPES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_types_policy' AND tablename = 'roomtypes') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY room_types_policy ON roomTypes FOR ALL
+            USING (true)
+            WITH CHECK (
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 OR
                 (

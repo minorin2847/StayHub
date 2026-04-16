@@ -6,8 +6,9 @@ import Employee from "../employee/employee.js";
 import type { BranchTable } from "../branch/branch.type.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import type { RoleTableData } from "../roles/roles.type.js";
-import type { BedRecord, HotelBedRecord } from "../bed/bed.type.js";
+import type { BedRecord, HotelBedRecord, RoomBed } from "../bed/bed.type.js";
 import type Service from "../services/services.js";
+import type { Room, RoomType } from "../rooms/room.js";
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -75,7 +76,7 @@ export async function getEmployeeAccounts(req: Request, res: Response, next: Nex
 }
 
 export async function getBranches(req: Request, res: Response, next: NextFunction) {
-    let { query, hotelCountMin, hotelCountMax, sort, order, page } = req.query;
+    let { name, hotelCountMin, hotelCountMax, sort, order, page } = req.query;
 
     const userRoles = (req.user.roles || []).join(",");
     try {
@@ -86,7 +87,7 @@ export async function getBranches(req: Request, res: Response, next: NextFunctio
             await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || '']);
             await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || '']);
             return t.manyOrNone("SELECT * FROM get_branches_by_page($(query),$(hotelCountMin),$(hotelCountMax),$(sort),$(order),$(page))", {
-                query: query ?? null,
+                query: name ?? null,
                 hotelCountMin: hotelCountMin ?? 0,
                 hotelCountMax: hotelCountMax ?? 2147483647,
                 sort: sort ?? 'id',
@@ -162,39 +163,15 @@ export async function getDashboardHotels(req: Request, res: Response, next: Next
     )
 }
 
-export async function getDashboardRooms(req: Request, res: Response, next: NextFunction) {
-    let { type, sort, order, page } = req.query;
-    
-    const isOnlyHotelManager = req.user.roles.some((r: any) => r.name === 'MANAGE_HOTEL') && !req.user.roles.some((r: any) => ['ADMINISTRATOR', 'MANAGE_BRANCH'].includes(r.name));
-    const hotelid = isOnlyHotelManager ? req.user.hotelid : (req.query.hotelid ?? null);
-
-    rlsWrapper(
-        "get-rooms-table",
-        req.user,
-        async t => {
-            return await t.manyOrNone("SELECT * FROM get_rooms_by_page($(hotelid), $(type), $(sort), $(order), $(page))", {
-                hotelid: hotelid ?? null,
-                type: type ?? null,
-                sort: sort ?? 'id',
-                order: order ?? 'asc',
-                page: page ?? 1
-            });
-        },
-        result => {
-             const hasNext = result.length > 0 && result[0].hasNext !== undefined ? result[0].hasNext : false;
-             res.status(200).json(result.length > 0 ? { hasNext, response: result } : []);
-        }
-    )
-}
 
 export async function getDashboardBeds(req: Request, res: Response, next: NextFunction) {
-    const { query, minCount, maxCount, sort, order, page, excludeCurrent } = req.query;
+    const { name, minCount, maxCount, sort, order, page, excludeCurrent } = req.query;
 
     try {
         const result = await db.manyOrNone(
             "SELECT * FROM get_beds_by_page($(query), $(excludeId), $(minCount), $(maxCount), $(sort), $(order), $(page))",
             {
-                query: query ?? null,
+                query: name ?? null,
                 excludeId: excludeCurrent === 'true' ? req.user.hotelid : null,
                 minCount: minCount ? parseInt(minCount as string) : 0,
                 maxCount: maxCount ? parseInt(maxCount as string) : 1000,
@@ -217,7 +194,7 @@ export async function getDashboardBeds(req: Request, res: Response, next: NextFu
 }
 
 export async function getDashboardHotelBeds(req: Request, res: Response, next: NextFunction) {
-    const { query, minCount, maxCount, sort, order, page } = req.query;
+    const { name, minCount, maxCount, sort, order, page } = req.query;
 
 
     rlsWrapper(
@@ -229,7 +206,7 @@ export async function getDashboardHotelBeds(req: Request, res: Response, next: N
                 "SELECT * FROM get_hotel_beds_by_page($(hotelid), $(query), $(minCount), $(maxCount), $(sort), $(order), $(page))", 
                 {
                     hotelid: req.user.hotelid,
-                    query: query ?? null,
+                    query: name ?? null,
                     minCount: minCount ? parseInt(minCount as string) : 0,
                     maxCount: maxCount ? parseInt(maxCount as string) : 100,
                     sort: sort ?? 'name',
@@ -250,7 +227,7 @@ export async function getDashboardHotelBeds(req: Request, res: Response, next: N
 }
 
 export async function getDashboardServices(req: Request, res: Response, next: NextFunction) {
-    const { query, type, minPrice, maxPrice, sort, order, page } = req.query;
+    const { name, type, minPrice, maxPrice, sort, order, page } = req.query;
     type ServiceTable = Service & {has_next: boolean};
     rlsWrapper(
         "get-dashboard-services",
@@ -259,7 +236,7 @@ export async function getDashboardServices(req: Request, res: Response, next: Ne
             return await t.manyOrNone(
                 "SELECT * FROM get_services_by_page($(query), $(type), $(minPrice), $(maxPrice), $(sort), $(order), $(page))",
                 {
-                    query: query ?? null,
+                    query: name ?? null,
                     type: type ?? null,
                     minPrice: minPrice ? parseInt(minPrice as string) : 0,
                     maxPrice: maxPrice ? parseInt(maxPrice as string) : 2147483647,
@@ -275,6 +252,117 @@ export async function getDashboardServices(req: Request, res: Response, next: Ne
             const hasNext = result.length > 0 ? result[0].has_next : false;
             
             // Map over the results, strip out the 'has_next' column, and instantiate the Service class
+            const response = result.map(({ has_next, ...data }) => data);
+
+            // Return empty array if no results, otherwise return the pagination object
+            res.status(200).json(
+                result.length > 0 
+                    ? { hasNext: !!hasNext, response } 
+                    : { hasNext: false, response: [] }
+            );
+        }
+    );
+}
+
+export async function getDashboardRoomTypes(req: Request, res: Response, next: NextFunction) {
+    const { 
+        name, 
+        minSize, maxSize, 
+        minCapacity, maxCapacity, 
+        minPrice, maxPrice, 
+        minTotalBeds, maxTotalBeds, 
+        amenities, beds, 
+        sort, order, page 
+    } = req.query;
+
+    // Helper to ensure query params that should be arrays actually are arrays
+    const normalizeArray = (param: any): string[] | null => {
+        if (!param) return null;
+        return Array.isArray(param) ? (param as string[]) : [param as string];
+    };
+    type Amenities = {
+        name: string;
+        icon: string;
+        category: string;
+    }
+    type RoomTypeTable = RoomType & { amenities: Amenities[]; beds: RoomBed[]; total_beds: number; has_next: boolean }; // Replace 'any' with your RoomType interface/class
+
+    rlsWrapper(
+        "get-dashboard-room-types",
+        req.user,
+        async t => {
+            return await t.manyOrNone(
+                `SELECT * FROM get_room_types_by_page(
+                    $(query), 
+                    $(minSize), $(maxSize), 
+                    $(minCapacity), $(maxCapacity), 
+                    $(minPrice), $(maxPrice), 
+                    $(minTotalBeds), $(maxTotalBeds), 
+                    $(amenities), $(beds), 
+                    $(sort), $(order), $(page)
+                )`,
+                {
+                    query: name ?? null,
+                    minSize: minSize ? parseInt(minSize as string) : 0,
+                    maxSize: maxSize ? parseInt(maxSize as string) : 1000,
+                    minCapacity: minCapacity ? parseInt(minCapacity as string) : 0,
+                    maxCapacity: maxCapacity ? parseInt(maxCapacity as string) : 1000,
+                    minPrice: minPrice ? parseInt(minPrice as string) : 0,
+                    maxPrice: maxPrice ? parseInt(maxPrice as string) : 2147483647,
+                    minTotalBeds: minTotalBeds ? parseInt(minTotalBeds as string) : 0,
+                    maxTotalBeds: maxTotalBeds ? parseInt(maxTotalBeds as string) : 100,
+                    amenities: normalizeArray(amenities),
+                    beds: normalizeArray(beds),
+                    sort: sort ?? 'name',
+                    order: order ?? 'ASC',
+                    page: page ? parseInt(page as string) : 1
+                },
+                (row: any) => row as RoomTypeTable
+            );
+        },
+        (result: RoomTypeTable[]) => {
+            // Check the has_next flag from the first row if it exists
+            const hasNext = result.length > 0 ? result[0]?.has_next : false;
+            
+            // Remove the helper column has_next from the final objects
+            const response = result.map(({ has_next, ...data }) => data);
+
+            res.status(200).json({
+                hasNext: !!hasNext,
+                response: result.length > 0 ? response : []
+            });
+        }
+    );
+}
+
+export async function getDashboardRooms(req: Request, res: Response, next: NextFunction) {
+    // Extract only the query parameters relevant to rooms
+    const { name, typeId, sort, order, page } = req.query;
+    
+    // Define the intersection type for the DB return shape
+    type RoomTable = Room & { has_next: boolean };
+    
+    rlsWrapper(
+        "get-dashboard-rooms",
+        req.user,
+        async t => {
+            return await t.manyOrNone(
+                "SELECT * FROM get_rooms_by_page($(query), $(typeId), $(sort), $(order), $(page))",
+                {
+                    query: name ?? null,
+                    typeId: typeId ? parseInt(typeId as string) : null,
+                    sort: sort ?? 'id',
+                    order: order ?? 'asc',
+                    page: page ? parseInt(page as string) : 1
+                },
+                (row: any) => row as RoomTable
+            );
+        },
+        (result: RoomTable[]) => {
+            // Postgres returns the column as 'has_next'
+            const hasNext = result.length > 0 ? result[0]?.has_next : false;
+            
+            // Map over the results, strip out the 'has_next' column, and return the clean data
             const response = result.map(({ has_next, ...data }) => data);
 
             // Return empty array if no results, otherwise return the pagination object

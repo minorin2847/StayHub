@@ -853,3 +853,302 @@ BEGIN
     RETURN QUERY EXECUTE v_query;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_room_types_by_page(
+    p_query TEXT DEFAULT NULL,
+    p_min_size INT DEFAULT 0,
+    p_max_size INT DEFAULT 1000,
+    p_min_capacity INT DEFAULT 0,
+    p_max_capacity INT DEFAULT 1000,
+    p_min_price INT DEFAULT 0,
+    p_max_price INT DEFAULT 2147483647,
+    p_min_total_beds INT DEFAULT 0,
+    p_max_total_beds INT DEFAULT 100,
+    p_amenities TEXT[] DEFAULT NULL,
+    p_beds TEXT[] DEFAULT NULL,
+    p_sort_column TEXT DEFAULT 'name',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT, 
+    hotelID INT, 
+    name VARCHAR, 
+    size INT, 
+    capacity INT, 
+    base_price INT, 
+    description TEXT,
+    total_beds BIGINT,
+    amenities JSONB,     -- Changed from TEXT[] to JSONB
+    beds JSONB,          
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    -- ### 1. Define Data Source with Full Amenity Objects and Beds ###
+    v_base_from := ' 
+        FROM roomTypes rt
+        LEFT JOIN (
+            SELECT room_typeID, 
+                   SUM(bed_count) as total_beds,
+                   jsonb_agg(jsonb_build_object(''name'', bed_name, ''count'', bed_count)) as beds_json
+            FROM room_type_beds 
+            GROUP BY room_typeID
+        ) b_info ON rt.id = b_info.room_typeID
+        LEFT JOIN (
+            SELECT rta.room_typeID, 
+                   -- Aggregate full objects from the master amenities table
+                   jsonb_agg(jsonb_build_object(
+                       ''name'', am.name, 
+                       ''icon'', am.icon, 
+                       ''category'', am.category
+                   )) as amenities_json,
+                   -- Also aggregate just the names into an array for the filtering logic below
+                   array_agg(am.name) as names_arr
+            FROM room_type_amenities rta
+            JOIN amenities am ON rta.amenity_name = am.name
+            GROUP BY rta.room_typeID
+        ) a_info ON rt.id = a_info.room_typeID ';
+
+    -- ### 2. Build the Dynamic WHERE clause ###
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND rt.name ILIKE %L', '%' || p_query || '%');
+    END IF;
+
+    v_where := v_where || format(' AND rt.size BETWEEN %L AND %L', p_min_size, p_max_size);
+    v_where := v_where || format(' AND rt.capacity BETWEEN %L AND %L', p_min_capacity, p_max_capacity);
+    v_where := v_where || format(' AND rt.base_price BETWEEN %L AND %L', p_min_price, p_max_price);
+    v_where := v_where || format(' AND COALESCE(b_info.total_beds, 0) BETWEEN %L AND %L', p_min_total_beds, p_max_total_beds);
+
+    -- Multi-Select Amenities Filter (checks against the names_arr we created in the join)
+    IF p_amenities IS NOT NULL AND array_length(p_amenities, 1) > 0 THEN
+        v_where := v_where || format(' AND %L <= COALESCE(a_info.names_arr, ''{}'')', p_amenities);
+    END IF;
+
+    -- Multi-Select Bed Types Filter
+    IF p_beds IS NOT NULL AND array_length(p_beds, 1) > 0 THEN
+        v_where := v_where || format(' AND EXISTS (
+            SELECT 1 FROM room_type_beds rtb 
+            WHERE rtb.room_typeID = rt.id AND rtb.bed_name = ANY(%L)
+        )', p_beds);
+    END IF;
+
+    -- ### 3. Pagination & Execution ###
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+    v_actual_page := GREATEST(1, p_page);
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    v_sort_clause := CASE p_sort_column
+        WHEN 'size'      THEN 'rt.size'
+        WHEN 'capacity'  THEN 'rt.capacity'
+        WHEN 'price'     THEN 'rt.base_price'
+        WHEN 'totalBeds' THEN 'COALESCE(b_info.total_beds, 0)'
+        ELSE 'rt.name'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    v_query := format('
+        WITH filtered_data AS (
+            SELECT 
+                rt.id, rt.hotelID, rt.name, rt.size, rt.capacity, rt.base_price, rt.description,
+                COALESCE(b_info.total_beds, 0)::BIGINT as total_beds,
+                COALESCE(a_info.amenities_json, ''[]''::jsonb) as amenities,
+                COALESCE(b_info.beds_json, ''[]''::jsonb) as beds
+            %s
+            %s
+            ORDER BY %s %s, rt.id ASC
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT fd.*, 
+               (%L + (SELECT COUNT(*) FROM filtered_data)) < %L AS has_next
+        FROM filtered_data fd',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit, v_offset, v_offset, v_total_rows
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION create_full_room_type(
+    p_hotelID INT,
+    p_name TEXT, -- Added the missing comma here
+    p_size INT,
+    p_capacity INT,
+    p_price INT,
+    p_description TEXT,
+    p_amenities TEXT[], 
+    p_beds JSONB        
+) RETURNS INT AS $$
+DECLARE
+    new_type_id INT;
+    bed_record RECORD;
+    amenity_name TEXT;
+BEGIN
+    -- 1. Insert into the main table
+    INSERT INTO roomTypes (hotelID, name, size, capacity, base_price, description)
+    VALUES (p_hotelID, p_name, p_size, p_capacity, p_price, p_description)
+    RETURNING id INTO new_type_id;
+
+    -- 2. Loop and insert amenities
+    IF p_amenities IS NOT NULL THEN
+        FOREACH amenity_name IN ARRAY p_amenities
+        LOOP
+            INSERT INTO room_type_amenities (room_typeID, amenity_name)
+            VALUES (new_type_id, amenity_name);
+        END LOOP;
+    END IF;
+
+    -- 3. Loop and insert beds from JSONB
+    IF p_beds IS NOT NULL AND jsonb_array_length(p_beds) > 0 THEN
+        FOR bed_record IN SELECT * FROM jsonb_to_recordset(p_beds) AS x(name TEXT, count INT)
+        LOOP
+            INSERT INTO room_type_beds (room_typeID, bed_name, bed_count)
+            VALUES (new_type_id, bed_record.name, bed_record.count);
+        END LOOP;
+    END IF;
+
+    RETURN new_type_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_room_type(
+    p_id INT,
+    p_name VARCHAR DEFAULT NULL,
+    p_size INT DEFAULT NULL,
+    p_capacity INT DEFAULT NULL,
+    p_price INT DEFAULT NULL,
+    p_description TEXT DEFAULT NULL,
+    p_amenities TEXT[] DEFAULT NULL, -- Pass NULL to skip, [] to clear
+    p_beds JSONB DEFAULT NULL        -- Pass NULL to skip, [] to clear
+) RETURNS VOID AS $$
+DECLARE
+    bed_record RECORD;
+    amenity_item TEXT;
+BEGIN
+    -- 1. Update the main roomTypes table (Partial Update)
+    UPDATE roomTypes 
+    SET 
+        name = COALESCE(p_name, name),
+        size = COALESCE(p_size, size),
+        capacity = COALESCE(p_capacity, capacity),
+        base_price = COALESCE(p_price, base_price),
+        description = COALESCE(p_description, description)
+    WHERE id = p_id;
+
+    -- 2. Update Amenities (Only if an array was passed)
+    IF p_amenities IS NOT NULL THEN
+        DELETE FROM room_type_amenities WHERE room_typeID = p_id;
+        
+        FOREACH amenity_item IN ARRAY p_amenities
+        LOOP
+            INSERT INTO room_type_amenities (room_typeID, amenity_name)
+            VALUES (p_id, amenity_item);
+        END LOOP;
+    END IF;
+
+    -- 3. Update Beds (Only if JSONB was passed)
+    IF p_beds IS NOT NULL THEN
+        DELETE FROM room_type_beds WHERE room_typeID = p_id;
+        
+        FOR bed_record IN SELECT * FROM jsonb_to_recordset(p_beds) AS x(name TEXT, count INT)
+        LOOP
+            INSERT INTO room_type_beds (room_typeID, bed_name, bed_count)
+            VALUES (p_id, bed_record.name, bed_record.count);
+        END LOOP;
+    END IF;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_rooms_by_page(
+    p_query TEXT DEFAULT NULL,
+    p_type_id INT DEFAULT NULL,
+    p_sort_column TEXT DEFAULT 'id',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT, 
+    hotelID INT, 
+    name VARCHAR, 
+    typeID INT, 
+    note TEXT,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    -- ### 1. Define the Base Data Source ###
+    v_base_from := ' FROM rooms r ';
+
+    -- ### 2. Build the Dynamic WHERE clause ###
+
+    -- Filter by text query (search by name)
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND r.name ILIKE %L', '%' || p_query || '%');
+    END IF;
+
+    -- Filter by specific room type (using typeID)
+    IF p_type_id IS NOT NULL THEN
+        v_where := v_where || format(' AND r.typeID = %L', p_type_id);
+    END IF;
+
+    -- ### 3. Boundary Check & Pagination Math ###
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+    
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    -- ### 4. Dynamic Sorting Logic ###
+    v_sort_clause := CASE p_sort_column
+        WHEN 'name' THEN 'r.name'
+        ELSE 'r.id'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN 
+        p_sort_dir := 'ASC'; 
+    END IF;
+
+    -- ### 5. Execution ###
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                r.id, r.hotelID, r.name, r.typeID, r.note
+            %s
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
