@@ -27,11 +27,6 @@ dashboardRoute.get("/hotels", isLoggedIn,
     getDashboardHotels
 );
 
-// get /employee/dashboard/rooms
-dashboardRoute.get("/rooms", isLoggedIn,
-    hasPermission(["MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
-    getDashboardRooms
-);
 
 // GET /employee/dashboard/beds
 dashboardRoute.get("/beds", isLoggedIn, getDashboardBeds);
@@ -45,5 +40,7 @@ dashboardRoute.get("/services", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), get
 // GET /employee/dashboard/rooms/types
 dashboardRoute.get("/rooms/types", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardRoomTypes);
 
+// GET /employee/dashboard/rooms
+dashboardRoute.get("/rooms", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardRooms);
 
 export default dashboardRoute;
