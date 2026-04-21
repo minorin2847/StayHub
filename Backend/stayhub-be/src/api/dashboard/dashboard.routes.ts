@@ -6,7 +6,6 @@ const dashboardRoute = Router();
 // GET /employee/dashboard/
 dashboardRoute.get("/", isLoggedIn, getEmployee);
 
-
 // GET /employee/dashboard/user
 // Query: {name: string, start: number, end: number}
 // Function: Search and return non-employee accounts (accounts without an employee profile)

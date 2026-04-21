@@ -4,7 +4,7 @@ import {
   FaFirstOrderAlt,
   FaHome,
   FaHotel,
-  FaRestroom,
+  FaRestroom, 
   FaUsers,
 } from "react-icons/fa";
 import { TiThMenuOutline } from "react-icons/ti";
@@ -79,7 +79,7 @@ export const MENU_CONFIG = {
       path: "/dashboard/hotels",
       // subitems for each hotel
       subItems: [
-        { name: "Add Hotel", path: "/dashboard/hotels/" }
+        { name: "All Hotels", path: "/dashboard/hotels" },
       ]
     },
   ],
