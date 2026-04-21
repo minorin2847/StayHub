@@ -125,25 +125,17 @@ export default function ManageHotels() {
                 setLoading={setLoading}
                 renderCreateModal={(injected) => (
                     <CreateModal
-                        open={injected.open}
-                        onClose={injected.onClose}
-                        onSuccess={injected.onSuccess}
+                        {...injected}
                     />
                 )}
                 renderFilterModal={(injected) => (
                     <FilterModal
-                        open={injected.open}
-                        setOpen={injected.setOpen}
-                        query={injected.query}
-                        setQuery={injected.setQuery}
+                        {...injected}
                     />
                 )}
                 renderEditModal={(injected) => (
                     <EditModal
-                        open={injected.open}
-                        onClose={injected.onClose}
-                        current={injected.current}
-                        onSuccess={injected.onSuccess}
+                        {...injected}
                     />
                 )}
                 tableColumns={columns}
