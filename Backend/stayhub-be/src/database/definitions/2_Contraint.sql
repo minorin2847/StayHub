@@ -110,8 +110,47 @@ BEGIN
     END IF;
 
     -- Booking
+
+-- 1. Link Booking to Guests
+    IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_book_guest' AND conrelid = 'booking'::regclass) THEN 
+        ALTER TABLE booking 
+        ADD CONSTRAINT fk_book_guest 
+        FOREIGN KEY (guestID) REFERENCES guests (id) ON DELETE CASCADE;
+    END IF;
+
+    -- 2. Link Booking to Rooms
     IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_book_room' AND conrelid = 'booking'::regclass) THEN 
-        ALTER TABLE booking ADD CONSTRAINT fk_book_room FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
+        ALTER TABLE booking 
+        ADD CONSTRAINT fk_book_room 
+        FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
+    END IF;
+
+    -- 3. Link Booking to the Online Reservation (reserves table)
+    IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_book_reserve' AND conrelid = 'booking'::regclass) THEN 
+        ALTER TABLE booking 
+        ADD CONSTRAINT fk_book_reserve 
+        FOREIGN KEY (reserveID) REFERENCES reserves (id) ON DELETE SET NULL;
+    END IF;
+
+    -- 4. Link Booking to Hotels
+    IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'fk_book_hotel' AND conrelid = 'booking'::regclass
+    ) THEN 
+        ALTER TABLE booking 
+        ADD CONSTRAINT fk_book_hotel 
+        FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+    END IF;
+
+    -- Guests
+    --   Link Guests to Hotels
+    IF to_regclass('guests') IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'fk_guest_hotel' AND conrelid = 'guests'::regclass
+    ) THEN 
+        ALTER TABLE guests 
+        ADD CONSTRAINT fk_guest_hotel 
+        FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
     END IF;
 
     -- Services & Work

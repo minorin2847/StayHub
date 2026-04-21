@@ -1152,3 +1152,101 @@ BEGIN
     RETURN QUERY EXECUTE v_query;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_guests_by_page(
+    p_query TEXT DEFAULT NULL,
+    p_min_visit INT DEFAULT 0,
+    p_max_visit INT DEFAULT 2147483647,
+    p_from_last_stay DATE DEFAULT NULL,
+    p_to_last_stay DATE DEFAULT NULL,
+    p_sort_column TEXT DEFAULT 'id',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT, 
+    first_name VARCHAR,
+    last_name VARCHAR,
+    full_name TEXT, 
+    email VARCHAR, 
+    phone VARCHAR, 
+    id_card_number VARCHAR, 
+    address TEXT,
+    total_bookings BIGINT,
+    last_stay_date DATE,
+    created_at TIMESTAMP,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_max_pages INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+    v_base_from TEXT;
+BEGIN
+    -- 1. Use the View we created previously
+    v_base_from := ' FROM vw_guest_directory v ';
+
+    -- 2. Build the Dynamic WHERE clause
+    -- Text Search (Name, Email, Phone)
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND (v.full_name ILIKE %L OR v.email ILIKE %L OR v.phone ILIKE %L)', 
+                   '%' || p_query || '%', '%' || p_query || '%', '%' || p_query || '%');
+    END IF;
+
+    -- Filter by Visit Count (minVisit/maxVisit)
+    v_where := v_where || format(' AND v.total_bookings BETWEEN %L AND %L', p_min_visit, p_max_visit);
+
+    -- Filter by Last Stay Date (from/to)
+    IF p_from_last_stay IS NOT NULL THEN
+        v_where := v_where || format(' AND v.last_stay_date >= %L', p_from_last_stay);
+    END IF;
+
+    IF p_to_last_stay IS NOT NULL THEN
+        v_where := v_where || format(' AND v.last_stay_date <= %L', p_to_last_stay);
+    END IF;
+
+    -- 3. Boundary Check & Pagination Math
+    EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+    
+    v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+    v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    -- 4. Dynamic Sorting Logic
+    v_sort_clause := CASE p_sort_column
+        WHEN 'name'     THEN 'v.full_name'
+        WHEN 'bookings' THEN 'v.total_bookings'
+        WHEN 'recent'   THEN 'v.last_stay_date'
+        ELSE 'v.id'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    -- 5. Final Execution
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                v.id, v.first_name, v.last_name, v.full_name, v.email, v.phone, v.id_card_number, 
+                v.address, v.total_bookings, v.last_stay_date, v.created_at
+            %s
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+        v_base_from, v_where, v_sort_clause, p_sort_dir, v_limit + 1, v_offset, v_offset, v_total_rows, v_limit
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;

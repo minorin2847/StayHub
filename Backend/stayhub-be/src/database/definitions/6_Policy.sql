@@ -487,3 +487,40 @@ BEGIN
         $POLICY$;
     END IF;
 END $$;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'guests_policy' AND tablename = 'guests') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY guests_policy ON guests FOR ALL
+            USING (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'booking_policy' AND tablename = 'booking') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY booking_policy ON booking FOR ALL
+            USING (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
