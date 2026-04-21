@@ -1,4 +1,34 @@
 -- ============================================================================
+-- ENABLE ROW LEVEL SECURITY FOR ALL RELEVANT TABLES
+-- ============================================================================
+
+-- Core Infrastructure & Staff
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE branch ENABLE ROW LEVEL SECURITY;
+ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hotels ENABLE ROW LEVEL SECURITY;
+
+-- Hotel Detail Tables
+ALTER TABLE hotel_amenities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hotel_policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hotel_beds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hotel_images ENABLE ROW LEVEL SECURITY;
+
+-- Room Detail Tables (based on your RoomType normalization)
+ALTER TABLE roomTypes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_type_amenities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_type_beds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_type_images ENABLE ROW LEVEL SECURITY;
+
+-- Services & Operations
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+
+-- Optional: If you plan to add policies for these later, enable them now
+-- ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE reserves ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
 -- 1. ADMINISTRATOR POLICIES FOR EMPLOYEES TABLE
 -- ============================================================================
 DO $$ 
@@ -79,7 +109,7 @@ END
 $$;
 
 -- ============================================================================
--- 5. MANAGE_BRANCH POLICIES FOR BRANCH TABLE
+-- 5. POLICIES FOR BRANCH TABLE
 -- ============================================================================
 DO $$ 
 BEGIN
@@ -87,13 +117,13 @@ BEGIN
         SELECT 1 FROM pg_policies 
         WHERE schemaname = 'public' 
           AND tablename = 'branch' 
-          AND policyname = 'manage_branch_all_branch'
+          AND policyname = 'general_all_branch'
     ) THEN
         EXECUTE $POLICY$
-            CREATE POLICY manage_branch_all_branch ON branch
+            CREATE POLICY general_all_branch ON branch
             FOR ALL
             USING (
-                'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                'ADMINISTRATOR' != ALL(string_to_array(current_setting('app.roles', true), ','))
                 AND
                 id = NULLIF(current_setting('app.branchid', true), '')::INT
             );
@@ -235,7 +265,7 @@ BEGIN
                 -- Administrator Full Access
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 OR
-                -- Manage Branch Own Hotel
+                -- Manage Hotel Own Hotel
                 (
                     'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                     AND
@@ -340,9 +370,9 @@ END $$;
 
 DO $$ 
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_amenities_policy' AND tablename = 'room_amenities') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_type_amenities_policy' AND tablename = 'room_type_amenities') THEN
         EXECUTE $POLICY$
-            CREATE POLICY room_amenities_policy ON room_amenities FOR ALL
+            CREATE POLICY room_type_amenities_policy ON room_type_amenities FOR ALL
             USING (true)
             WITH CHECK (
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
@@ -351,9 +381,9 @@ BEGIN
                     'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                     AND
                     EXISTS (
-                        SELECT 1 FROM rooms 
-                        WHERE rooms.id = roomID 
-                        AND rooms.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                        SELECT 1 FROM roomTypes 
+                        WHERE roomTypes.id = room_typeID 
+                        AND roomTypes.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
                     )
                 )
             );
@@ -369,9 +399,9 @@ END $$;
 
 DO $$ 
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_beds_policy' AND tablename = 'room_beds') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_type_beds_policy' AND tablename = 'room_type_beds') THEN
         EXECUTE $POLICY$
-            CREATE POLICY room_beds_policy ON room_beds FOR ALL
+            CREATE POLICY room_type_beds_policy ON room_type_beds FOR ALL
             USING (true)
             WITH CHECK (
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
@@ -380,9 +410,9 @@ BEGIN
                     'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                     AND
                     EXISTS (
-                        SELECT 1 FROM rooms 
-                        WHERE rooms.id = roomID 
-                        AND rooms.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                        SELECT 1 FROM roomTypes 
+                        WHERE roomTypes.id = room_typeID 
+                        AND roomTypes.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
                     )
                 )
             );
@@ -398,9 +428,9 @@ END $$;
 
 DO $$ 
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_images_policy' AND tablename = 'room_images') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_type_images_policy' AND tablename = 'room_type_images') THEN
         EXECUTE $POLICY$
-            CREATE POLICY room_images_policy ON room_images FOR ALL
+            CREATE POLICY room_type_images_policy ON room_type_images FOR ALL
             USING (true)
             WITH CHECK (
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
@@ -409,10 +439,74 @@ BEGIN
                     'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                     AND
                     EXISTS (
-                        SELECT 1 FROM rooms 
-                        WHERE rooms.id = roomID 
-                        AND rooms.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                        SELECT 1 FROM roomTypes 
+                        WHERE roomTypes.id = room_typeID 
+                        AND roomTypes.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
                     )
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+-- ===================================================================================
+-- 16. POLICIES FOR SERVICES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'services_policy' AND tablename = 'services') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY services_policy ON services FOR ALL
+            USING (
+                -- Public Read Access
+                (current_user = current_user) -- Always true for SELECT
+                OR
+                -- Administrator Full Access
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                -- Manage Hotel Own Hotel
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            )
+            WITH CHECK (
+                -- Restrict Mutations (CUD) to Admin or Branch Manager
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+
+-- ===================================================================================
+-- 17. POLICIES FOR ROOM TYPES TABLE 
+-- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- ===================================================================================
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'room_types_policy' AND tablename = 'roomtypes') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY room_types_policy ON roomTypes FOR ALL
+            USING (true)
+            WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
                 )
             );
         $POLICY$;

@@ -20,6 +20,8 @@ import branchRoute from './api/branch/branch.routes.js';
 import roleRoutes from './api/roles/roles.routes.js';
 import amenityRoute from './api/amenities/amenity.routes.js';
 import { employeeBedRoute, publicBedRoute } from './api/bed/bed.routes.js';
+import { privateServicesRoute } from './api/services/services.routes.js';
+import { roomRoute } from './api/rooms/room.routes.js';
 
 /* Middleware */
 app.use(cors({credentials: true, origin: process.env.FRONTEND_URL}));
@@ -45,12 +47,15 @@ const employee = Router();
 employee.use(initializeEmployeeSession());
 employee.use(passport.initialize());
 employee.use(passport.session());
+employee.use("/", employeeRoute);
 employee.use("/dashboard", dashboardRoute);
 employee.use("/hotels", hotelsRouter);
 employee.use("/branches", branchRoute);
 employee.use("/roles", roleRoutes);
 employee.use("/amenities", amenityRoute);
 employee.use("/beds", employeeBedRoute);
+employee.use("/services", privateServicesRoute);
+employee.use("/rooms", roomRoute);
 app.use("/employee", employee);
 
 /* No login */

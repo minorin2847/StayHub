@@ -141,19 +141,20 @@ export default function AmenitiesPage() {
       <GenericTableView<Amenity, AmenityFilterData>
         resourceName="Amenity"
         searchPlaceholder="Search amenities by name..."
-        tableDataEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/employee/amenities/list`}
+        tableDataEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/employee/amenities/hotel-list`}
         loading={loading}
         setLoading={setLoading}
+        hasEdit={false}
         renderCreateModal={(injected) => <CreateModal {...injected} />}
         renderFilterModal={(injected) => <FilterModal {...injected} />}
         renderEditModal={(injected) => <EditModal {...injected} />}
         currentRecord={currentRecord}
         setCurrentRecord={setCurrentRecord}
         generatedDeletePrompt={(record) =>
-          `Do you want to delete the amenity: ${record.name}?`
+          `Do you want to remove the amenity: ${record.name} from this hotel?`
         }
         generatedDeleteEndpoint={(record) =>
-          `${process.env.NEXT_PUBLIC_API_URL}/employee/amenities/delete/${record.name}`
+          `${process.env.NEXT_PUBLIC_API_URL}/employee/amenities/remove-from-hotel/${record.name}`
         }
         tableRowKey="name"
         tableColumns={[
@@ -177,12 +178,14 @@ export default function AmenitiesPage() {
             dataIndex: "name",
             key: "name",
             className: "font-semibold text-slate-800",
+            render: (name: string) => name,
           },
           {
             title: "CATEGORY",
             dataIndex: "category",
             key: "category",
             className: "text-slate-500",
+            render: (category: string) => category,
           },
         ]}
       />

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds } from "./dashboard.handler.js";
+import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds, getDashboardServices, getDashboardRoomTypes } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/api/auth/auth.handler.js";
 
 const dashboardRoute = Router();
@@ -27,16 +27,20 @@ dashboardRoute.get("/hotels", isLoggedIn,
     getDashboardHotels
 );
 
-// get /employee/dashboard/rooms
-dashboardRoute.get("/rooms", isLoggedIn,
-    hasPermission(["MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
-    getDashboardRooms
-);
 
 // GET /employee/dashboard/beds
 dashboardRoute.get("/beds", isLoggedIn, getDashboardBeds);
 
 // GET /employee/dashboard/hotels/beds
 dashboardRoute.get("/hotels/beds", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardHotelBeds);
+
+// GET /employee/dashboard/services
+dashboardRoute.get("/services", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardServices);
+
+// GET /employee/dashboard/rooms/types
+dashboardRoute.get("/rooms/types", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardRoomTypes);
+
+// GET /employee/dashboard/rooms
+dashboardRoute.get("/rooms", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardRooms);
 
 export default dashboardRoute;

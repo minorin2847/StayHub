@@ -1,5 +1,6 @@
 import {
   FaCog,
+  FaCogs,
   FaComments,
   FaFirstOrderAlt,
   FaHome,
@@ -49,7 +50,7 @@ export const MENU_CONFIG = {
         { name: "View All Branches", path: "/dashboard/branches" }
       ],
     },
-        {
+    {
       name: "Beds",
       icon: FaHotel, // We can reuse FaHotel or another icon
       path: "/dashboard/beds",
@@ -101,6 +102,14 @@ export const MENU_CONFIG = {
       subItems: [{ name: "Manage Beds", path: "/dashboard/beds" }],
     },
     {
+      name: "Services",
+      icon: FaCogs, // We can reuse FaHotel or another icon
+      path: "/dashboard/services",
+      subItems: [
+        { name: "View All Services", path: "/dashboard/services" }
+      ],
+    },
+    {
       name: "Bookings",
       icon: FaHotel, 
       path: "/dashboard/bookings",
@@ -133,6 +142,15 @@ export const MENU_CONFIG = {
       name: "Rooms",
       icon: LuHouse,
       path: "/dashboard/rooms",
+      subItems: [
+        { 
+          name: "View All Rooms", 
+          path: "/dashboard/rooms" 
+        },
+        {
+          name: "View Room Types",
+          path: "/dashboard/rooms/types"
+        }],
     }
   ]
 };
