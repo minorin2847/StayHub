@@ -17,14 +17,11 @@ export type TableColumn = {
     render: (...args: any[]) => any;
     className?: string;
 }
-
-interface BaseProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
+export interface GenericTableViewProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
     resourceName: string;
     resourceId?: string;
     searchPlaceholder: string;
     tableDataEndpoint: string;
-    onDataFetched?: (data: TData[]) => void;
-
     loading: boolean;
     setLoading: Dispatch<SetStateAction<boolean>>;
 
