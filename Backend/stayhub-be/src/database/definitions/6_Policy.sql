@@ -25,8 +25,9 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 
 -- Optional: If you plan to add policies for these later, enable them now
 -- ALTER TABLE users ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE reserves ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reserves ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- 1. ADMINISTRATOR POLICIES FOR EMPLOYEES TABLE
