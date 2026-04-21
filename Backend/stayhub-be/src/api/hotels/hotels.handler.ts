@@ -3,9 +3,12 @@ import type { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
 import Hotel from "./hotels.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
+import path from "node:path";
+import { supabaseAdmin } from "../../utils/initializeSession.js";
 
-
-
+function sanitizeFileName(fileName: string) {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
 
 export async function getHotels(req: Request, res: Response, next: NextFunction) {
     const { branchid } = req.params;
@@ -133,6 +136,64 @@ export async function deleteHotel(req: Request, res: Response, next: NextFunctio
   try {
     await db.none("DELETE FROM hotels WHERE id = $1", [id]);
     res.status(200).json({ message: "Deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export async function uploadHotelImage(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = (req as any).user;
+    const file = (req as any).file as Express.Multer.File | undefined;
+    const hotelIdParam = req.params.hotelId;
+    const hotelId = Number(hotelIdParam || user?.hotelid);
+
+    if (!file) {
+      return res.status(400).json({ message: "Missing image file" });
+    }
+
+    if (!hotelId || Number.isNaN(hotelId)) {
+      return res.status(400).json({ message: "Invalid hotelId" });
+    }
+
+    const ext = path.extname(file.originalname) || "";
+    const baseName = path.basename(file.originalname, ext);
+    const safeName = sanitizeFileName(baseName);
+    const unique = crypto.randomUUID();
+    const objectPath = `${hotelId}/${Date.now()}-${safeName}-${unique}${ext}`;
+
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from("hotel-images")
+      .upload(objectPath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return next(uploadError);
+    }
+
+    await rlsWrapper(
+      "insert-hotel-image",
+      user,
+      async (t) => {
+        return await t.one(
+          `
+          INSERT INTO hotel_images (hotelid, imageurl)
+          VALUES ($1, $2)
+          RETURNING id, hotelid, imageurl
+          `,
+          [hotelId, uploadData.path]
+        );
+      },
+      (row) => {
+        res.status(201).json({
+          message: "Upload images successfully",
+          image: row,
+        });
+      }
+    );
   } catch (error) {
     next(error);
   }

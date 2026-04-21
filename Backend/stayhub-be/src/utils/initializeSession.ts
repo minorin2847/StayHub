@@ -6,8 +6,21 @@ import * as crypto from "node:crypto";
 import connect_pg from "connect-pg-simple";
 import User from "@/api/user/user.js";
 import Employee from "@/api/employee/employee.js";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+if (!supabaseUrl) {
+  throw new Error("Missing SUPABASE_URL");
+}
+
+if (!supabaseServiceRoleKey) {
+  throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+}
 
 const pgSession = connect_pg(session);
+
+
 const connectionString =
   "postgres://" +
   process.env.DB_USER +
@@ -124,3 +137,8 @@ passport.deserializeUser(async (obj: any, cb) => {
 });
 
 export { passport };
+
+export const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
