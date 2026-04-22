@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS booking (
   
   checkin_date DATE NOT NULL DEFAULT (CURRENT_DATE),
   checkout_date DATE NOT NULL DEFAULT (CURRENT_DATE + 5),
-  booking_status VARCHAR(20) DEFAULT 'Checked-In', -- e.g., Checked-In, Stayed, Checked-Out
+  booking_status VARCHAR(20) DEFAULT 'Checked-In', -- e.g., Checked-In, Stayed, Checked-Out, Cancelled
   actual_total_price DECIMAL(12, 2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
