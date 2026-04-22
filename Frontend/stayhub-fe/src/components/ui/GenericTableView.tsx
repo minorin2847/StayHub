@@ -17,11 +17,12 @@ export type TableColumn = {
     render: (...args: any[]) => any;
     className?: string;
 }
-export interface GenericTableViewProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
+export interface BaseProps<TData extends Record<string, any>, TFilter extends Record<string, any>> {
     resourceName: string;
     resourceId?: string;
     searchPlaceholder: string;
     tableDataEndpoint: string;
+    onDataFetched?: (data: TData[]) => void;
     loading: boolean;
     setLoading: Dispatch<SetStateAction<boolean>>;
 
@@ -72,11 +73,22 @@ type EditProps<TData extends Record<string, any>, TFilter extends Record<string,
     }
     | {hasEdit: false; renderEditModal?: never};
 
+type AdditionalProps<TData extends Record<string, any>, TFilter extends Record<string, any>> =
+    | {
+        hasAdditionalAction: true; 
+        renderAdditionalAction?: (
+            record: TData, 
+            onSuccess: () => Promise<void>
+        ) => ReactNode;
+    }
+    | {hasAdditionalAction?: false; renderAdditionalAction?: never};
+
 export type GenericTableViewProps<TData extends Record<string, any>, TFilter extends Record<string, any>>
 = BaseProps<TData, TFilter>
 & CreateProps<TData, TFilter>
 & FilterProps<TData, TFilter>
 & EditProps<TData, TFilter>
+& AdditionalProps<TData, TFilter>
 
 
 export default function GenericTableView<TData extends Record<string, any>, TFilter extends Record<string, any>>({
@@ -92,7 +104,9 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
     hasFilter = true,
     hasEdit = true,
     hasDelete = true,
+    hasAdditionalAction = false,
 
+    renderAdditionalAction = () => null,
     renderCreateModal = () => null,
     renderFilterModal = () => null,
     renderEditModal = () => null,
@@ -164,7 +178,7 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
 
     const columns: TableColumn[] = [
         ...tableColumns,
-        ...((hasEdit || hasDelete) ? [{
+        ...((hasEdit || hasDelete || hasAdditionalAction) ? [{
             title: "ACTIONS",
             key: "actions",
             render: (_: unknown, record: TData) => (
@@ -190,6 +204,11 @@ export default function GenericTableView<TData extends Record<string, any>, TFil
                     >
                         Delete
                     </Button>
+                    )}
+
+                    {hasAdditionalAction && renderAdditionalAction(
+                        record, 
+                        async () => { setLoading(true); await fetchData(); setLoading(false); }
                     )}
                 </Space>
             )
