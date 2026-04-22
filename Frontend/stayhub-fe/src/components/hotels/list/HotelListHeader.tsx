@@ -16,7 +16,15 @@ const sortOptions = [
   { value: "star_rating", label: "Star Rating" },
 ];
 
-export default function HotelListHeader() {
+type HotelListHeaderProps = {
+  viewMode?: "list" | "grid";
+  onViewModeChange?: (mode: "list" | "grid") => void;
+};
+
+export default function HotelListHeader({
+  viewMode = "list",
+  onViewModeChange,
+}: HotelListHeaderProps) {
   const [selectedSort, setSelectedSort] = useState("top_reviewed");
 
   const optionRender: SelectProps["optionRender"] = (option) => {
@@ -24,7 +32,11 @@ export default function HotelListHeader() {
 
     return (
       <div className="flex items-center justify-between py-1 text-[15px]">
-        <span className={selected ? "font-semibold text-[#0051cb]" : "text-slate-700"}>
+        <span
+          className={
+            selected ? "font-semibold text-[#0051cb]" : "text-slate-700"
+          }
+        >
           {String(option.label)}
         </span>
         {selected ? <CheckOutlined className="text-[#0051cb]" /> : null}
@@ -69,10 +81,24 @@ export default function HotelListHeader() {
         />
 
         <div className="flex items-center self-start rounded-full border border-slate-300 bg-white p-1 shadow-sm gap-x-1">
-          <button className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-900 text-slate-900">
+          <button
+            onClick={() => onViewModeChange?.("list")}
+            className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+              viewMode === "list"
+                ? "border border-slate-900 text-slate-900"
+                : "text-slate-400 hover:text-slate-700"
+            }`}
+          >
             <LuList size={18} />
           </button>
-          <button className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:text-slate-700">
+          <button
+            onClick={() => onViewModeChange?.("grid")}
+            className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+              viewMode === "grid"
+                ? "border border-slate-900 text-slate-900"
+                : "text-slate-400 hover:text-slate-700"
+            }`}
+          >
             <LuLayoutGrid size={18} />
           </button>
         </div>

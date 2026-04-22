@@ -10,6 +10,7 @@ import { HotelListItem } from "./hotelListMockData";
 
 type HotelListCardProps = {
   hotel: HotelListItem;
+  viewMode?: "list" | "grid";
 };
 
 function formatPrice(price: number) {
@@ -24,13 +25,128 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-export default function HotelListCard({ hotel }: HotelListCardProps) {
+export default function HotelListCard({
+  hotel,
+  viewMode = "list",
+}: HotelListCardProps) {
+  if (viewMode === "grid") {
+    return (
+      <Card
+        className="rounded-xl! border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md mb-0 h-full flex flex-col"
+        styles={{ body: { padding: 10, flex: 1, display: "flex", flexDirection: "column" } }}
+      >
+        <div className="flex flex-col gap-4 flex-1">
+          <div className="relative h-[220px] w-full shrink-0 overflow-hidden rounded-xl">
+            <Image
+              src={hotel.image}
+              alt={hotel.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover"
+            />
+
+            {hotel.badge ? (
+              <div className="absolute left-0 top-0 rounded-tl-xl rounded-br-xl bg-[#003499] px-3 py-1 text-[11px] font-bold text-white shadow-sm">
+                {hotel.badge}
+              </div>
+            ) : null}
+
+            <button className="absolute right-2.5 top-2.5 rounded-full bg-white p-1.5 text-slate-600 shadow transition-colors hover:text-red-500">
+              <FaRegHeart size={14} />
+            </button>
+
+            <div className="absolute bottom-2.5 left-1/2 flex -translate-x-1/2 gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-white shadow-sm" />
+              <div className="h-1.5 w-1.5 rounded-full bg-white/60 shadow-sm" />
+              <div className="h-1.5 w-1.5 rounded-full bg-white/60 shadow-sm" />
+              <div className="h-1.5 w-1.5 rounded-full bg-white/60 shadow-sm" />
+            </div>
+          </div>
+
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <Link
+                href={`/hotels/${hotel.id}`}
+                className="truncate text-[16px] leading-tight font-bold text-slate-900 hover:text-[#003499]"
+              >
+                {hotel.name}
+              </Link>
+              <div className="flex shrink-0 items-center gap-1 text-[13px] font-bold text-slate-700">
+                {hotel.stars} <FaStar className="text-yellow-400" size={11} />
+              </div>
+            </div>
+
+            <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-slate-500">
+              <MdOutlineLocationOn size={15} className="text-[#0051cb]" />
+              <span className="cursor-pointer font-medium text-[#0051cb] hover:underline truncate">
+                {hotel.city}
+              </span>
+            </div>
+
+            <div className="mt-2.5 flex items-center gap-2">
+              <div className="flex h-[22px] px-1.5 items-center justify-center rounded-md rounded-tr-none border-blue-50 bg-[#f0f6ff] text-[11px] font-bold text-[#003499]">
+                {hotel.rating.toFixed(1)}
+              </div>
+              <div className="text-[11.5px] font-bold text-[#003499]">
+                {hotel.ratingLabel}
+              </div>
+              <div className="text-[11.5px] text-slate-400">
+                {formatNumber(hotel.reviews)} reviews
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-600 line-clamp-1">
+              <span className="font-bold text-slate-800">{hotel.type}</span>
+              <span className="text-slate-300">|</span>
+              {[hotel.roomView, hotel.bedType].filter(Boolean).map((item, idx) => (
+                <span key={idx} className="after:ml-1.5 after:content-['•'] last:after:hidden">
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            {hotel.warning ? (
+              <div className="mt-1 text-[11px] font-medium text-red-500">
+                {hotel.warning}
+              </div>
+            ) : null}
+
+            <div className="mt-auto pt-4 flex items-end justify-between">
+              <div>
+                {hotel.discount ? (
+                  <span className="rounded-full bg-[#dcfce7] px-2 py-1 text-[11px] font-bold text-[#049153]">
+                    {hotel.discount}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex flex-col items-end text-right">
+                <div className="flex items-baseline gap-1.5">
+                  {hotel.originalPrice ? (
+                    <span className="text-xs font-medium text-slate-400 line-through">
+                      {formatPrice(hotel.originalPrice)}
+                    </span>
+                  ) : null}
+                  <span className="text-[17px] font-bold text-slate-900">
+                    {formatPrice(hotel.price)}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-[11px] text-slate-500">
+                  5 nights, 2 adults
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card
-      className="rounded-[28px] border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md mb-4!"
-      styles={{ body: { padding: 16 } }}
+      className="rounded-xl! border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md mb-4!"
+      styles={{ body: { padding: 10 } }}
     >
-      <div className="flex w-full flex-col gap-5 md:flex-row">
+      <div className="flex w-full gap-5 flex-row">
         <div className="relative h-[260px] w-full shrink-0 overflow-hidden rounded-xl md:w-[260px]">
           <Image
             src={hotel.image}
@@ -47,7 +163,7 @@ export default function HotelListCard({ hotel }: HotelListCardProps) {
           ) : null}
 
           <button className="absolute right-3 top-3 rounded-full bg-white p-2 text-slate-600 shadow transition-colors hover:text-red-500">
-            <FaRegHeart size={16} />
+            <FaRegHeart size={14} />
           </button>
 
           <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
@@ -105,14 +221,14 @@ export default function HotelListCard({ hotel }: HotelListCardProps) {
 
           <div className="mt-auto flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
             <div className="flex flex-col gap-2.5">
-              <div className="text-[13.5px] text-slate-700">
+              <div className="flex flex-wrap items-center gap-1.5 text-[13.5px] text-slate-700">
                 <span className="font-bold text-slate-900">{hotel.type}</span>
-                <span className="mx-2 text-slate-300">|</span>
-                <span>{hotel.roomView}</span>
-                <span className="mx-1.5">•</span>
-                <span>{hotel.bedType}</span>
-                <span className="mx-1.5">•</span>
-                <span>{hotel.roomSize}</span>
+                <span className="text-slate-300">|</span>
+                {[hotel.roomView, hotel.bedType, hotel.roomSize].filter(Boolean).map((item, idx) => (
+                  <span key={idx} className="after:ml-1.5 after:content-['•'] last:after:hidden">
+                    {item}
+                  </span>
+                ))}
               </div>
 
               <div className="grid grid-cols-2 gap-2">
