@@ -112,6 +112,9 @@ export const MENU_CONFIG = {
       name: "Bookings",
       icon: FaHotel, // change later
       path: "/dashboard/bookings",
+      subItems: [
+        { name: "View All Bookings", path: "/dashboard/bookings" }
+      ]
     },
     {
       name: "Frontdesk",
