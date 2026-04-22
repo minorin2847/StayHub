@@ -2,12 +2,7 @@
 
 import buildQueryParams from "@/utils/BuildQueryParams";
 import { Button, message, Space, Table, Modal } from "antd";
-import {
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ExclamationCircleFilled,
-} from "@ant-design/icons";
+import { EyeOutlined, EditOutlined, DeleteOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Dispatch,
@@ -173,7 +168,6 @@ export default function GenericTableView<
       async onOk() {
         try {
           setLoading(true);
-
           const res = await fetch(generatedDeleteEndpoint(record), {
             method: "DELETE",
             credentials: "include",
@@ -191,10 +185,6 @@ export default function GenericTableView<
         } finally {
           setLoading(false);
         }
-      },
-
-      onCancel() {
-        message.error(`Error deleting ${resourceName}`);
       },
     });
   };

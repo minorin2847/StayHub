@@ -81,7 +81,10 @@ CREATE TABLE IF NOT EXISTS amenities (
 
 CREATE TABLE IF NOT EXISTS policies (
   name varchar(100) PRIMARY KEY,
-  description text NOT NULL
+  icon text NOT NULL,
+  description text NOT NULL,
+  category varchar(100) DEFAULT 'General',
+  updated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS beds (

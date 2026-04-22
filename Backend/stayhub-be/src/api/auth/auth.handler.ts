@@ -100,10 +100,7 @@ export function login(req: Request, res: Response, next: NextFunction) {
     "user-login",
     (err: any, user: any, info: any, status: any) => {
       if (err) return next(err);
-      if (!user) {
-        res.status(404).send("Incorrect username or password!");
-        return;
-      }
+      if (!user) return res.status(404).send("Incorrect username or password!");
       findUser(user.id)
         .then(() => {
           req.login(user, (err) => {
@@ -132,7 +129,7 @@ export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
     next();
     return;
   } else {
-    res.status(401).send("Unauthorized!");
+    return res.status(401).send("Unauthorized!");
   }
 }
 
