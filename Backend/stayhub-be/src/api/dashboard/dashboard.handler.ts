@@ -9,6 +9,8 @@ import type { RoleTableData } from "../roles/roles.type.js";
 import type { BedRecord, HotelBedRecord, RoomBed } from "../bed/bed.type.js";
 import type Service from "../services/services.js";
 import type { Room, RoomType } from "../rooms/room.js";
+import type Guest from "../guests/guests.js";
+import type { DashboardGuest } from "../guests/guests.type.js";
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -366,6 +368,65 @@ export async function getDashboardRooms(req: Request, res: Response, next: NextF
             const response = result.map(({ has_next, ...data }) => data);
 
             // Return empty array if no results, otherwise return the pagination object
+            res.status(200).json(
+                result.length > 0 
+                    ? { hasNext: !!hasNext, response } 
+                    : { hasNext: false, response: [] }
+            );
+        }
+    );
+}
+
+export async function getDashboardGuests(req: Request, res: Response, next: NextFunction) {
+    const { 
+        query, 
+        minVisit, 
+        maxVisit, 
+        fromLastStay, 
+        toLastStay, 
+        sort, 
+        order, 
+        page 
+    } = req.query;
+
+    // Define the type locally to include the pagination flag from Postgres
+    type GuestTable = DashboardGuest & { has_next: boolean };
+
+    rlsWrapper(
+        "get-dashboard-guests",
+        req.user,
+        async t => {
+            return await t.manyOrNone(
+                `SELECT * FROM get_guests_by_page(
+                    $(query), 
+                    $(minVisit), 
+                    $(maxVisit), 
+                    $(fromLastStay), 
+                    $(toLastStay), 
+                    $(sort), 
+                    $(order), 
+                    $(page)
+                )`,
+                {
+                    query: query ?? null,
+                    minVisit: minVisit ? parseInt(minVisit as string) : 0,
+                    maxVisit: maxVisit ? parseInt(maxVisit as string) : 2147483647,
+                    fromLastStay: fromLastStay ?? null, // Postgres handles string to DATE conversion
+                    toLastStay: toLastStay ?? null,
+                    sort: sort ?? 'id',
+                    order: order ?? 'asc',
+                    page: page ? parseInt(page as string) : 1
+                },
+                (row: any) => row as GuestTable
+            );
+        },
+        (result: GuestTable[]) => {
+            // Check if there's a next page using the flag from the first row
+            const hasNext = result.length > 0 ? result[0].has_next : false;
+            
+            // Clean the data: remove 'has_next' from individual guest objects
+            const response = result.map(({ has_next, ...data }) => data);
+
             res.status(200).json(
                 result.length > 0 
                     ? { hasNext: !!hasNext, response } 

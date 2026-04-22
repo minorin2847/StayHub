@@ -122,6 +122,9 @@ export const MENU_CONFIG = {
       name: "Guests",
       icon: IoMdPeople,
       path: "/dashboard/guests",
+      subItems: [
+        { name: "View All Guests", path: "/dashboard/guests" }
+      ],
     },
     {
       name: "Rooms",
