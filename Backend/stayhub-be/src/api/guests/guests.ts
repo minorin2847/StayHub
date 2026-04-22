@@ -12,8 +12,13 @@ export default class Guest {
         // This only copies properties that exist on the instance (the whitelist)
         Object.keys(this).forEach((key) => {
             const val = (_ as any)[key];
+
             if (val !== undefined) {
-                (this as any)[key] = val;
+                if (key === 'created_at') {
+                    (this as any)[key] = new Date(val);
+                } else {
+                    (this as any)[key] = val;
+                }
             }
         });
     }

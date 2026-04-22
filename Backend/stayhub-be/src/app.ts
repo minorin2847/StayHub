@@ -22,6 +22,7 @@ import { employeeBedRoute, publicBedRoute } from './api/bed/bed.routes.js';
 import { privateServicesRoute } from './api/services/services.routes.js';
 import { roomRoute } from './api/rooms/room.routes.js';
 import { guestsRoute } from './api/guests/guests.routes.js';
+import { bookingsRoute } from './api/bookings/booking.routes.js';
 
 /* Middleware */
 app.use(cors({credentials: true, origin: process.env.FRONTEND_URL}));
@@ -56,6 +57,7 @@ employee.use("/beds", employeeBedRoute);
 employee.use("/services", privateServicesRoute);
 employee.use("/rooms", roomRoute);
 employee.use("/guests", guestsRoute);
+employee.use("/bookings", bookingsRoute);
 app.use("/employee", employee);
 
 /* No login */

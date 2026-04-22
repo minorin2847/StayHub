@@ -1250,3 +1250,112 @@ BEGIN
     RETURN QUERY EXECUTE v_query;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_bookings_by_page(
+    p_query TEXT DEFAULT NULL,           -- New parameter for Guest Name search
+    p_room_id INT DEFAULT NULL,
+    p_checkin_after DATE DEFAULT NULL,
+    p_checkin_before DATE DEFAULT NULL,
+    p_checkout_after DATE DEFAULT NULL,
+    p_checkout_before DATE DEFAULT NULL,
+    p_status VARCHAR DEFAULT NULL,
+    p_has_reserve BOOLEAN DEFAULT NULL,
+    p_sort_column TEXT DEFAULT 'checkin',
+    p_sort_dir TEXT DEFAULT 'ASC',
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    id INT,
+    guest_full_name TEXT,
+    guestID INT,
+    roomID INT,
+    checkin_date DATE,
+    checkout_date DATE,
+    booking_status VARCHAR,
+    actual_total_price DECIMAL,
+    has_reserve BOOLEAN,
+    reserveID INT,
+    has_next BOOLEAN
+) AS $$
+DECLARE
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_actual_page INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+BEGIN
+    -- 1. Dynamic Filtering
+    
+    -- New: Guest Name Search (using ILIKE for case-insensitive partial matches)
+    IF p_query IS NOT NULL AND p_query <> '' THEN
+        v_where := v_where || format(' AND v.guest_full_name ILIKE %L', '%' || p_query || '%');
+    END IF;
+
+    IF p_room_id IS NOT NULL THEN
+        v_where := v_where || format(' AND v.roomID = %L', p_room_id);
+    END IF;
+
+    IF p_checkin_after IS NOT NULL THEN
+        v_where := v_where || format(' AND v.checkin_date >= %L', p_checkin_after);
+    END IF;
+
+    IF p_checkin_before IS NOT NULL THEN
+        v_where := v_where || format(' AND v.checkin_date <= %L', p_checkin_before);
+    END IF;
+
+    IF p_checkout_after IS NOT NULL THEN
+        v_where := v_where || format(' AND v.checkout_date >= %L', p_checkout_after);
+    END IF;
+
+    IF p_checkout_before IS NOT NULL THEN
+        v_where := v_where || format(' AND v.checkout_date <= %L', p_checkout_before);
+    END IF;
+
+    IF p_status IS NOT NULL AND p_status <> '' THEN
+        v_where := v_where || format(' AND v.booking_status = %L', p_status);
+    END IF;
+
+    IF p_has_reserve IS NOT NULL THEN
+        v_where := v_where || format(' AND v.has_reserve = %L', p_has_reserve);
+    END IF;
+
+    -- 2. Pagination Math
+    EXECUTE 'SELECT COUNT(*) FROM vw_booking_details v ' || v_where INTO v_total_rows;
+    
+    v_actual_page := GREATEST(1, p_page);
+    v_offset := (v_actual_page - 1) * v_limit;
+
+    -- 3. Dynamic Sorting
+    v_sort_clause := CASE p_sort_column
+        WHEN 'guest'    THEN 'v.guest_full_name'
+        WHEN 'checkin'  THEN 'v.checkin_date'
+        WHEN 'checkout' THEN 'v.checkout_date'
+        ELSE 'v.checkin_date'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+    -- 4. Final Execution
+    v_query := format('
+        WITH raw_data AS (
+            SELECT 
+                v.id, v.guest_full_name, v.guestID, v.roomID,  v.checkin_date, 
+                v.checkout_date, v.booking_status, v.actual_total_price, v.has_reserve, v.reserveID
+            FROM vw_booking_details v
+            %s
+            ORDER BY %s %s, v.id ASC
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd',
+        v_where, v_sort_clause, p_sort_dir, v_limit, v_offset, v_offset, v_total_rows
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;

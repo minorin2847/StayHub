@@ -11,6 +11,7 @@ import type Service from "../services/services.js";
 import type { Room, RoomType } from "../rooms/room.js";
 import type Guest from "../guests/guests.js";
 import type { DashboardGuest } from "../guests/guests.type.js";
+import type { DashboardBooking } from "../bookings/booking.type.js";
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -379,7 +380,7 @@ export async function getDashboardRooms(req: Request, res: Response, next: NextF
 
 export async function getDashboardGuests(req: Request, res: Response, next: NextFunction) {
     const { 
-        query, 
+        name, 
         minVisit, 
         maxVisit, 
         fromLastStay, 
@@ -408,7 +409,7 @@ export async function getDashboardGuests(req: Request, res: Response, next: Next
                     $(page)
                 )`,
                 {
-                    query: query ?? null,
+                    query: name ?? null,
                     minVisit: minVisit ? parseInt(minVisit as string) : 0,
                     maxVisit: maxVisit ? parseInt(maxVisit as string) : 2147483647,
                     fromLastStay: fromLastStay ?? null, // Postgres handles string to DATE conversion
@@ -425,6 +426,70 @@ export async function getDashboardGuests(req: Request, res: Response, next: Next
             const hasNext = result.length > 0 ? result[0].has_next : false;
             
             // Clean the data: remove 'has_next' from individual guest objects
+            const response = result.map(({ has_next, ...data }) => data);
+
+            res.status(200).json(
+                result.length > 0 
+                    ? { hasNext: !!hasNext, response } 
+                    : { hasNext: false, response: [] }
+            );
+        }
+    );
+}
+
+export async function getDashboardBookings(req: Request, res: Response, next: NextFunction) {
+    const { 
+        name, // New: Search string for guest name
+        roomId,
+        checkinAfter,
+        checkinBefore,
+        checkoutAfter,
+        checkoutBefore,
+        status,
+        hasReserve,
+        sort, 
+        order, 
+        page 
+    } = req.query;
+
+    type BookingTable = DashboardBooking & { has_next: boolean };
+
+    rlsWrapper(
+        "get-dashboard-bookings",
+        req.user,
+        async t => {
+            return await t.manyOrNone(
+                `SELECT * FROM get_bookings_by_page(
+                    $(query), 
+                    $(roomId), 
+                    $(checkinAfter), 
+                    $(checkinBefore), 
+                    $(checkoutAfter), 
+                    $(checkoutBefore), 
+                    $(status), 
+                    $(hasReserve),
+                    $(sort), 
+                    $(order), 
+                    $(page)
+                )`,
+                {
+                    query: name ?? null, // Pass search string or null
+                    roomId: roomId ? parseInt(roomId as string) : null,
+                    checkinAfter: checkinAfter ?? null,
+                    checkinBefore: checkinBefore ?? null,
+                    checkoutAfter: checkoutAfter ?? null,
+                    checkoutBefore: checkoutBefore ?? null,
+                    status: status ?? null,
+                    hasReserve: hasReserve === 'true' ? true : (hasReserve === 'false' ? false : null),
+                    sort: sort ?? 'checkin',
+                    order: order ?? 'asc',
+                    page: page ? parseInt(page as string) : 1
+                },
+                (row: any) => row as BookingTable
+            );
+        },
+        (result: BookingTable[]) => {
+            const hasNext = result.length > 0 ? result[0].has_next : false;
             const response = result.map(({ has_next, ...data }) => data);
 
             res.status(200).json(
