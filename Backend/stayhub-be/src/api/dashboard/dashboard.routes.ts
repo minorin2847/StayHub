@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds, getDashboardServices, getDashboardRoomTypes, getDashboardGuests } from "./dashboard.handler.js";
+import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds, getDashboardServices, getDashboardRoomTypes, getDashboardGuests, getDashboardBookings } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/api/auth/auth.handler.js";
 
 const dashboardRoute = Router();
@@ -44,5 +44,8 @@ dashboardRoute.get("/rooms", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDas
 
 // GET /employee/dashboard/guests
 dashboardRoute.get("/guests", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardGuests);
+
+// GET /employee/dashboard/bookings
+dashboardRoute.get("/bookings", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardBookings);
 
 export default dashboardRoute;
