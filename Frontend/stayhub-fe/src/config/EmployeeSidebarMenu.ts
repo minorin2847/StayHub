@@ -5,7 +5,7 @@ import {
   FaFirstOrderAlt,
   FaHome,
   FaHotel,
-  FaRestroom, 
+  FaRestroom,
   FaUsers,
 } from "react-icons/fa";
 import { TiThMenuOutline } from "react-icons/ti";
@@ -128,9 +128,9 @@ export const MENU_CONFIG = {
       icon: LuHouse,
       path: "/dashboard/rooms",
       subItems: [
-        { 
-          name: "View All Rooms", 
-          path: "/dashboard/rooms" 
+        {
+          name: "View All Rooms",
+          path: "/dashboard/rooms"
         },
         {
           name: "View Room Types",
