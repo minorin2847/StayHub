@@ -106,17 +106,17 @@ const SearchSection = () => {
     if (lng) params.append("lng", lng.toString());
     if (checkIn) params.append("checkin", checkIn.format("YYYY-MM-DD"));
     if (checkOut) params.append("checkout", checkOut.format("YYYY-MM-DD"));
-    params.append("rooms", rooms.toString());
+    // params.append("rooms", rooms.toString());
     params.append("adults", adults.toString());
     params.append("children", children.toString());
 
-    router.push(`/hotels?${params.toString()}`);
+    router.push(`/search?${params.toString()}`);
   };
 
   return (
     <div className="relative z-50 mx-auto -mt-22 w-full max-w-[1146px]">
       <div className="flex items-center justify-center min-w-[812px]">
-        <div className="absolute z-30 flex items-center bg-black/30 backdrop-blur-xl rounded-full gap-2 px-[24px] py-[16px]">
+        {/* <div className="absolute z-30 flex items-center bg-black/30 backdrop-blur-xl rounded-full gap-2 px-[24px] py-[16px]">
           <button className="flex items-center gap-2 px-[16px] py-2 bg-white text-gray-800 rounded-full font-medium text-[16px] transition">
             <FaHotel size={24} />
             <span>Hotel</span>
@@ -146,7 +146,7 @@ const SearchSection = () => {
             />
             <span>Glamping</span>
           </button>
-        </div>
+        </div> */}
 
         <div className="absolute z-20 mt-40 w-full flex items-center gap-2 rounded-[28px] border border-gray-100 bg-white px-[16px] pb-[29px] pt-[53px] shadow-2xl">
           <div 
