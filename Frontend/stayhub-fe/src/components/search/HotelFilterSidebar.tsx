@@ -31,15 +31,14 @@ import { IoWaterOutline } from "react-icons/io5";
 import { RiHotelBedLine } from "react-icons/ri";
 import { BiDrink } from "react-icons/bi";
 import { FaRegSnowflake } from "react-icons/fa";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const { CheckableTag } = Tag;
 
 const FILTER_CATEGORIES = [
-  "Type of Place",
   "Price Range",
   "Rooms and Beds",
   "Room Size",
-  "Distance From Centre",
   "Guest Review Score",
   "Property Classification",
   "Amenities",
@@ -147,22 +146,17 @@ const AMENITY_GROUPS = [
   },
 ];
 
-type CounterKey = "bedrooms" | "beds" | "bathrooms";
+type CounterKey = "beds";
 
 export default function HotelFilterSidebar() {
   const [openSections, setOpenSections] = useState<string[]>([
-    "Type of Place",
     "Price Range",
     "Rooms and Beds",
     "Room Size",
   ]);
-  const [selectedPlaceType, setSelectedPlaceType] = useState("Any type");
   const [priceRange, setPriceRange] = useState<[number, number]>([200, 1500]);
-  const [distanceFromCentre, setDistanceFromCentre] = useState(1);
   const [roomCounts, setRoomCounts] = useState<Record<CounterKey, number>>({
-    bedrooms: 0,
     beds: 0,
-    bathrooms: 0,
   });
   const [selectedRoomSizes, setSelectedRoomSizes] = useState<string[]>([]);
   const [selectedReviewScores, setSelectedReviewScores] = useState<string[]>([]);
@@ -174,6 +168,21 @@ export default function HotelFilterSidebar() {
     AMENITY_GROUPS.filter((group) => group.defaultOpen).map((group) => group.title),
   );
 
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const updateUrl = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    // This pushes the new parameters to the URL without a full page reload
+    router.push(`${pathname}?${params.toString()}`);
+  };
+  // UI toggle
   const toggleSection = (category: string) => {
     setOpenSections((prev) =>
       prev.includes(category)
@@ -190,52 +199,40 @@ export default function HotelFilterSidebar() {
     );
   };
 
+
+  // Filter toggles
   const toggleAmenity = (value: string, checked: boolean) => {
-    setSelectedAmenities((prev) =>
-      checked ? [...prev, value] : prev.filter((item) => item !== value),
-    );
+    const next = checked ? [...selectedAmenities, value] : selectedAmenities.filter((item) => item !== value);
+    setSelectedAmenities(next);
+    updateUrl("amenities", next.length > 0 ? next.join(",") : "");
   };
 
-  const updateCounter = (key: CounterKey, delta: number) => {
+  const updateBedsCounter = (key: CounterKey, delta: number) => {
+    const newValue = Math.max(0, roomCounts[key] + delta);
     setRoomCounts((prev) => ({
       ...prev,
-      [key]: Math.max(0, prev[key] + delta),
+      [key]: newValue,
     }));
+    updateUrl(key, newValue > 0 ? String(newValue) : "");
+  };
+  const handleRoomSizeChange = (values: string[]) => {
+    setSelectedRoomSizes(values);
+    updateUrl("sizes", values.length > 0 ? values.join(",") : "");
   };
 
+  const handleReviewChange = (values: string[]) => {
+    setSelectedReviewScores(values);
+    updateUrl("reviews", values.length > 0 ? values.join(",") : "");
+  };
+
+  const handleStarChange = (values: string[]) => {
+    setSelectedClassifications(values);
+    updateUrl("stars", values.length > 0 ? values.join(",") : "");
+  };
   const counterLabel = (value: number) => {
     return value === 0 ? "Any" : String(value);
   };
 
-  const renderTypeOfPlace = () => {
-    const options = ["Any type", "Room", "Entire home"];
-
-    return (
-      <div className="px-4 pb-5">
-        <div className="grid grid-cols-3 overflow-hidden rounded-[20px] border border-slate-300">
-          {options.map((option, index) => {
-            const active = selectedPlaceType === option;
-
-            return (
-              <button
-                key={option}
-                onClick={() => setSelectedPlaceType(option)}
-                className={`whitespace-nowrap px-3 py-4 text-[12px] font-medium transition ${
-                  index !== options.length - 1 ? "border-r border-slate-200" : ""
-                } ${
-                  active
-                    ? "bg-white text-slate-900"
-                    : "bg-white text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                {option}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
 
   const renderPriceRange = () => {
     const formatPrice = (value: number, isMax = false) => {
@@ -245,7 +242,6 @@ export default function HotelFilterSidebar() {
 
       return `$ ${value.toLocaleString("en-US")}`;
     };
-
     return (
       <div className="px-4 pb-6">
         <p className="text-[14px] font-medium text-slate-500">
@@ -280,6 +276,10 @@ export default function HotelFilterSidebar() {
                 step={10}
                 value={priceRange}
                 onChange={(value) => setPriceRange(value as [number, number])}
+                onChangeComplete={(value: number[]) => {
+                  updateUrl("minPrice", String(value[0]));
+                  updateUrl("maxPrice", String(value[1]));
+                }}
                 tooltip={{ open: false }}
                 className="hotel-price-slider"
               />
@@ -308,9 +308,7 @@ export default function HotelFilterSidebar() {
 
   const renderRoomsAndBeds = () => {
     const counters: { key: CounterKey; label: string }[] = [
-      { key: "bedrooms", label: "Bedrooms" },
       { key: "beds", label: "Beds" },
-      { key: "bathrooms", label: "Bathrooms" },
     ];
 
     return (
@@ -323,7 +321,7 @@ export default function HotelFilterSidebar() {
 
             <div className="flex items-center gap-4">
               <button
-                onClick={() => updateCounter(counter.key, -1)}
+                onClick={() => updateBedsCounter(counter.key, -1)}
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition hover:text-slate-600"
               >
                 <LuMinus size={18} />
@@ -334,7 +332,7 @@ export default function HotelFilterSidebar() {
               </span>
 
               <button
-                onClick={() => updateCounter(counter.key, 1)}
+                onClick={() => updateBedsCounter(counter.key, 1)}
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-500 text-slate-700 transition hover:bg-slate-50"
               >
                 <LuPlus size={18} />
@@ -357,7 +355,7 @@ export default function HotelFilterSidebar() {
       <div className="px-4 pb-6">
         <Checkbox.Group
           value={selectedRoomSizes}
-          onChange={(values) => setSelectedRoomSizes(values as string[])}
+          onChange={(values) => handleRoomSizeChange(values)}
           className="flex flex-col gap-4"
         >
           {options.map((option) => (
@@ -374,33 +372,13 @@ export default function HotelFilterSidebar() {
     );
   };
 
-  const renderDistanceFromCentre = () => {
-    return (
-      <div className="px-4 pb-6">
-        <div className="mb-3 flex items-center justify-between text-[13px] font-medium text-slate-500">
-          <span>1 km</span>
-          <span>10+ km</span>
-        </div>
-
-        <Slider
-          min={1}
-          max={10}
-          step={1}
-          value={distanceFromCentre}
-          onChange={(value) => setDistanceFromCentre(value as number)}
-          tooltip={{ open: false }}
-          className="hotel-distance-slider"
-        />
-      </div>
-    );
-  };
 
   const renderGuestReviewScore = () => {
     return (
       <div className="px-4 pb-6">
         <Checkbox.Group
           value={selectedReviewScores}
-          onChange={(values) => setSelectedReviewScores(values as string[])}
+          onChange={(values) => handleReviewChange(values)}
           className="flex flex-col gap-3"
         >
           {REVIEW_OPTIONS.map((option) => (
@@ -435,7 +413,7 @@ export default function HotelFilterSidebar() {
       <div className="px-4 pb-6">
         <Checkbox.Group
           value={selectedClassifications}
-          onChange={(values) => setSelectedClassifications(values as string[])}
+          onChange={(values) => handleStarChange(values)}
           className="flex flex-col gap-3"
         >
           {STAR_OPTIONS.map((option) => (
@@ -517,16 +495,12 @@ export default function HotelFilterSidebar() {
 
   const renderSectionContent = (category: string) => {
     switch (category) {
-      case "Type of Place":
-        return renderTypeOfPlace();
       case "Price Range":
         return renderPriceRange();
       case "Rooms and Beds":
         return renderRoomsAndBeds();
       case "Room Size":
         return renderRoomSize();
-      case "Distance From Centre":
-        return renderDistanceFromCentre();
       case "Guest Review Score":
         return renderGuestReviewScore();
       case "Property Classification":
@@ -542,9 +516,19 @@ export default function HotelFilterSidebar() {
     }
   };
 
+  const clearAllFilters = () => {
+    setPriceRange([200, 1500]);
+    setRoomCounts({ beds: 0 });
+    setSelectedAmenities([]);
+    setSelectedRoomSizes([]);
+    setSelectedReviewScores([]);
+    setSelectedClassifications([]);
+    router.push(pathname, { scroll: false });
+  };
+
   return (
     <aside className="space-y-4">
-      <Card className="w-full max-w-[280px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-sm mb-4!">
+      {/* <Card className="w-full max-w-[280px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-sm mb-4!">
         <div className="-m-6">
           <div className="relative h-[220px] overflow-hidden bg-[#f6f6f7]">
             <div className="relative flex h-full items-center justify-center p-5">
@@ -555,14 +539,14 @@ export default function HotelFilterSidebar() {
             </div>
           </div>
         </div>
-      </Card>
+      </Card> */}
 
       <Card className="w-full max-w-[280px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="-m-6">
           <div className="flex items-center justify-between border-b border-slate-200 bg-white p-4">
             <h3 className="text-[15px] font-bold text-slate-700">Filter by:</h3>
             <button
-              onClick={() => setOpenSections([])}
+              onClick={() => clearAllFilters()}
               className="text-sm text-slate-400 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-slate-600"
             >
               Clear
