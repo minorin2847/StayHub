@@ -6,7 +6,12 @@ import Employee from "../employee/employee.js";
 import type { BranchTable } from "../branch/branch.type.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import type { RoleTableData } from "../roles/roles.type.js";
-import type { BedRecord, HotelBedRecord } from "../bed/bed.type.js";
+import type { BedRecord, HotelBedRecord, RoomBed } from "../bed/bed.type.js";
+import type Service from "../services/services.js";
+import type { Room, RoomType } from "../rooms/room.js";
+import type Guest from "../guests/guests.js";
+import type { DashboardGuest } from "../guests/guests.type.js";
+import type { DashboardBooking } from "../bookings/booking.type.js";
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -63,7 +68,6 @@ export async function getEmployeeAccounts(
     page,
   } = req.query;
 
-  const userRoles = (req.user.roles.map((i) => i.name) || []).join(",");
   const rolesArray = Array.isArray(roles) ? roles : [roles].filter(Boolean);
   rlsWrapper(
     "get-employees-table",
@@ -86,16 +90,14 @@ export async function getEmployeeAccounts(
       );
     },
     (result) => {
-      res
-        .status(200)
-        .json(
-          result.length > 0
-            ? {
-                hasNext: result[0].hasNext,
-                response: result.map((i) => new Employee(i)),
-              }
-            : [],
-        );
+      res.status(200).json(
+        result.length > 0
+          ? {
+              hasNext: result[0].hasNext,
+              response: result.map((i) => new Employee(i)),
+            }
+          : [],
+      );
     },
   );
 }
@@ -105,19 +107,17 @@ export async function getBranches(
   res: Response,
   next: NextFunction,
 ) {
-  let { query, hotelCountMin, hotelCountMax, sort, order, page } = req.query;
+  let { query, name, hotelCountMin, hotelCountMax, sort, order, page } =
+    req.query;
 
-  const userRoles = (req.user.roles || []).join(",");
-  try {
-    const response = await db.tx(async (t) => {
-      await t.none("SET LOCAL app.current_username = $1", [req.user.username]);
-      await t.none("SET LOCAL app.roles = $1", [userRoles]);
-      await t.none("SET LOCAL app.hotelid = $1", [req.user.hotelid || ""]);
-      await t.none("SET LOCAL app.branchid = $1", [req.user.branchid || ""]);
-      return t.manyOrNone(
+  rlsWrapper(
+    "get-branches-table",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
         "SELECT * FROM get_branches_by_page($(query),$(hotelCountMin),$(hotelCountMax),$(sort),$(order),$(page))",
         {
-          query: query ?? null,
+          query: query || name || null,
           hotelCountMin: hotelCountMin ?? 0,
           hotelCountMax: hotelCountMax ?? 2147483647,
           sort: sort ?? "id",
@@ -125,24 +125,18 @@ export async function getBranches(
           page: page ?? 1,
         },
       );
-    });
-    res
-      .status(200)
-      .json(
-        response.length > 0
+    },
+    (result) => {
+      res.status(200).json(
+        result.length > 0
           ? {
-              hasNext: response[0].hasNext,
-              response: response.map((i) => i as BranchTable),
+              hasNext: result[0].hasNext,
+              response: result.map((i) => i as BranchTable),
             }
           : [],
       );
-  } catch (err) {
-    if (err instanceof Error) {
-      res.status(404).send(err.stack);
-    } else {
-      res.status(404).send("An unknown error occured!");
-    }
-  }
+    },
+  );
 }
 
 export async function getRoles(
@@ -169,20 +163,18 @@ export async function getRoles(
       );
     },
     (result) => {
-      res
-        .status(200)
-        .json(
-          result.length > 0
-            ? {
-                hasNext: result[0].hasNext,
-                response: result.map((i) => i as RoleTableData),
-              }
-            : [],
-        );
+      res.status(200).json(
+        result.length > 0
+          ? {
+              hasNext: result[0].hasNext,
+              response: result.map((i) => i as RoleTableData),
+            }
+          : [],
+      );
     },
   );
 }
-// get getDashboardHotels
+
 export async function getDashboardHotels(
   req: Request,
   res: Response,
@@ -254,62 +246,19 @@ export async function getDashboardHotels(
   );
 }
 
-export async function getDashboardRooms(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  let { type, sort, order, page } = req.query;
-
-  const isOnlyHotelManager =
-    req.user.roles.some((r: any) => r.name === "MANAGE_HOTEL") &&
-    !req.user.roles.some((r: any) =>
-      ["ADMINISTRATOR", "MANAGE_BRANCH"].includes(r.name),
-    );
-  const hotelid = isOnlyHotelManager
-    ? req.user.hotelid
-    : (req.query.hotelid ?? null);
-
-  rlsWrapper(
-    "get-rooms-table",
-    req.user,
-    async (t) => {
-      return await t.manyOrNone(
-        "SELECT * FROM get_rooms_by_page($(hotelid), $(type), $(sort), $(order), $(page))",
-        {
-          hotelid: hotelid ?? null,
-          type: type ?? null,
-          sort: sort ?? "id",
-          order: order ?? "asc",
-          page: page ?? 1,
-        },
-      );
-    },
-    (result) => {
-      const hasNext =
-        result.length > 0 && result[0].hasNext !== undefined
-          ? result[0].hasNext
-          : false;
-      res
-        .status(200)
-        .json(result.length > 0 ? { hasNext, response: result } : []);
-    },
-  );
-}
-
 export async function getDashboardBeds(
   req: Request,
   res: Response,
   next: NextFunction,
 ) {
-  const { query, minCount, maxCount, sort, order, page, excludeCurrent } =
+  const { name, query, minCount, maxCount, sort, order, page, excludeCurrent } =
     req.query;
 
   try {
     const result = await db.manyOrNone(
       "SELECT * FROM get_beds_by_page($(query), $(excludeId), $(minCount), $(maxCount), $(sort), $(order), $(page))",
       {
-        query: query ?? null,
+        query: query ?? name ?? null,
         excludeId: excludeCurrent === "true" ? req.user.hotelid : null,
         minCount: minCount ? parseInt(minCount as string) : 0,
         maxCount: maxCount ? parseInt(maxCount as string) : 1000,
@@ -320,9 +269,6 @@ export async function getDashboardBeds(
     );
 
     const hasNext = result.length > 0 && result[0].has_next;
-
-    // Coerce the response by removing the has_next property from the objects
-    // (Optional: Postgres returns it, but you can filter it out if you want a clean array)
     const response: BedRecord[] = result.map(({ has_next, ...data }) => data);
 
     res.status(200).json({ hasNext: !!hasNext, response });
@@ -336,18 +282,17 @@ export async function getDashboardHotelBeds(
   res: Response,
   next: NextFunction,
 ) {
-  const { query, minCount, maxCount, sort, order, page } = req.query;
+  const { name, query, minCount, maxCount, sort, order, page } = req.query;
 
   rlsWrapper(
     "get-hotel-beds-table",
     req.user,
     async (t) => {
-      // Coercing the return type here
       return await t.manyOrNone(
         "SELECT * FROM get_hotel_beds_by_page($(hotelid), $(query), $(minCount), $(maxCount), $(sort), $(order), $(page))",
         {
           hotelid: req.user.hotelid,
-          query: query ?? null,
+          query: query ?? name ?? null,
           minCount: minCount ? parseInt(minCount as string) : 0,
           maxCount: maxCount ? parseInt(maxCount as string) : 100,
           sort: sort ?? "name",
@@ -358,13 +303,392 @@ export async function getDashboardHotelBeds(
     },
     (result: (HotelBedRecord & { has_next: boolean })[]) => {
       const hasNext = result.length > 0 && result[0].has_next;
-
-      // Clean the response so it only contains HotelBedRecord data
       const response: HotelBedRecord[] = result.map(
         ({ has_next, ...data }) => data,
       );
 
       res.status(200).json({ hasNext: !!hasNext, response });
+    },
+  );
+}
+
+export async function getDashboardServices(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { name, query, type, minPrice, maxPrice, sort, order, page } =
+    req.query;
+  type ServiceTable = Service & { has_next: boolean };
+  rlsWrapper(
+    "get-dashboard-services",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        "SELECT * FROM get_services_by_page($(query), $(type), $(minPrice), $(maxPrice), $(sort), $(order), $(page))",
+        {
+          query: query ?? name ?? null,
+          type: type ?? null,
+          minPrice: minPrice ? parseInt(minPrice as string) : 0,
+          maxPrice: maxPrice ? parseInt(maxPrice as string) : 2147483647,
+          sort: sort ?? "id",
+          order: order ?? "asc",
+          page: page ? parseInt(page as string) : 1,
+        },
+      );
+    },
+    (result: ServiceTable[]) => {
+      const hasNext = result.length > 0 ? result[0].has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res
+        .status(200)
+        .json(
+          result.length > 0
+            ? { hasNext: !!hasNext, response }
+            : { hasNext: false, response: [] },
+        );
+    },
+  );
+}
+
+export async function getDashboardRoomTypes(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const {
+    name,
+    query,
+    minSize,
+    maxSize,
+    minCapacity,
+    maxCapacity,
+    minPrice,
+    maxPrice,
+    minTotalBeds,
+    maxTotalBeds,
+    amenities,
+    beds,
+    sort,
+    order,
+    page,
+  } = req.query;
+
+  const normalizeArray = (param: any): string[] | null => {
+    if (!param) return null;
+    return Array.isArray(param) ? (param as string[]) : [param as string];
+  };
+  type Amenities = {
+    name: string;
+    icon: string;
+    category: string;
+  };
+  type RoomTypeTable = RoomType & {
+    amenities: Amenities[];
+    beds: RoomBed[];
+    total_beds: number;
+    has_next: boolean;
+  };
+
+  rlsWrapper(
+    "get-dashboard-room-types",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        `SELECT * FROM get_room_types_by_page(
+                    $(query), 
+                    $(minSize), $(maxSize), 
+                    $(minCapacity), $(maxCapacity), 
+                    $(minPrice), $(maxPrice), 
+                    $(minTotalBeds), $(maxTotalBeds), 
+                    $(amenities), $(beds), 
+                    $(sort), $(order), $(page)
+                )`,
+        {
+          query: query ?? name ?? null,
+          minSize: minSize ? parseInt(minSize as string) : 0,
+          maxSize: maxSize ? parseInt(maxSize as string) : 1000,
+          minCapacity: minCapacity ? parseInt(minCapacity as string) : 0,
+          maxCapacity: maxCapacity ? parseInt(maxCapacity as string) : 1000,
+          minPrice: minPrice ? parseInt(minPrice as string) : 0,
+          maxPrice: maxPrice ? parseInt(maxPrice as string) : 2147483647,
+          minTotalBeds: minTotalBeds ? parseInt(minTotalBeds as string) : 0,
+          maxTotalBeds: maxTotalBeds ? parseInt(maxTotalBeds as string) : 100,
+          amenities: normalizeArray(amenities),
+          beds: normalizeArray(beds),
+          sort: sort ?? "name",
+          order: order ?? "ASC",
+          page: page ? parseInt(page as string) : 1,
+        },
+      );
+    },
+    (result: RoomTypeTable[]) => {
+      const hasNext = result.length > 0 ? result[0]?.has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res.status(200).json({
+        hasNext: !!hasNext,
+        response: result.length > 0 ? response : [],
+      });
+    },
+  );
+}
+
+export async function getDashboardRooms(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { name, query, typeId, sort, order, page } = req.query;
+  type RoomTable = Room & { has_next: boolean };
+
+  rlsWrapper(
+    "get-dashboard-rooms",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        "SELECT * FROM get_rooms_by_page($(query), $(typeId), $(sort), $(order), $(page))",
+        {
+          query: query ?? name ?? null,
+          typeId: typeId ? parseInt(typeId as string) : null,
+          sort: sort ?? "id",
+          order: order ?? "asc",
+          page: page ? parseInt(page as string) : 1,
+        },
+      );
+    },
+    (result: RoomTable[]) => {
+      const hasNext = result.length > 0 ? result[0]?.has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res
+        .status(200)
+        .json(
+          result.length > 0
+            ? { hasNext: !!hasNext, response }
+            : { hasNext: false, response: [] },
+        );
+    },
+  );
+}
+
+export async function getDashboardGuests(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const {
+    name,
+    query,
+    minVisit,
+    maxVisit,
+    fromLastStay,
+    toLastStay,
+    sort,
+    order,
+    page,
+  } = req.query;
+
+  type GuestTable = DashboardGuest & { has_next: boolean };
+
+  rlsWrapper(
+    "get-dashboard-guests",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        `SELECT * FROM get_guests_by_page(
+                    $(query), 
+                    $(minVisit), 
+                    $(maxVisit), 
+                    $(fromLastStay), 
+                    $(toLastStay), 
+                    $(sort), 
+                    $(order), 
+                    $(page)
+                )`,
+        {
+          query: query ?? name ?? null,
+          minVisit: minVisit ? parseInt(minVisit as string) : 0,
+          maxVisit: maxVisit ? parseInt(maxVisit as string) : 2147483647,
+          fromLastStay: fromLastStay ?? null,
+          toLastStay: toLastStay ?? null,
+          sort: sort ?? "id",
+          order: order ?? "asc",
+          page: page ? parseInt(page as string) : 1,
+        },
+      );
+    },
+    (result: GuestTable[]) => {
+      const hasNext = result.length > 0 ? result[0].has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res
+        .status(200)
+        .json(
+          result.length > 0
+            ? { hasNext: !!hasNext, response }
+            : { hasNext: false, response: [] },
+        );
+    },
+  );
+}
+
+export async function getDashboardBookings(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const {
+    name,
+    query,
+    roomId,
+    checkinAfter,
+    checkinBefore,
+    checkoutAfter,
+    checkoutBefore,
+    status,
+    hasReserve,
+    sort,
+    order,
+    page,
+  } = req.query;
+
+  type BookingTable = DashboardBooking & { has_next: boolean };
+
+  rlsWrapper(
+    "get-dashboard-bookings",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        `SELECT * FROM get_bookings_by_page(
+                    $(query), 
+                    $(roomId), 
+                    $(checkinAfter), 
+                    $(checkinBefore), 
+                    $(checkoutAfter), 
+                    $(checkoutBefore), 
+                    $(status), 
+                    $(hasReserve),
+                    $(sort), 
+                    $(order), 
+                    $(page)
+                )`,
+        {
+          query: query ?? name ?? null,
+          roomId: roomId ? parseInt(roomId as string) : null,
+          checkinAfter: checkinAfter ?? null,
+          checkinBefore: checkinBefore ?? null,
+          checkoutAfter: checkoutAfter ?? null,
+          checkoutBefore: checkoutBefore ?? null,
+          status: status ?? null,
+          hasReserve:
+            hasReserve === "true"
+              ? true
+              : hasReserve === "false"
+                ? false
+                : null,
+          sort: sort ?? "checkin",
+          order: order ?? "asc",
+          page: page ? parseInt(page as string) : 1,
+        },
+      );
+    },
+    (result: BookingTable[]) => {
+      const hasNext = result.length > 0 ? result[0].has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res
+        .status(200)
+        .json(
+          result.length > 0
+            ? { hasNext: !!hasNext, response }
+            : { hasNext: false, response: [] },
+        );
+    },
+  );
+}
+
+export async function getDashboardPolicies(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { name, category, sort, order, page } = req.query;
+  rlsWrapper(
+    "get-dashboard-policies",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        "SELECT * FROM get_policies_by_page($(name), $(category), $(sort), $(order), $(page))",
+        {
+          name: name ?? null,
+          category: category ?? null,
+          sort: sort ?? "updated_at",
+          order: order ?? "DESC",
+          page: page ? parseInt(page as string) : 1,
+        },
+      );
+    },
+    (result) => {
+      const hasNext = result.length > 0 ? result[0].has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res
+        .status(200)
+        .json(
+          result.length > 0
+            ? { hasNext: !!hasNext, response }
+            : { hasNext: false, response: [] },
+        );
+    },
+  );
+}
+
+export async function getDashboardAmenities(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const {
+    name,
+    category,
+    sort,
+    order,
+    page,
+    excludeCurrent,
+    minCount,
+    maxCount,
+  } = req.query;
+  rlsWrapper(
+    "get-dashboard-amenities",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        "SELECT * FROM get_amenities_by_page($(name), $(category), $(exclude_hotel_id), $(min_count), $(max_count) , $(sort), $(order), $(page))",
+        {
+          name: name ?? null,
+          category: category ?? null,
+          exclude_hotel_id: excludeCurrent === "true" ? req.user.hotelid : null,
+          min_count: minCount ? parseInt(minCount as string) : 0,
+          max_count: maxCount ? parseInt(maxCount as string) : 1000,
+          sort: sort ?? "name",
+          order: order ?? "ASC",
+          page: page ? parseInt(page as string) : 1,
+        },
+      );
+    },
+    (result) => {
+      const hasNext = result.length > 0 ? result[0].has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res
+        .status(200)
+        .json(
+          result.length > 0
+            ? { hasNext: !!hasNext, response }
+            : { hasNext: false, response: [] },
+        );
     },
   );
 }
