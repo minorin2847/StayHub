@@ -154,5 +154,13 @@ export const MENU_CONFIG = {
           path: "/dashboard/rooms/types"
         }],
     }
+  ],
+  MANAGE_BOOKING: [
+    {
+      name: "Bookings",
+      icon: FaHotel, // change later
+      path: "/dashboard/bookings",
+      subItems: [{ name: "Manage Bookings", path: "/dashboard/bookings" }],
+    },
   ]
 };

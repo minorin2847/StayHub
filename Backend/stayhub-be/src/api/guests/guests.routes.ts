@@ -9,12 +9,12 @@ const guestsRoute = Router();
 guestsRoute.get("/", isLoggedIn, getAllGuests);
 
 // POST /employee/guests/add
-guestsRoute.post("/add", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), createGuest);
+guestsRoute.post("/add", isLoggedIn, hasPermission(["MANAGE_HOTEL", "MANAGE_BOOKING"]), createGuest);
 
 // PATCH /employee/guests/edit/:id
-guestsRoute.patch("/edit/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), editGuest);
+guestsRoute.patch("/edit/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL", "MANAGE_BOOKING"]), editGuest);
 
 // DELETE /employee/guests/delete/:id
-guestsRoute.delete("/delete/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), deleteGuest);
+guestsRoute.delete("/delete/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL", "MANAGE_BOOKING"]), deleteGuest);
 
 export { guestsRoute };

@@ -736,8 +736,23 @@ v_sort_clause := CASE
 END;
 IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC';
 END IF;
+-- 5. Final Execution
 v_query := format(
-    'WITH raw_data AS (SELECT v.id, v.first_name, v.last_name, v.full_name, v.email, v.phone, v.id_card_number, v.address, v.total_bookings, v.last_stay_date, v.created_at %s %s ORDER BY %s %s LIMIT %L OFFSET %L) SELECT rd.*, (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next FROM raw_data rd LIMIT %L',
+    '
+        WITH raw_data AS (
+            SELECT 
+                v.id, v.first_name, v.last_name, v.full_name, v.email, v.phone, v.id_card_number, 
+                v.address, v.total_bookings, v.last_stay_date, v.created_at
+            %s
+            %s
+            ORDER BY %s %s
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
     v_base_from,
     v_where,
     v_sort_clause,
@@ -767,9 +782,10 @@ CREATE OR REPLACE FUNCTION get_bookings_by_page(
         id INT,
         guest_full_name TEXT,
         guestID INT,
-        roomID INT,
         checkin_date DATE,
         checkout_date DATE,
+        total_rooms BIGINT,
+        rooms JSONB,
         booking_status VARCHAR,
         actual_total_price DECIMAL,
         has_reserve BOOLEAN,
@@ -782,40 +798,65 @@ v_offset INT;
 v_where TEXT := ' WHERE TRUE';
 v_query TEXT;
 v_sort_clause TEXT;
-BEGIN IF p_query IS NOT NULL
-AND p_query <> '' THEN v_where := v_where || format(
-    ' AND v.guest_full_name ILIKE %L',
-    '%' || p_query || '%'
-);
+BEGIN 
+
+-- 1. Dynamic Filtering
+IF p_query IS NOT NULL AND p_query <> '' THEN 
+    v_where := v_where || format(' AND v.guest_full_name ILIKE %L', '%' || p_query || '%');
 END IF;
-IF p_room_id IS NOT NULL THEN v_where := v_where || format(' AND v.roomID = %L', p_room_id);
+
+-- Room ID filter: Check if the booking contains the specified room ID
+IF p_room_id IS NOT NULL THEN 
+    v_where := v_where || format(' AND v.id IN (SELECT bookingid FROM booked_room WHERE roomID = %L)', p_room_id);
 END IF;
-IF p_checkin_after IS NOT NULL THEN v_where := v_where || format(' AND v.checkin_date >= %L', p_checkin_after);
+
+IF p_checkin_after IS NOT NULL THEN v_where := v_where || format(' AND v.checkin_date >= %L', p_checkin_after); END IF;
+IF p_checkin_before IS NOT NULL THEN v_where := v_where || format(' AND v.checkin_date <= %L', p_checkin_before); END IF;
+IF p_checkout_after IS NOT NULL THEN v_where := v_where || format(' AND v.checkout_date >= %L', p_checkout_after); END IF;
+IF p_checkout_before IS NOT NULL THEN v_where := v_where || format(' AND v.checkout_date <= %L', p_checkout_before); END IF;
+
+IF p_status IS NOT NULL AND p_status <> '' THEN 
+    v_where := v_where || format(' AND v.booking_status = %L', p_status);
 END IF;
-IF p_checkin_before IS NOT NULL THEN v_where := v_where || format(' AND v.checkin_date <= %L', p_checkin_before);
+
+IF p_has_reserve IS NOT NULL THEN 
+    v_where := v_where || format(' AND v.has_reserve = %L', p_has_reserve);
 END IF;
-IF p_checkout_after IS NOT NULL THEN v_where := v_where || format(' AND v.checkout_date >= %L', p_checkout_after);
-END IF;
-IF p_checkout_before IS NOT NULL THEN v_where := v_where || format(' AND v.checkout_date <= %L', p_checkout_before);
-END IF;
-IF p_status IS NOT NULL
-AND p_status <> '' THEN v_where := v_where || format(' AND v.booking_status = %L', p_status);
-END IF;
-IF p_has_reserve IS NOT NULL THEN v_where := v_where || format(' AND v.has_reserve = %L', p_has_reserve);
-END IF;
+
+-- 2. Pagination Math
 EXECUTE 'SELECT COUNT(*) FROM vw_booking_details v ' || v_where INTO v_total_rows;
 v_offset := (GREATEST(1, p_page) - 1) * v_limit;
+
+-- 3. Dynamic Sorting
 v_sort_clause := CASE
     p_sort_column
     WHEN 'guest' THEN 'v.guest_full_name'
     WHEN 'checkin' THEN 'v.checkin_date'
     WHEN 'checkout' THEN 'v.checkout_date'
+    WHEN 'status' THEN 'v.booking_status'
+    WHEN 'price' THEN 'v.actual_total_price'
     ELSE 'v.checkin_date'
 END;
-IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC';
-END IF;
+
+IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC'; END IF;
+
+-- 4. Final Execution
 v_query := format(
-    'WITH raw_data AS (SELECT v.id, v.guest_full_name, v.guestID, v.roomID, v.checkin_date, v.checkout_date, v.booking_status, v.actual_total_price, v.has_reserve, v.reserveID FROM vw_booking_details v %s ORDER BY %s %s, v.id ASC LIMIT %L OFFSET %L) SELECT rd.*, (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next FROM raw_data rd',
+    '
+        WITH raw_data AS (
+            SELECT 
+                v.id, v.guest_full_name, v.guestID, v.checkin_date, v.checkout_date,
+                v.total_rooms, v.rooms, v.booking_status, v.actual_total_price, 
+                v.has_reserve, v.reserveID
+            FROM vw_booking_details v
+            %s
+            ORDER BY %s %s, v.id ASC
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+                (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd',
     v_where,
     v_sort_clause,
     p_sort_dir,
@@ -824,6 +865,7 @@ v_query := format(
     v_offset,
     v_total_rows
 );
+
 RETURN QUERY EXECUTE v_query;
 END;
 $$ LANGUAGE plpgsql;
@@ -1179,5 +1221,54 @@ INSERT INTO room_type_beds (room_typeID, bed_name, bed_count)
 VALUES (p_id, bed_record.name, bed_record.count);
 END LOOP;
 END IF;
+END;
+$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION fn_update_booking_status()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_total_rooms INT;
+    v_count_in INT;
+    v_count_out INT;
+    v_count_cancelled INT;
+    v_new_status VARCHAR(30);
+    v_target_booking_id INT;
+BEGIN
+    -- Determine which booking_id to update (handles Insert/Update/Delete)
+    v_target_booking_id := COALESCE(NEW.bookingid, OLD.bookingid);
+
+    -- Gather stats for all rooms in this booking
+    SELECT 
+        COUNT(*),
+        COUNT(CASE WHEN room_status = 'Checked-In' THEN 1 END),
+        COUNT(CASE WHEN room_status = 'Checked-Out' THEN 1 END),
+        COUNT(CASE WHEN room_status = 'Cancelled' THEN 1 END)
+    INTO 
+        v_total_rooms, v_count_in, v_count_out, v_count_cancelled
+    FROM booked_room
+    WHERE bookingid = v_target_booking_id;
+
+    -- Apply your Business Logic
+    IF v_total_rooms = 0 THEN
+        v_new_status := 'Empty';
+    ELSIF v_count_cancelled = v_total_rooms THEN
+        v_new_status := 'Cancelled';
+    ELSIF v_count_out = v_total_rooms THEN
+        v_new_status := 'Stayed'; -- All finished
+    ELSIF v_count_out > 0 THEN
+        v_new_status := 'Partial Checked-Out';
+    ELSIF v_count_in = v_total_rooms THEN
+        v_new_status := 'Checked-In';
+    ELSIF v_count_in > 0 THEN
+        v_new_status := 'Partial Checked-In';
+    ELSE
+        v_new_status := 'Confirmed Booking';
+    END IF;
+
+    -- Update the parent table
+    UPDATE booking 
+    SET booking_status = v_new_status 
+    WHERE id = v_target_booking_id;
+
+    RETURN NULL; -- result is ignored since this is an AFTER trigger
 END;
 $$ LANGUAGE plpgsql;

@@ -22,6 +22,7 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booked_room ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reserves ENABLE ROW LEVEL SECURITY;
 -- ============================================================================
 -- 1. ADMINISTRATOR POLICIES FOR EMPLOYEES TABLE
@@ -505,44 +506,71 @@ DO $$ BEGIN IF NOT EXISTS (
 $POLICY$;
 END IF;
 END $$;
-DO $$ BEGIN IF NOT EXISTS (
-    SELECT 1
-    FROM pg_policies
-    WHERE policyname = 'guests_policy'
-        AND tablename = 'guests'
-) THEN EXECUTE $POLICY$ CREATE POLICY guests_policy ON guests FOR ALL USING (
-    'ADMINISTRATOR' = ANY(
-        string_to_array(current_setting('app.roles', true), ',')
-    )
-    OR (
-        'MANAGE_HOTEL' = ANY(
-            string_to_array(current_setting('app.roles', true), ',')
-        )
-        AND hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
-    )
-);
-$POLICY$;
-END IF;
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM pg_policies 
+        WHERE policyname = 'guests_policy' 
+            AND tablename = 'guests'
+    ) THEN 
+        EXECUTE $POLICY$ 
+        CREATE POLICY guests_policy ON guests FOR ALL USING (
+            -- 1. Admin can access everything
+            'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+            OR (
+                -- 2. Explicitly deny MANAGE_BRANCH
+                NOT ('MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ',')))
+                -- 3. Everyone else can access their respective hotel
+                AND hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+            )
+        );
+        $POLICY$;
+    END IF;
 END $$;
-DO $$ BEGIN IF NOT EXISTS (
-    SELECT 1
-    FROM pg_policies
-    WHERE policyname = 'booking_policy'
-        AND tablename = 'booking'
-) THEN EXECUTE $POLICY$ CREATE POLICY booking_policy ON booking FOR ALL USING (
-    'ADMINISTRATOR' = ANY(
-        string_to_array(current_setting('app.roles', true), ',')
-    )
-    OR (
-        'MANAGE_HOTEL' = ANY(
-            string_to_array(current_setting('app.roles', true), ',')
-        )
-        AND hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
-    )
-);
-$POLICY$;
-END IF;
+
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE policyname = 'booking_policy' AND tablename = 'booking'
+    ) THEN 
+        EXECUTE $POLICY$ 
+        CREATE POLICY booking_policy ON booking FOR ALL USING (
+            'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+            OR (
+                'MANAGE_BOOKING' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                AND hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+            )
+        );
+        $POLICY$;
+    END IF;
 END $$;
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE policyname = 'booked_room_policy' AND tablename = 'booked_room'
+    ) THEN 
+        EXECUTE $POLICY$ 
+        CREATE POLICY booked_room_policy ON booked_room FOR ALL USING (
+            'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+            OR (
+                'MANAGE_BOOKING' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                AND EXISTS (
+                    SELECT 1 FROM booking b 
+                    WHERE b.id = booked_room.bookingid
+                    AND b.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            )
+        );
+        $POLICY$;
+    END IF;
+END $$;
+
+
 DO $$ BEGIN IF NOT EXISTS (
     SELECT 1
     FROM pg_policies
