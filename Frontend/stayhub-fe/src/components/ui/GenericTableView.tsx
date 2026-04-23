@@ -132,7 +132,6 @@ export default function GenericTableView<
 
   generatedDeletePrompt,
   generatedDeleteEndpoint,
-  tableRowKey = "id",
 }: GenericTableViewProps<TData, TFilter>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -173,7 +172,6 @@ export default function GenericTableView<
       async onOk() {
         try {
           setLoading(true);
-
           const res = await fetch(generatedDeleteEndpoint(record), {
             method: "DELETE",
             credentials: "include",
@@ -193,9 +191,7 @@ export default function GenericTableView<
         }
       },
 
-      onCancel() {
-        message.error(`Error deleting ${resourceName}`);
-      },
+      onCancel() {},
     });
   };
 

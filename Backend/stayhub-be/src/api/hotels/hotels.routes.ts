@@ -8,9 +8,10 @@ import { uploadHotelImage, getHotelImages, deleteHotelImage, setCoverImage } fro
 const hotelsRoute = Router();
 
 hotelsRoute.get("/", isLoggedIn, getHotels);
-hotelsRoute.post("/", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), createHotel);
-hotelsRoute.put("/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), updateHotel);
-hotelsRoute.delete("/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), deleteHotel);
+hotelsRoute.get("/get/:id", isLoggedIn, getHotels);
+hotelsRoute.post("/create", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), createHotel);
+hotelsRoute.put("/edit/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), updateHotel);
+hotelsRoute.delete("/delete/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), deleteHotel);
 
 // route to upload images for hotels
 hotelsRoute.get(

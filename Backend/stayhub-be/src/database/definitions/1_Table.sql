@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS amenities (
 CREATE TABLE IF NOT EXISTS policies (
   name varchar(100) PRIMARY KEY,
   icon text NOT NULL,
-  category varchar(100) NOT NULL,
+  category varchar(100) DEFAULT 'General',
   description text NOT NULL,
   updated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );

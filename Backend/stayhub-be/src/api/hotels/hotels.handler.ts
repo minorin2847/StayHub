@@ -46,6 +46,32 @@ export async function getHotels(
   );
 }
 
+export async function getHotelById(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { id } = req.params;
+  
+  rlsWrapper(
+    "get-hotel-by-id",
+    req.user,
+    async (t) => {
+      return await t.oneOrNone(
+        "SELECT * FROM hotels WHERE id = $1",
+        [id],
+        (row: any) => new Hotel(row),
+      );
+    },
+    (hotel) => {
+      if (!hotel) {
+        return res.status(404).json({ message: "Hotel not found" });
+      }
+      res.status(200).json(hotel);
+    },
+  );
+}
+
 export async function createHotel(
   req: Request,
   res: Response,

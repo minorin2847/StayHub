@@ -132,7 +132,7 @@ export function isLoggedIn(req: Request, res: Response, next: NextFunction) {
     next();
     return;
   } else {
-    res.status(401).send("Unauthorized!");
+    return res.status(401).send("Unauthorized!");
   }
 }
 

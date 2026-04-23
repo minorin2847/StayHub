@@ -23,10 +23,13 @@ export async function createRoomType(req: Request, res: Response, next: NextFunc
         size,
         capacity,
         price,
+        base_price,
         description,
         amenities, // Expected as string[]
         beds       // Expected as object[] e.g., [{name: 'King', count: 1}]
     } = req.body;
+
+    const finalPrice = base_price !== undefined ? base_price : price;
 
     rlsWrapper(
         "create-room-type",
@@ -45,14 +48,14 @@ export async function createRoomType(req: Request, res: Response, next: NextFunc
             // 2. Call the updated SQL function
             return await t.one(
                 `SELECT create_full_room_type(
-                    $(hotelID), $(name), $(size), $(capacity), $(price), $(description), $(amenities), $(beds)::jsonb
+                    $(hotelID), $(name), $(size), $(capacity), $(price), $(description), $(amenities)::text[], $(beds)::jsonb
                 )`,
                 {
                     hotelID: req.user.hotelid,
                     name,
                     size: size || 100,
                     capacity: capacity || 1,
-                    price: price || 0,
+                    price: finalPrice || 0,
                     description: description || null,
                     amenities: amenities || [],
                     beds: JSON.stringify(beds || [])
@@ -73,24 +76,25 @@ export async function createRoomType(req: Request, res: Response, next: NextFunc
 
 export async function editRoomType(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
-    const { name, size, capacity, price, description, amenities, beds } = req.body;
+    const { name, size, capacity, price, base_price, description, amenities, beds } = req.body;
+
+    const finalPrice = base_price !== undefined ? base_price : price;
 
     rlsWrapper(
         "edit-room-type",
         req.user,
         async t => {
             // Check permissions/existence first or let the function handle it.
-            // We use SELECT because the function returns VOID.
-            await t.none(
+            await t.any(
                 `SELECT update_room_type(
-                    $(id), $(name), $(size), $(capacity), $(price), $(description), $(amenities), $(beds)::jsonb
+                    $(id), $(name), $(size), $(capacity), $(price), $(description), $(amenities)::text[], $(beds)::jsonb
                 )`,
                 {
                     id: parseInt(id),
                     name: name || null,
                     size: size || null,
                     capacity: capacity || null,
-                    price: price || null,
+                    price: finalPrice || null,
                     description: description || null,
                     amenities: amenities || null, // NULL skips update, [] clears it
                     beds: beds ? JSON.stringify(beds) : null
