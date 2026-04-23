@@ -1573,7 +1573,7 @@ CREATE OR REPLACE FUNCTION get_hotel_amenities_by_page(
 DECLARE v_limit INT := 10;
 v_total_rows INT;
 v_offset INT;
-v_where TEXT := ' WHERE ha.hotelID = ' || p_hotel_id;
+v_where TEXT := ' WHERE ha.hotelID = ' || COALESCE(p_hotel_id::TEXT, '-1');
 v_query TEXT;
 v_sort_clause TEXT;
 v_base_from TEXT;
