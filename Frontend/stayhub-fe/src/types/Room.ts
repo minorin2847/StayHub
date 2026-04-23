@@ -2,10 +2,11 @@ import { Amenity } from "./Amenity";
 
 export type Room = {
     id: number;
+    classification: number;
+    name: string;
     hotelid: number;
     note: string;
     typeid: number;
-    name: string;
 }
 
 export type RoomType = {

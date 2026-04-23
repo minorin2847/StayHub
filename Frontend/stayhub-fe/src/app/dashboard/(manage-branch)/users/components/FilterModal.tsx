@@ -19,9 +19,6 @@ type FilterModalProps  = {
 export default function FilterModal({ open, setOpen, query, setQuery, hotels, roles }: FilterModalProps) {
   const [form] = Form.useForm();
   
-
-
-
   const handleOk = () => {
     form.validateFields().then((values) => {
       // Split the salary array [min, max] back into separate fields for your API

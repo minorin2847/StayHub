@@ -54,31 +54,39 @@ export async function getBranchFromId(
   );
 }
 
-export function createBranch(req: Request, res: Response, next: NextFunction) {
-  const { name, location, description } = req.body;
+export async function createBranch(req: Request, res: Response, next: NextFunction) {
+    const { name, location, description } = req.body;
 
-  findBranchesByName(name)
-    .then(() => res.status(409).send("Branch already exists!"))
-    .catch(() => {
-      rlsWrapper(
+    if (!name || !location) {
+        return res.status(400).json({ message: "Name and location are required!" });
+    }
+
+    await rlsWrapper(
         "create-branch",
         req.user,
-        async (t) => {
-          return await t.one(
-            "INSERT INTO branch(name, location, description) \
-                    VALUES ($(name), $(location), $(description))\
-                    RETURNING id, name, location, description",
-            {
-              name: name,
-              location: location,
-              description: description,
-            },
-          );
+        async t => {
+            // Duplicate check inside the RLS transaction
+            const existing = await t.oneOrNone(
+                "SELECT id FROM branch WHERE name = $1",
+                [name]
+            );
+            if (existing) {
+                return { __conflict: true };
+            }
+
+            return await t.one(
+                `INSERT INTO branch (name, location, description)
+                 VALUES ($(name), $(location), $(description))
+                 RETURNING id, name, location, description`,
+                { name, location, description }
+            );
         },
-        (result) => {
-          console.log(`Created branch ${result.name} at ${result.location}!`);
-          res.status(200).json(result);
-        },
-      );
-    });
+        result => {
+            if (result?.__conflict) {
+                return res.status(409).json({ message: "Branch already exists!" });
+            }
+            console.log(`Created branch ${result.name} at ${result.location}!`);
+            res.status(201).json({ message: "Branch created successfully!", branch: result });
+        }
+    );
 }

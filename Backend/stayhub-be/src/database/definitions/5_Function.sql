@@ -795,6 +795,73 @@ v_query := format(
 RETURN QUERY EXECUTE v_query;
 END;
 $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION get_policies_by_page(
+        p_query TEXT DEFAULT NULL,
+        p_category TEXT DEFAULT NULL,
+        p_sort_column TEXT DEFAULT 'updated_at',
+        p_sort_dir TEXT DEFAULT 'DESC',
+        p_page INT DEFAULT 1
+    ) RETURNS TABLE (
+        name VARCHAR,
+        icon TEXT,
+        description TEXT,
+        category VARCHAR,
+        updated_at TIMESTAMP,
+        has_next BOOLEAN
+    ) AS $$
+DECLARE v_limit INT := 10;
+v_total_rows INT;
+v_offset INT;
+v_where TEXT := ' WHERE 1=1';
+v_query TEXT;
+v_sort_clause TEXT;
+BEGIN IF p_query IS NOT NULL
+AND p_query <> '' THEN v_where := v_where || format(
+    ' AND p.name ILIKE %L',
+    '%' || p_query || '%'
+);
+END IF;
+IF p_category IS NOT NULL
+AND p_category <> '' THEN v_where := v_where || format(' AND p.category = %L', p_category);
+END IF;
+-- Pagination Logic
+EXECUTE 'SELECT COUNT(*) FROM policies p' || v_where INTO v_total_rows;
+v_offset := (GREATEST(1, p_page) - 1) * v_limit;
+-- Sorting
+v_sort_clause := CASE
+    p_sort_column
+    WHEN 'name' THEN 'p.name'
+    WHEN 'category' THEN 'p.category'
+    ELSE 'p.updated_at'
+END;
+IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'DESC';
+END IF;
+-- Final Execution
+v_query := format(
+    '
+        WITH raw_data AS (
+            SELECT p.name, p.icon, p.description, p.category, p.updated_at
+            FROM policies p
+            %s
+            ORDER BY %s %s
+            LIMIT %L OFFSET %L
+        )
+        SELECT rd.*, 
+                (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+    v_where,
+    v_sort_clause,
+    p_sort_dir,
+    v_limit + 1,
+    v_offset,
+    v_offset,
+    v_total_rows,
+    v_limit
+);
+RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_services_by_page(
         p_query TEXT DEFAULT NULL,
         p_type TEXT DEFAULT NULL,
@@ -868,6 +935,100 @@ v_query := format(
             ORDER BY %s %s
             LIMIT %L 
             OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd
+        LIMIT %L',
+    v_base_from,
+    v_where,
+    v_sort_clause,
+    p_sort_dir,
+    v_limit + 1,
+    v_offset,
+    v_offset,
+    v_total_rows,
+    v_limit
+);
+RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION get_amenities_by_page(
+        p_query TEXT DEFAULT NULL,
+        p_category TEXT DEFAULT NULL,
+        p_exclude_hotel_id INT DEFAULT NULL,
+        p_min_count INT DEFAULT 0,
+        p_max_count INT DEFAULT 1000,
+        p_sort_column TEXT DEFAULT 'name',
+        p_sort_dir TEXT DEFAULT 'ASC',
+        p_page INT DEFAULT 1
+    ) RETURNS TABLE (
+        name VARCHAR,
+        icon TEXT,
+        category VARCHAR,
+        hotel_count INT,
+        has_next BOOLEAN
+    ) AS $$
+DECLARE v_limit INT := 10;
+v_total_rows INT;
+v_actual_page INT;
+v_offset INT;
+v_where TEXT := ' WHERE TRUE';
+v_query TEXT;
+v_sort_clause TEXT;
+v_base_from TEXT;
+BEGIN v_base_from := '
+        FROM amenities a
+        LEFT JOIN (
+            SELECT ha.amenity_name, COUNT(ha.hotelID)::INT as hotel_count
+            FROM hotel_amenities ha
+            GROUP BY ha.amenity_name
+        ) h ON a.name = h.amenity_name';
+-- Filters
+IF p_query IS NOT NULL
+AND p_query <> '' THEN v_where := v_where || format(' AND a.name ILIKE %L', '%' || p_query || '%');
+END IF;
+IF p_category IS NOT NULL
+AND p_category <> '' THEN v_where := v_where || format(' AND a.category = %L', p_category);
+END IF;
+v_where := v_where || format(
+    ' AND COALESCE(h.hotel_count, 0) BETWEEN %L AND %L',
+    p_min_count,
+    p_max_count
+);
+-- Exclude
+IF p_exclude_hotel_id IS NOT NULL THEN v_where := v_where || format(
+    ' 
+            AND a.name NOT IN (
+                SELECT amenity_name FROM hotel_amenities WHERE hotelid = %L
+            )',
+    p_exclude_hotel_id
+);
+END IF;
+-- Pagination Logic
+EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
+v_actual_page := LEAST(
+    GREATEST(1, p_page),
+    GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT)
+);
+v_offset := (v_actual_page - 1) * v_limit;
+-- Sorting
+v_sort_clause := CASE
+    p_sort_column
+    WHEN 'count' THEN 'COALESCE(h.hotel_count, 0)'
+    WHEN 'category' THEN 'a.category'
+    ELSE 'a.name'
+END;
+IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC';
+END IF;
+-- Execution
+v_query := format(
+    '
+        WITH raw_data AS (
+            SELECT a.name, a.icon, a.category, COALESCE(h.hotel_count, 0) AS hotel_count
+            %s %s
+            ORDER BY %s %s
+            LIMIT %L OFFSET %L
         )
         SELECT rd.*, 
                (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
@@ -1199,82 +1360,88 @@ v_query := format(
 RETURN QUERY EXECUTE v_query;
 END;
 $$ LANGUAGE plpgsql;
-CREATE OR REPLACE FUNCTION get_amenities_by_page(
+CREATE OR REPLACE FUNCTION get_guests_by_page(
         p_query TEXT DEFAULT NULL,
-        p_category TEXT DEFAULT NULL,
-        p_exclude_hotel_id INT DEFAULT NULL,
-        p_min_count INT DEFAULT 0,
-        p_max_count INT DEFAULT 1000,
-        p_sort_column TEXT DEFAULT 'name',
+        p_min_visit INT DEFAULT 0,
+        p_max_visit INT DEFAULT 2147483647,
+        p_from_last_stay DATE DEFAULT NULL,
+        p_to_last_stay DATE DEFAULT NULL,
+        p_sort_column TEXT DEFAULT 'id',
         p_sort_dir TEXT DEFAULT 'ASC',
         p_page INT DEFAULT 1
     ) RETURNS TABLE (
-        name VARCHAR,
-        icon TEXT,
-        category VARCHAR,
-        hotel_count INT,
+        id INT,
+        first_name VARCHAR,
+        last_name VARCHAR,
+        full_name TEXT,
+        email VARCHAR,
+        phone VARCHAR,
+        id_card_number VARCHAR,
+        address TEXT,
+        total_bookings BIGINT,
+        last_stay_date DATE,
+        created_at TIMESTAMP,
         has_next BOOLEAN
     ) AS $$
 DECLARE v_limit INT := 10;
 v_total_rows INT;
+v_max_pages INT;
 v_actual_page INT;
 v_offset INT;
 v_where TEXT := ' WHERE TRUE';
 v_query TEXT;
 v_sort_clause TEXT;
 v_base_from TEXT;
-BEGIN v_base_from := '
-        FROM amenities a
-        LEFT JOIN (
-            SELECT ha.amenity_name, COUNT(ha.hotelID)::INT as hotel_count
-            FROM hotel_amenities ha
-            GROUP BY ha.amenity_name
-        ) h ON a.name = h.amenity_name';
--- Filters
+BEGIN -- 1. Use the View we created previously
+v_base_from := ' FROM vw_guest_directory v ';
+-- 2. Build the Dynamic WHERE clause
+-- Text Search (Name, Email, Phone)
 IF p_query IS NOT NULL
-AND p_query <> '' THEN v_where := v_where || format(' AND a.name ILIKE %L', '%' || p_query || '%');
+AND p_query <> '' THEN v_where := v_where || format(
+    ' AND (v.full_name ILIKE %L OR v.email ILIKE %L OR v.phone ILIKE %L)',
+    '%' || p_query || '%',
+    '%' || p_query || '%',
+    '%' || p_query || '%'
+);
 END IF;
-IF p_category IS NOT NULL
-AND p_category <> '' THEN v_where := v_where || format(' AND a.category = %L', p_category);
-END IF;
+-- Filter by Visit Count (minVisit/maxVisit)
 v_where := v_where || format(
-    ' AND COALESCE(h.hotel_count, 0) BETWEEN %L AND %L',
-    p_min_count,
-    p_max_count
+    ' AND v.total_bookings BETWEEN %L AND %L',
+    p_min_visit,
+    p_max_visit
 );
--- Exclude
-IF p_exclude_hotel_id IS NOT NULL THEN v_where := v_where || format(
-    ' 
-            AND a.name NOT IN (
-                SELECT amenity_name FROM hotel_amenities WHERE hotelid = %L
-            )',
-    p_exclude_hotel_id
-);
+-- Filter by Last Stay Date (from/to)
+IF p_from_last_stay IS NOT NULL THEN v_where := v_where || format(' AND v.last_stay_date >= %L', p_from_last_stay);
 END IF;
--- Pagination Logic
+IF p_to_last_stay IS NOT NULL THEN v_where := v_where || format(' AND v.last_stay_date <= %L', p_to_last_stay);
+END IF;
+-- 3. Boundary Check & Pagination Math
 EXECUTE 'SELECT COUNT(*) ' || v_base_from || v_where INTO v_total_rows;
-v_actual_page := LEAST(
-    GREATEST(1, p_page),
-    GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT)
-);
+v_max_pages := GREATEST(1, CEIL(v_total_rows::numeric / v_limit)::INT);
+v_actual_page := LEAST(v_max_pages, GREATEST(1, p_page));
 v_offset := (v_actual_page - 1) * v_limit;
--- Sorting
+-- 4. Dynamic Sorting Logic
 v_sort_clause := CASE
     p_sort_column
-    WHEN 'count' THEN 'COALESCE(h.hotel_count, 0)'
-    WHEN 'category' THEN 'a.category'
-    ELSE 'a.name'
+    WHEN 'name' THEN 'v.full_name'
+    WHEN 'bookings' THEN 'v.total_bookings'
+    WHEN 'recent' THEN 'v.last_stay_date'
+    ELSE 'v.id'
 END;
 IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC';
 END IF;
--- Execution
+-- 5. Final Execution
 v_query := format(
     '
         WITH raw_data AS (
-            SELECT a.name, a.icon, a.category, COALESCE(h.hotel_count, 0) AS hotel_count
-            %s %s
+            SELECT 
+                v.id, v.first_name, v.last_name, v.full_name, v.email, v.phone, v.id_card_number, 
+                v.address, v.total_bookings, v.last_stay_date, v.created_at
+            %s
+            %s
             ORDER BY %s %s
-            LIMIT %L OFFSET %L
+            LIMIT %L 
+            OFFSET %L
         )
         SELECT rd.*, 
                (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
@@ -1289,6 +1456,103 @@ v_query := format(
     v_offset,
     v_total_rows,
     v_limit
+);
+RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION get_bookings_by_page(
+        p_query TEXT DEFAULT NULL,
+        -- New parameter for Guest Name search
+        p_room_id INT DEFAULT NULL,
+        p_checkin_after DATE DEFAULT NULL,
+        p_checkin_before DATE DEFAULT NULL,
+        p_checkout_after DATE DEFAULT NULL,
+        p_checkout_before DATE DEFAULT NULL,
+        p_status VARCHAR DEFAULT NULL,
+        p_has_reserve BOOLEAN DEFAULT NULL,
+        p_sort_column TEXT DEFAULT 'checkin',
+        p_sort_dir TEXT DEFAULT 'ASC',
+        p_page INT DEFAULT 1
+    ) RETURNS TABLE (
+        id INT,
+        guest_full_name TEXT,
+        guestID INT,
+        roomID INT,
+        checkin_date DATE,
+        checkout_date DATE,
+        booking_status VARCHAR,
+        actual_total_price DECIMAL,
+        has_reserve BOOLEAN,
+        reserveID INT,
+        has_next BOOLEAN
+    ) AS $$
+DECLARE v_limit INT := 10;
+v_total_rows INT;
+v_actual_page INT;
+v_offset INT;
+v_where TEXT := ' WHERE TRUE';
+v_query TEXT;
+v_sort_clause TEXT;
+BEGIN -- 1. Dynamic Filtering
+-- New: Guest Name Search (using ILIKE for case-insensitive partial matches)
+IF p_query IS NOT NULL
+AND p_query <> '' THEN v_where := v_where || format(
+    ' AND v.guest_full_name ILIKE %L',
+    '%' || p_query || '%'
+);
+END IF;
+IF p_room_id IS NOT NULL THEN v_where := v_where || format(' AND v.roomID = %L', p_room_id);
+END IF;
+IF p_checkin_after IS NOT NULL THEN v_where := v_where || format(' AND v.checkin_date >= %L', p_checkin_after);
+END IF;
+IF p_checkin_before IS NOT NULL THEN v_where := v_where || format(' AND v.checkin_date <= %L', p_checkin_before);
+END IF;
+IF p_checkout_after IS NOT NULL THEN v_where := v_where || format(' AND v.checkout_date >= %L', p_checkout_after);
+END IF;
+IF p_checkout_before IS NOT NULL THEN v_where := v_where || format(' AND v.checkout_date <= %L', p_checkout_before);
+END IF;
+IF p_status IS NOT NULL
+AND p_status <> '' THEN v_where := v_where || format(' AND v.booking_status = %L', p_status);
+END IF;
+IF p_has_reserve IS NOT NULL THEN v_where := v_where || format(' AND v.has_reserve = %L', p_has_reserve);
+END IF;
+-- 2. Pagination Math
+EXECUTE 'SELECT COUNT(*) FROM vw_booking_details v ' || v_where INTO v_total_rows;
+v_actual_page := GREATEST(1, p_page);
+v_offset := (v_actual_page - 1) * v_limit;
+-- 3. Dynamic Sorting
+v_sort_clause := CASE
+    p_sort_column
+    WHEN 'guest' THEN 'v.guest_full_name'
+    WHEN 'checkin' THEN 'v.checkin_date'
+    WHEN 'checkout' THEN 'v.checkout_date'
+    ELSE 'v.checkin_date'
+END;
+IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'ASC';
+END IF;
+-- 4. Final Execution
+v_query := format(
+    '
+        WITH raw_data AS (
+            SELECT 
+                v.id, v.guest_full_name, v.guestID, v.roomID,  v.checkin_date, 
+                v.checkout_date, v.booking_status, v.actual_total_price, v.has_reserve, v.reserveID
+            FROM vw_booking_details v
+            %s
+            ORDER BY %s %s, v.id ASC
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.*, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd',
+    v_where,
+    v_sort_clause,
+    p_sort_dir,
+    v_limit,
+    v_offset,
+    v_offset,
+    v_total_rows
 );
 RETURN QUERY EXECUTE v_query;
 END;
@@ -1350,73 +1614,6 @@ v_query := format(
         FROM raw_data rd
         LIMIT %L',
     v_base_from,
-    v_where,
-    v_sort_clause,
-    p_sort_dir,
-    v_limit + 1,
-    v_offset,
-    v_offset,
-    v_total_rows,
-    v_limit
-);
-RETURN QUERY EXECUTE v_query;
-END;
-$$ LANGUAGE plpgsql;
-CREATE OR REPLACE FUNCTION get_policies_by_page(
-        p_query TEXT DEFAULT NULL,
-        p_category TEXT DEFAULT NULL,
-        p_sort_column TEXT DEFAULT 'updated_at',
-        p_sort_dir TEXT DEFAULT 'DESC',
-        p_page INT DEFAULT 1
-    ) RETURNS TABLE (
-        name VARCHAR,
-        icon TEXT,
-        description TEXT,
-        category VARCHAR,
-        updated_at TIMESTAMP,
-        has_next BOOLEAN
-    ) AS $$
-DECLARE v_limit INT := 10;
-v_total_rows INT;
-v_offset INT;
-v_where TEXT := ' WHERE 1=1';
-v_query TEXT;
-v_sort_clause TEXT;
-BEGIN IF p_query IS NOT NULL
-AND p_query <> '' THEN v_where := v_where || format(
-    ' AND p.name ILIKE %L',
-    '%' || p_query || '%'
-);
-END IF;
-IF p_category IS NOT NULL
-AND p_category <> '' THEN v_where := v_where || format(' AND p.category = %L', p_category);
-END IF;
--- Pagination Logic
-EXECUTE 'SELECT COUNT(*) FROM policies p' || v_where INTO v_total_rows;
-v_offset := (GREATEST(1, p_page) - 1) * v_limit;
--- Sorting
-v_sort_clause := CASE
-    p_sort_column
-    WHEN 'name' THEN 'p.name'
-    WHEN 'category' THEN 'p.category'
-    ELSE 'p.updated_at'
-END;
-IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'DESC';
-END IF;
--- Final Execution
-v_query := format(
-    '
-        WITH raw_data AS (
-            SELECT p.name, p.icon, p.description, p.category, p.updated_at
-            FROM policies p
-            %s
-            ORDER BY %s %s
-            LIMIT %L OFFSET %L
-        )
-        SELECT rd.*, 
-                (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
-        FROM raw_data rd
-        LIMIT %L',
     v_where,
     v_sort_clause,
     p_sort_dir,

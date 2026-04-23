@@ -5,31 +5,32 @@ import { IoBedOutline, IoPersonOutline, IoResizeOutline } from "react-icons/io5"
 import { Review, ReviewCategory } from "@/types/Review";
 import { ImageIcon } from "lucide-react";
 
-export default function OtherHotels({ hotelName, otherRoomData }: {
+export default function HotelRooms({ hotelName, otherRoomData }: {
     hotelName: string;
     otherRoomData: Room[];
 }) {
-    // Mock review data initialization (6 rooms, 100 reviews each)
-    const [reviewData] = useState<Review[][]>(Array(6).fill(0).map((_, roomIndex) => {
-        return Array(100).fill(0).map((_, reviewIndex) => ({
-            id: reviewIndex,
-            userid: 1,
-            roomid: roomIndex,
-            created_at: Date.now(),
-            rating: [
-                { category: "Amenities", rating: Math.floor(Math.random() * 5) + 1 },
-                { category: "Cleanliness", rating: Math.floor(Math.random() * 5) + 1 },
-                { category: "Communication", rating: Math.floor(Math.random() * 5) + 1 },
-                { category: "Location", rating: Math.floor(Math.random() * 5) + 1 },
-                { category: "Value", rating: Math.floor(Math.random() * 5) + 1 }
-            ],
-            description: "Lorem ipsum...",
-            pros: "Pros",
-            cons: "Cons",
-            like_count: 3636,
-            response: "Response"
-        }));
-    }));
+    const [reviewData] = useState<Review[][]>(() => {
+        return Array(6).fill(0).map((_, roomIndex) => {
+            return Array(100).fill(0).map((_, reviewIndex) => ({
+                id: reviewIndex,
+                userid: 1,
+                roomid: roomIndex,
+                created_at: Date.now(),
+                rating: [
+                    { category: "Amenities", rating: Math.floor(Math.random() * 5) + 1 },
+                    { category: "Cleanliness", rating: Math.floor(Math.random() * 5) + 1 },
+                    { category: "Communication", rating: Math.floor(Math.random() * 5) + 1 },
+                    { category: "Location", rating: Math.floor(Math.random() * 5) + 1 },
+                    { category: "Value", rating: Math.floor(Math.random() * 5) + 1 }
+                ],
+                description: "Lorem ipsum...",
+                pros: "Pros",
+                cons: "Cons",
+                like_count: 3636,
+                response: "Response"
+            }));
+        });
+    });
 
     const reviewJudgement = (score: number): { name: string, color: string } => {
         if (score === 0) return { name: "No Reviews", color: "#9ca3af" };

@@ -25,8 +25,9 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 
 -- Optional: If you plan to add policies for these later, enable them now
 -- ALTER TABLE users ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE reserves ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reserves ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- 1. ADMINISTRATOR POLICIES FOR EMPLOYEES TABLE
@@ -525,6 +526,43 @@ BEGIN
             CREATE POLICY room_types_policy ON roomTypes FOR ALL
             USING (true)
             WITH CHECK (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'guests_policy' AND tablename = 'guests') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY guests_policy ON guests FOR ALL
+            USING (
+                'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                OR
+                (
+                    'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND
+                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+            );
+        $POLICY$;
+    END IF;
+END $$;
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'booking_policy' AND tablename = 'booking') THEN
+        EXECUTE $POLICY$
+            CREATE POLICY booking_policy ON booking FOR ALL
+            USING (
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
                 OR
                 (

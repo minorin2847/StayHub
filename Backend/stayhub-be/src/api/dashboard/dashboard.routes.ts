@@ -1,11 +1,10 @@
 import { Router } from "express";
-import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds, getDashboardServices, getDashboardRoomTypes } from "./dashboard.handler.js";
+import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds, getDashboardServices, getDashboardRoomTypes, getDashboardGuests, getDashboardBookings } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/api/auth/auth.handler.js";
 
 const dashboardRoute = Router();
 // GET /employee/dashboard/
 dashboardRoute.get("/", isLoggedIn, getEmployee);
-
 
 // GET /employee/dashboard/user
 // Query: {name: string, start: number, end: number}
@@ -42,5 +41,11 @@ dashboardRoute.get("/rooms/types", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), 
 
 // GET /employee/dashboard/rooms
 dashboardRoute.get("/rooms", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardRooms);
+
+// GET /employee/dashboard/guests
+dashboardRoute.get("/guests", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardGuests);
+
+// GET /employee/dashboard/bookings
+dashboardRoute.get("/bookings", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardBookings);
 
 export default dashboardRoute;

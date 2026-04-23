@@ -1,4 +1,4 @@
-import {Hotel} from "@/types/Hotel.js";
+import {Hotel} from "@/types/Hotel";
 import { useState } from "react";
 
 export default function HotelDescription({ Hoteldata }: {
