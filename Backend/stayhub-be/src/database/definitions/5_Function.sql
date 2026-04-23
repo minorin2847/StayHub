@@ -1,3 +1,26 @@
+DROP FUNCTION IF EXISTS get_employees_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_branches_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_roles_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_user_auth_context CASCADE;
+DROP FUNCTION IF EXISTS get_branches_auth_context CASCADE;
+DROP FUNCTION IF EXISTS get_roles_auth_context CASCADE;
+DROP FUNCTION IF EXISTS get_current_user_best_tier CASCADE;
+DROP FUNCTION IF EXISTS create_initial_admin CASCADE;
+DROP FUNCTION IF EXISTS get_user_from_id CASCADE;
+DROP FUNCTION IF EXISTS get_hotels_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_beds_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_hotel_beds_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_policies_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_services_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_amenities_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_room_types_by_page CASCADE;
+DROP FUNCTION IF EXISTS create_full_room_type CASCADE;
+DROP FUNCTION IF EXISTS update_room_type CASCADE;
+DROP FUNCTION IF EXISTS get_rooms_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_guests_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_bookings_by_page CASCADE;
+DROP FUNCTION IF EXISTS get_hotel_amenities_by_page CASCADE;
+
 CREATE OR REPLACE FUNCTION get_employees_by_page(
         current_username TEXT DEFAULT NULL,
         p_name TEXT DEFAULT NULL,
