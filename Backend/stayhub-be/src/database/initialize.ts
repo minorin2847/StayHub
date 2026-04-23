@@ -46,10 +46,8 @@ export default async function initialize() {
                 VALUES ('ADMINISTRATOR', 1),\
                 ('MANAGE_BRANCH', 2), \
                 ('MANAGE_HOTEL', 3), \
-                ('MANAGE_ROOM', 4), \
                 ('MANAGE_GUEST', 4),\
                 ('PROCESS_PAYMENT', 4),\
-                ('MANAGE_SERVICE', 4),\
                 ('MANAGE_REVIEW', 4)\
                 ON CONFLICT DO NOTHING \
                 RETURNING name, tier;\ ",
