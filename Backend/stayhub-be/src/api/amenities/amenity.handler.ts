@@ -61,13 +61,8 @@ export function getAmenityList(
     req.user,
     async (t) => {
       const rawData = await t.any(
-        `SELECT * FROM get_amenities_by_page($(name), $(category), $(excludeId), $(minCount), $(maxCount), $(sort), $(order), $(page))`,
-        {
-            name, category, 
-            excludeId: excludeCurrent ? req.user.hotelid : null, 
-            minCount, maxCount, 
-            sort: sortColumn, order: sortDir, page
-        }
+        `SELECT * FROM get_amenities_by_page($1::text, $2::text, $3::int, $4::int, $5::int, $6::text, $7::text, $8::int)`,
+        [name, category, null, 0, 1000, sortColumn, sortDir, page],
       );
 
       const hasNext = rawData.length > 0 ? rawData[0].has_next : false;

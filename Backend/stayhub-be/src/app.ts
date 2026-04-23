@@ -23,10 +23,10 @@ import hotelsRouter from "./api/hotels/hotels.routes.js";
 import branchRoute from "./api/branch/branch.routes.js";
 import roleRoutes from "./api/roles/roles.routes.js";
 import amenityRoute from "./api/amenities/amenity.routes.js";
+import policyRoute from "./api/policies/policy.routes.js";
 import { employeeBedRoute, publicBedRoute } from "./api/bed/bed.routes.js";
 import { privateServicesRoute } from "./api/services/services.routes.js";
 import { roomRoute } from "./api/rooms/room.routes.js";
-import policyRoute from "./api/policies/policy.routes.js";
 import { guestsRoute } from "./api/guests/guests.routes.js";
 import { bookingsRoute } from "./api/bookings/booking.routes.js";
 

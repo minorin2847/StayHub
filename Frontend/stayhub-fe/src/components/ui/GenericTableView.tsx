@@ -2,7 +2,12 @@
 
 import buildQueryParams from "@/utils/BuildQueryParams";
 import { Button, message, Space, Table, Modal } from "antd";
-import { EyeOutlined, EditOutlined, DeleteOutlined, ExclamationCircleFilled } from "@ant-design/icons";
+import {
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ExclamationCircleFilled,
+} from "@ant-design/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Dispatch,
@@ -127,7 +132,6 @@ export default function GenericTableView<
 
   generatedDeletePrompt,
   generatedDeleteEndpoint,
-  tableRowKey = "id",
 }: GenericTableViewProps<TData, TFilter>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -186,6 +190,8 @@ export default function GenericTableView<
           setLoading(false);
         }
       },
+
+      onCancel() {},
     });
   };
 

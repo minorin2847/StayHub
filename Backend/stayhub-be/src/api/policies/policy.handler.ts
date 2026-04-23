@@ -22,6 +22,9 @@ export function getPolicyStats(
       const totalRes = await t.one(
         "SELECT COUNT(*)::int as total FROM policies",
       );
+      const activeRes = await t.one(
+        "SELECT COUNT(*)::int as active_terms FROM policies",
+      );
       const lastUpdateRes = await t.oneOrNone(
         "SELECT MAX(updated_at) as last_revision FROM policies",
       );
@@ -61,8 +64,8 @@ export function getPolicyList(req: Request, res: Response, next: NextFunction) {
 }
 
 export function createPolicy(req: Request, res: Response, next: NextFunction) {
-  const { name, icon, description, category } = req.body;
-  if (!name || !description || !icon) {
+  const { name, description, category, icon } = req.body;
+  if (!name || !description) {
     return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
   }
 
@@ -81,7 +84,7 @@ export function createPolicy(req: Request, res: Response, next: NextFunction) {
              VALUES ($(name), $(icon), $(description), $(category)) RETURNING *`,
             {
               name,
-              icon,
+              icon: icon || '',
               description,
               category: category || "General",
             },
