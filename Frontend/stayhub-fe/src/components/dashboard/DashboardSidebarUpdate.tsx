@@ -18,6 +18,8 @@ export default function SidebarUpdater() {
       setConfig({ items: MENU_CONFIG.MANAGE_BRANCH });
     } else if (user.roles.some((r) => r.name === "MANAGE_HOTEL")) {
       setConfig({ items: MENU_CONFIG.MANAGE_HOTEL });
+    } else if (user.roles.some((r) => r.name === "MANAGE_BOOKING")) {
+      setConfig({ items: MENU_CONFIG.MANAGE_BOOKING });
     } else {
       //setConfig({ items: MENU_CONFIG.DEFAULT });
     }
