@@ -499,6 +499,8 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS get_hotels_by_page(INT, INT, TEXT, INT, TEXT, TEXT, TEXT, INT, INT, TEXT, TEXT, INT);
+
 CREATE OR REPLACE FUNCTION get_hotels_by_page(
     p_branch_id INT DEFAULT NULL,
     p_id INT DEFAULT 0,
@@ -523,6 +525,7 @@ RETURNS TABLE (
     contact_email VARCHAR, 
     contact_phone VARCHAR,
     room_count INT,
+    previewimages TEXT[],
     has_next BOOLEAN
 ) AS $$
 DECLARE
@@ -542,7 +545,12 @@ BEGIN
             SELECT hotelid, COUNT(*)::INT as r_count
             FROM rooms
             GROUP BY hotelid
-        ) rc ON h.id = rc.hotelid';
+        ) rc ON h.id = rc.hotelid
+        LEFT JOIN (
+            SELECT hotelid, array_agg(image_url ORDER BY id ASC) as imgs
+            FROM hotel_images
+            GROUP BY hotelid
+        ) img ON h.id = img.hotelid';
 
     IF p_branch_id IS NOT NULL THEN
         v_where := v_where || format(' AND h.branchid = %L', p_branch_id);
@@ -593,7 +601,8 @@ BEGIN
             SELECT 
                 h.id, h.name, h.classification, h.branchid, h.location, h.description, 
                 h.contact_email, h.contact_phone,
-                COALESCE(rc.r_count, 0) as room_count
+                COALESCE(rc.r_count, 0) as room_count,
+                COALESCE(img.imgs, ARRAY[]::TEXT[]) as previewimages
             %s
             %s
             ORDER BY %s %s, h.id ASC

@@ -280,7 +280,7 @@ BEGIN
                 (
                     'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
                     AND
-                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                    "hotelID" = NULLIF(current_setting('app.hotelid', true), '')::INT
                 )
             );
         $POLICY$;
@@ -317,26 +317,38 @@ END $$;
 -- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
 -- ===================================================================================
 
-
-DO $$ 
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'hotel_images_policy' AND tablename = 'hotel_images') THEN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_policies
+        WHERE policyname = 'hotel_images_policy'
+          AND tablename = 'hotel_images'
+    ) THEN
         EXECUTE $POLICY$
-            CREATE POLICY hotel_images_policy ON hotel_images FOR ALL
+            CREATE POLICY hotel_images_policy
+            ON hotel_images
+            FOR ALL
             USING (true)
             WITH CHECK (
                 'ADMINISTRATOR' = ANY(string_to_array(current_setting('app.roles', true), ','))
-                OR
-                (
+                OR (
                     'MANAGE_HOTEL' = ANY(string_to_array(current_setting('app.roles', true), ','))
-                    AND
-                    hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+                    AND hotelid = NULLIF(current_setting('app.hotelid', true), '')::INT
+                )
+                OR (
+                    'MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ','))
+                    AND hotelid IN (
+                        SELECT id
+                        FROM hotels
+                        WHERE branchid = NULLIF(current_setting('app.branchid', true), '')::INT
+                    )
                 )
             );
         $POLICY$;
     END IF;
-END $$;
-
+END
+$$;
 
 -- ===================================================================================
 -- 14. POLICIES FOR ROOM AMENITIES TABLE 
