@@ -94,7 +94,7 @@ export default function PoliciesPage() {
         setCurrentRecord={setCurrentRecord}
         generatedDeletePrompt={(record) => `Do you want to delete policy: ${record.name}?`}
         generatedDeleteEndpoint={(record) => `${process.env.NEXT_PUBLIC_API_URL}/employee/policies/delete/${record.name}`}
-        tableRowKey="name"
+        resourceId="name"
         tableColumns={[
           {
             title: "POLICY NAME",

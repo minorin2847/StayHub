@@ -36,7 +36,7 @@ const CreateModal = ({
       };
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels`,
+        `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/create`,
         {
           method: "POST",
           headers: {
