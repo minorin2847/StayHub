@@ -23,7 +23,7 @@ export function getPolicyStats(
         "SELECT COUNT(*)::int as total FROM policies",
       );
       const activeRes = await t.one(
-        "SELECT COUNT(*)::int as active_terms FROM policies WHERE status = true",
+        "SELECT COUNT(*)::int as active_terms FROM policies",
       );
       const lastUpdateRes = await t.oneOrNone(
         "SELECT MAX(updated_at) as last_revision FROM policies",
@@ -65,7 +65,7 @@ export function getPolicyList(req: Request, res: Response, next: NextFunction) {
 }
 
 export function createPolicy(req: Request, res: Response, next: NextFunction) {
-  const { name, description, category, status } = req.body;
+  const { name, description, category, icon } = req.body;
   if (!name || !description) {
     return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
   }
@@ -81,13 +81,13 @@ export function createPolicy(req: Request, res: Response, next: NextFunction) {
         req.user,
         async (t) => {
           return await t.one(
-            `INSERT INTO policies(name, description, category, status) 
-             VALUES ($(name), $(description), $(category), $(status)) RETURNING *`,
+            `INSERT INTO policies(name, icon, description, category) 
+             VALUES ($(name), $(icon), $(description), $(category)) RETURNING *`,
             {
               name,
+              icon: icon || '',
               description,
               category: category || "General",
-              status: status ?? true,
             },
           );
         },

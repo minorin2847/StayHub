@@ -1,7 +1,7 @@
 'use client';
 import { Employee } from '@/types/Employee';
 // src/context/DashboardAuthContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 
 interface DashboardAuthContextType {
@@ -9,6 +9,7 @@ interface DashboardAuthContextType {
   user: Employee | null; // Define a proper User interface here
   isLoading: boolean;
   logout: () => Promise<void>;
+  reloadUser: () => Promise<void>;
 }
 
 const DashboardAuthContext = createContext<DashboardAuthContextType | undefined>(undefined);
@@ -16,29 +17,30 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 export const DashboardAuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
+  
+  // This function runs once when the app loads
+  const reloadUser = useCallback(async () => {
+    try {
+      // Make a request to a backend endpoint that verifies the session
+      const response = await fetch(`${BACKEND_URL}/employee/dashboard`, {
+          method: "GET",
+          credentials: "include"
+      }); // A "who am I" endpoint
+      const result = await response.json();
+      setUser(result);
+      console.log('User session verified.');
+    } catch (error) {
+      // If the request fails (e.g., 401 Unauthorized), the user is not logged in
+      setUser(null);
+      console.log('No active user session found.');
+    }
+    finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    // This function runs once when the app loads
-    const verifyUserSession = async () => {
-      try {
-        // Make a request to a backend endpoint that verifies the session
-        const response = await fetch(`${BACKEND_URL}/employee/dashboard`, {
-            method: "GET",
-            credentials: "include"
-        }); // A "who am I" endpoint
-        const result = await response.json();
-        setUser(result);
-        console.log('User session verified.');
-      } catch (error) {
-        // If the request fails (e.g., 401 Unauthorized), the user is not logged in
-        setUser(null);
-        console.log('No active user session found.');
-      }
-      finally {
-        setIsLoading(false);
-      }
-    };
-    verifyUserSession();
+  useEffect(() => {
+    reloadUser();
   }, []);
 
   const logout = async () => {
@@ -62,7 +64,7 @@ export const DashboardAuthProvider = ({ children }: { children: React.ReactNode 
 
   const value = {
     isAuthenticated: !!user, // True if user object is not null
-    user, isLoading, logout 
+    user, isLoading, logout, reloadUser
   };
 
   return <DashboardAuthContext.Provider value={value}>{children}</DashboardAuthContext.Provider>;

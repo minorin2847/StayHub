@@ -1,8 +1,8 @@
 export default class Policy {
   name: string = "";
+  icon: string = "";
   description: string = "";
   category: string = "";
-  status: boolean = true;
   updated_at: string = "";
 
   constructor(_: Partial<Policy>) {

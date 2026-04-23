@@ -3,55 +3,16 @@ import type { NextFunction, Request, Response } from "express";
 import Amenity from "./amenity.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 
-export async function findAmenityByName(name: string): Promise<Amenity> {
+// Helper to find Amenity
+export async function findAmenityByName(name: string): Promise<Amenity | null> {
   const amenity = await db.oneOrNone(
     "SELECT * FROM amenities WHERE name = $1",
     [name],
   );
-  if (!amenity) {
-    throw Error(`Can't find amenity with name ${name}!`);
-  }
-  return new Amenity(amenity);
+  return amenity ? new Amenity(amenity) : null;
 }
 
-export function createAmenity(req: Request, res: Response, next: NextFunction) {
-  const { name, icon, category } = req.body;
-
-  if (!name || !icon || !category) {
-    return res
-      .status(400)
-      .json({ message: "Vui lòng nhập đủ thông tin (name, icon, category)!" });
-  }
-
-  findAmenityByName(name)
-    .then(() => res.status(409).send("Amenity đã tồn tại!"))
-    .catch((err) => {
-      rlsWrapper(
-        "create-amenity",
-        req.user,
-        async (t) => {
-          const amenity = await t.one(
-            `INSERT INTO amenities(name, icon, category) 
-             VALUES ($(name), $(icon), $(category)) 
-             RETURNING name, icon, category`,
-            {
-              name: name,
-              icon: icon,
-              category: category,
-            },
-          );
-          return new Amenity(amenity);
-        },
-        (newAmenity) => {
-          console.log(
-            `Created amenity: ${newAmenity.name} (${newAmenity.category})`,
-          );
-          res.status(200).json(newAmenity);
-        },
-      );
-    });
-}
-
+// 1. API: Stats
 export function getAmenityStats(
   req: Request,
   res: Response,
@@ -61,7 +22,9 @@ export function getAmenityStats(
     "get-amenity-stats",
     req.user,
     async (t) => {
-      const totalRes = await t.one("SELECT COUNT(*)::int as total FROM amenities");
+      const totalRes = await t.one(
+        "SELECT COUNT(*)::int as total FROM amenities",
+      );
       const totalCategoriesRes = await t.one(
         "SELECT COUNT(DISTINCT category)::int as total_categories FROM amenities",
       );
@@ -74,63 +37,77 @@ export function getAmenityStats(
         topCategory: topCategoryRes ? topCategoryRes.category : "N/A",
       };
     },
-    (stats) => {
-      res.status(200).json(stats);
-    },
+    (stats) => res.status(200).json(stats),
   );
 }
 
+// 2. API: List (Using SQL Function)
 export function getAmenityList(
   req: Request,
   res: Response,
   next: NextFunction,
 ) {
   const page = parseInt(req.query.page as string) || 1;
-  const limit = 10;
-  const offset = (page - 1) * limit;
+  const name = (req.query.name as string) || null;
+  const category = (req.query.category as string) || null;
+  const sortColumn = (req.query.sort as string) || "name";
+  const sortDir = (req.query.order as string) || "ASC";
 
-  const searchName = req.query.name ? `%${req.query.name}%` : null;
-  const filterCategory = req.query.category ? req.query.category : null;
   rlsWrapper(
     "list-amenities",
     req.user,
     async (t) => {
-      let baseQuery = `FROM amenities WHERE 1=1`;
-      const queryParams: any[] = [];
-      let paramIndex = 1;
+      const rawData = await t.any(
+        `SELECT * FROM get_amenities_by_page($1::text, $2::text, $3::int, $4::int, $5::int, $6::text, $7::text, $8::int)`,
+        [name, category, null, 0, 1000, sortColumn, sortDir, page],
+      );
 
-      if (searchName) {
-        baseQuery += ` AND name ILIKE $${paramIndex}`;
-        queryParams.push(searchName);
-        paramIndex++;
-      }
+      const hasNext = rawData.length > 0 ? rawData[0].has_next : false;
+      const response = rawData.map(({ has_next, ...rest }) => rest);
 
-      if (filterCategory) {
-        baseQuery += ` AND category = $${paramIndex}`;
-        queryParams.push(filterCategory);
-        paramIndex++;
-      }
-
-      const dataQuery = `SELECT * ${baseQuery} ORDER BY name ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      queryParams.push(limit + 1, offset);
-
-      const rawData = await t.any(dataQuery, queryParams);
-      const hasNext = rawData.length > limit;
-      const responseData = hasNext ? rawData.slice(0, limit) : rawData;
-
-      return {
-        response: responseData,
-        hasNext: hasNext,
-      };
+      return { response, hasNext };
     },
-    (result) => {
-      res.status(200).json(result);
-    },
+    (result) => res.status(200).json(result),
   );
 }
 
+// 3. API: Create
+export function createAmenity(req: Request, res: Response, next: NextFunction) {
+  const { name, icon, category } = req.body;
+
+  if (!name || !icon || !category) {
+    return res
+      .status(400)
+      .json({ message: "Vui lòng nhập đủ thông tin (name, icon, category)!" });
+  }
+
+  db.oneOrNone("SELECT name FROM amenities WHERE name = $1", [name])
+    .then((existingAmenity) => {
+      if (existingAmenity) {
+        return res.status(409).send("Amenity đã tồn tại!");
+      }
+
+      rlsWrapper(
+        "create-amenity",
+        req.user,
+        async (t) => {
+          const amenity = await t.one(
+            `INSERT INTO amenities(name, icon, category) 
+             VALUES ($(name), $(icon), $(category)) 
+             RETURNING name, icon, category`,
+            { name, icon, category },
+          );
+          return new Amenity(amenity);
+        },
+        (newAmenity) => res.status(200).json(newAmenity),
+      );
+    })
+    .catch((err) => next(err));
+}
+
+// 4. API: Update
 export function editAmenity(req: Request, res: Response, next: NextFunction) {
-  const originalName = req.params.name; //PK is name
+  const originalName = req.params.name;
   const updateData = req.body;
 
   if (Object.keys(updateData).length === 0) {
@@ -142,7 +119,7 @@ export function editAmenity(req: Request, res: Response, next: NextFunction) {
     req.user,
     async (t) => {
       const setKeys = Object.keys(updateData)
-        .map((key, index) => `${key} = $${index + 2}`)
+        .map((key, index) => `"${key}" = $${index + 2}`)
         .join(", ");
       const values = Object.values(updateData);
 
@@ -158,6 +135,7 @@ export function editAmenity(req: Request, res: Response, next: NextFunction) {
   );
 }
 
+// 5. API: Delete
 export function deleteAmenity(req: Request, res: Response, next: NextFunction) {
   const name = req.params.name;
 
@@ -172,9 +150,9 @@ export function deleteAmenity(req: Request, res: Response, next: NextFunction) {
     },
     (result) => {
       if (!result) {
-        return res.status(404).send("Không tìm thấy Amenity hoặc đã bị xóa!");
+        return res.status(404).send("Lỗi xóa amenity!");
       }
-      res.status(200).send("Xóa Amenity thành công");
+      res.status(200).send("Xóa thành công");
     },
   );
 }

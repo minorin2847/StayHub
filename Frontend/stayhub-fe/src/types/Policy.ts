@@ -1,8 +1,8 @@
 export type Policy = {
   name: string;
+  icon: string;
   description: string;
   category: string;
-  status: boolean;
   updated_at: string;
 };
 

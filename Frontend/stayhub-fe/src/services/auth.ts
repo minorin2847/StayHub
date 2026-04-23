@@ -2,24 +2,30 @@ import React from "react";
 
 export const auth = {
   login: async (username: string, password: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ username, password }),
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/user/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password }),
+      },
+    );
     if (!res.ok) {
       throw new Error("Tên đăng nhập hoặc mật khẩu không đúng");
     }
     return await res.text();
   },
   dashboardLogin: async (username: string, password: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ username, password }),
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/employee/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password }),
+      },
+    );
     if (!res.ok) {
       throw new Error("Tên đăng nhập hoặc mật khẩu không đúng");
     }

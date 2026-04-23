@@ -1,15 +1,27 @@
+import { Amenity } from "./Amenity";
+
 export type Room = {
     id: number;
     classification: number;
     name: string;
     hotelid: number;
-    description: string;
-    price: number;
+    note: string;
+    typeid: number;
+}
+
+export type RoomType = {
+    id: number;
+    hotelid: number;
+    name: string;
     size: number;
     capacity: number;
-    type: string;
-    discount: number;
-    previewimages: Array<string>;
-    beds: Array<{name: string; count: number}>;
-    amenities: Array<{name: string; icon: string; category: string}>
+    base_price: number;
+    description: string | null;
+    amenities: Amenity[];
+    beds: RoomBed[];
+}
+
+export type RoomBed = {
+    name: string;
+    count: number;
 }

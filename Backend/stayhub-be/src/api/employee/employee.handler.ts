@@ -8,24 +8,21 @@ import rlsWrapper from "@/utils/rlsWrapper.js";
 import pgPromise from "pg-promise";
 
 const employeeColumns = new (pgPromise().helpers.ColumnSet)(
-[
-    { name: 'branchid', skip: (c: any) => c.value === undefined },
-    { name: 'hotelid', skip: (c: any) => c.value === undefined },
-    { name: 'firstname', skip: (c: any) => c.value === undefined },
-    { name: 'lastname', skip: (c: any) => c.value === undefined },
-    { name: 'salary', skip: (c: any) => c.value === undefined }
+  [
+    { name: "branchid", skip: (c: any) => c.value === undefined },
+    { name: "hotelid", skip: (c: any) => c.value === undefined },
+    { name: "firstname", skip: (c: any) => c.value === undefined },
+    { name: "lastname", skip: (c: any) => c.value === undefined },
+    { name: "salary", skip: (c: any) => c.value === undefined },
   ],
   {
-    table: "employees"
-  }
+    table: "employees",
+  },
 );
 
 const roleColumnSet = new (pgPromise().helpers.ColumnSet)(
-  [
-    'employeeid', 
-    'role'
-  ], 
-  { table: 'employee_roles' }
+  ["employeeid", "role"],
+  { table: "employee_roles" },
 );
 
 export async function findEmployeeByUsername(
@@ -46,7 +43,10 @@ export function login(req: Request, res: Response, next: NextFunction) {
     "employee-login",
     (err: any, user: any, info: any, status: any) => {
       if (err) return next(err);
-      if (!user) return res.status(404).send("Incorrect username or password!");
+      if (!user) {
+        res.status(404).send("Incorrect username or password!");
+        return;
+      }
       findEmployeeByUsername(user.username)
         .then(() => {
           req.login(user, (err) => {
@@ -81,7 +81,7 @@ export function createEmployee(
     roles,
     hotelid,
     branchid,
-    salary
+    salary,
   } = req.body;
   if (!firstname || !username || !email || !password) {
     return res.status(400).json({ message: "Vui lòng nhập đủ thông tin!" });
@@ -94,8 +94,8 @@ export function createEmployee(
         rlsWrapper(
           "sign-up",
           req.user,
-          async t => {
-              const employee = await t.one(
+          async (t) => {
+            const employee = await t.one(
               "INSERT INTO employees(username, salt, hash, email, firstName, lastName, hotelid, branchid, salary)\
                       VALUES ($(username), $(salt), $(hash), $(email), $(firstName), $(lastName), $(hotelid), $(branchid), $(salary)) \
                       RETURNING id, username, email, firstName, lastName, hotelid, branchid, salary",
@@ -108,54 +108,59 @@ export function createEmployee(
                 lastName: lastname,
                 hotelid: hotelid,
                 branchid: branchid,
-                salary: salary
+                salary: salary,
               },
             );
             for (const role of roles) {
-              await t.one("INSERT INTO employee_roles(employeeid, role)\
+              await t.one(
+                "INSERT INTO employee_roles(employeeid, role)\
                           VALUES ($(employeeid), $(role))\
-                          RETURNING employeeid, role", {
-                            employeeid: employee.id,
-                            role: role
-                          })
+                          RETURNING employeeid, role",
+                {
+                  employeeid: employee.id,
+                  role: role,
+                },
+              );
             }
-            return employee
+            return employee;
           },
-          userAccount => {
+          (userAccount) => {
             console.log(
               `Created account ${userAccount.firstname} ${userAccount.lastname} (${userAccount.username}), ID ${userAccount.id} with email ${userAccount.email}!`,
             );
             res.status(200).json(userAccount);
-          }
-        )
+          },
+        );
       });
     });
 }
-
-
-
 
 export function editEmployee(req: Request, res: Response, next: NextFunction) {
   const id = parseInt(req.params.id);
   const { roles, ...employeeData } = req.body; // Separate roles from the rest
 
-
   if (Object.keys(req.body).length === 0) {
     return res.status(400).send("No data provided!");
   }
 
-  rlsWrapper('update-employee', req.user,
-    async t => {
+  rlsWrapper(
+    "update-employee",
+    req.user,
+    async (t) => {
       let updatedRow;
 
       // 1. Update Employee Table (if there is data besides roles)
       if (Object.keys(employeeData).length > 0) {
-        const query = pgPromise().helpers.update(employeeData, employeeColumns)
-                    + pgPromise().as.format(' WHERE id=$1 RETURNING *', [id]);
+        const query =
+          pgPromise().helpers.update(employeeData, employeeColumns) +
+          pgPromise().as.format(" WHERE id=$1 RETURNING *", [id]);
         updatedRow = await t.oneOrNone(query);
       } else {
         // If only roles were sent, we need to fetch the current employee to return it
-        updatedRow = await t.oneOrNone('SELECT * FROM employees WHERE id = $1', [id]);
+        updatedRow = await t.oneOrNone(
+          "SELECT * FROM employees WHERE id = $1",
+          [id],
+        );
       }
 
       if (!updatedRow) return null;
@@ -163,58 +168,148 @@ export function editEmployee(req: Request, res: Response, next: NextFunction) {
       // 2. Update Roles (if provided in body)
       if (roles && Array.isArray(roles)) {
         // First, wipe existing roles for this user
-        await t.none('DELETE FROM employee_roles WHERE employeeID = $1', [id]);
+        await t.none("DELETE FROM employee_roles WHERE employeeID = $1", [id]);
 
         // If the new list isn't empty, insert them
         if (roles.length > 0) {
-          const roleValues = roles.map(roleName => ({ employeeid: id, role: roleName }));
-          const roleQuery = pgPromise().helpers.insert(roleValues, roleColumnSet);
+          const roleValues = roles.map((roleName) => ({
+            employeeid: id,
+            role: roleName,
+          }));
+          const roleQuery = pgPromise().helpers.insert(
+            roleValues,
+            roleColumnSet,
+          );
           await t.none(roleQuery);
         }
       }
 
       // 3. Return the fully re-constructed Employee (using your SQL function to get the fresh roles)
-      const finalResult = await t.one('SELECT * FROM get_user_from_id($1)', [id]);
+      const finalResult = await t.one("SELECT * FROM get_user_from_id($1)", [
+        id,
+      ]);
       return new Employee(finalResult);
     },
-    updatedEmployee => {
+    (updatedEmployee) => {
       if (!updatedEmployee) {
         return res.status(404).send("Employee not found!");
       }
       res.status(200).json(updatedEmployee);
-    }
+    },
   );
 }
 
 export function getEmployee(req: Request, res: Response, next: NextFunction) {
   const id = parseInt(req.params.id);
 
-  rlsWrapper('find-employee', req.user,
-    async t => {
-      return t.oneOrNone("SELECT * FROM get_user_from_id($1)", [id], row => new Employee(row))
+  rlsWrapper(
+    "find-employee",
+    req.user,
+    async (t) => {
+      return t.oneOrNone(
+        "SELECT * FROM get_user_from_id($1)",
+        [id],
+        (row) => new Employee(row),
+      );
     },
-    employee => {
+    (employee) => {
       if (!employee) {
-        return res.status(404).send("Employee not found!")
+        return res.status(404).send("Employee not found!");
       }
-      console.log(employee)
-      res.status(200).json(employee)
-    }
-  )
+      console.log(employee);
+      res.status(200).json(employee);
+    },
+  );
 }
 
-export function deleteEmployee(req: Request, res: Response, next: NextFunction) {
+export function deleteEmployee(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const id = parseInt(req.params.id);
 
-  rlsWrapper('delete-employee', req.user,
-    async t => {
-      return await t.oneOrNone("DELETE FROM employees WHERE id=$1 RETURNING id", [id]);
+  rlsWrapper(
+    "delete-employee",
+    req.user,
+    async (t) => {
+      return await t.oneOrNone(
+        "DELETE FROM employees WHERE id=$1 RETURNING id",
+        [id],
+      );
     },
-    result => {
+    (result) => {
       if (!result) {
         return res.status(404).send("Employee not found or already deleted!");
       }
       res.status(200).send("Employee deleted successfully");
-    }
-  )
+    },
+  );
+}
+
+export async function changeEmployeePassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { oldpassword, newpassword } = req.body;
+  const user = req.user;
+
+  // Helper for hashing
+  const pbkdf2Promise = (pwd: string, salt: Buffer) =>
+    new Promise<Buffer>((resolve, reject) => {
+      crypto.pbkdf2(pwd, salt, 310000, 32, "sha256", (err, key) => {
+        if (err) reject(err);
+        resolve(key);
+      });
+    });
+
+  rlsWrapper(
+    "change-employee-password",
+    user,
+    async (t) => {
+      // 1. Fetch current auth data
+      // In pg-promise, bytea columns come back as Buffers
+      const employee = await t.oneOrNone(
+        "SELECT salt, hash FROM employees WHERE id = $1",
+        [user.id],
+      );
+
+      if (!employee) {
+        res.status(404).json({ message: "User not found" });
+        return { aborted: true };
+      }
+
+      // 2. Verify old password
+      const hashedOld = await pbkdf2Promise(oldpassword, employee.salt);
+
+      if (!crypto.timingSafeEqual(employee.hash, hashedOld)) {
+        res.status(400).json({ message: "Incorrect old password" });
+        // We return this to the 'result' callback to let it know we already responded
+        return { aborted: true };
+      }
+
+      // 3. Generate new salt and hash
+      const newSalt = crypto.randomBytes(16);
+      const newHash = await pbkdf2Promise(newpassword, newSalt);
+
+      // 4. Update the database
+      await t.none("UPDATE employees SET salt = $1, hash = $2 WHERE id = $3", [
+        newSalt,
+        newHash,
+        user.id,
+      ]);
+
+      return { success: true };
+    },
+    (row) => {
+      // This is the 'result' callback from your wrapper
+      // If the query logic already sent a 400 or 404, 'row' will contain aborted: true
+      if (row && row.success) {
+        return res
+          .status(200)
+          .json({ message: "Password updated successfully" });
+      }
+    },
+  );
 }

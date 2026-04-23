@@ -1,10 +1,11 @@
 import {
   FaCog,
+  FaCogs,
   FaComments,
   FaFirstOrderAlt,
   FaHome,
   FaHotel,
-  FaRestroom,
+  FaRestroom, 
   FaUsers,
 } from "react-icons/fa";
 import { TiThMenuOutline } from "react-icons/ti";
@@ -38,7 +39,6 @@ export const MENU_CONFIG = {
       path: "/dashboard/hotels",
       subItems: [
         { name: "View All Hotels", path: "/dashboard/hotels" },
-        { name: "Add New Hotel", path: "/dashboard/hotels/add" },
       ],
     },
     {
@@ -46,8 +46,15 @@ export const MENU_CONFIG = {
       icon: FaHotel, // We can reuse FaHotel or another icon
       path: "/dashboard/branches",
       subItems: [
-        { name: "View All Branches", path: "/dashboard/branches" },
-        { name: "Add New Branch", path: "/dashboard/branches/add" },
+        { name: "View All Branches", path: "/dashboard/branches" }
+      ],
+    },
+    {
+      name: "Beds",
+      icon: FaHotel, // We can reuse FaHotel or another icon
+      path: "/dashboard/beds",
+      subItems: [
+        { name: "View All Beds", path: "/dashboard/beds" }
       ],
     },
     {
@@ -81,12 +88,26 @@ export const MENU_CONFIG = {
       path: "/dashboard/hotels",
       // subitems for each hotel
       subItems: [
-        {name: "Add Hotel", path: "/dashboard/hotels/"}
+        { name: "All Hotels", path: "/dashboard/hotels" },
       ]
     },
   ],
   MANAGE_HOTEL: [
     { name: "Dashboard", icon: FaHome, path: "/dashboard" },
+    {
+      name: "Beds",
+      icon: FaHotel, // change later
+      path: "/dashboard/beds",
+      subItems: [{ name: "Manage Beds", path: "/dashboard/beds" }],
+    },
+    {
+      name: "Services",
+      icon: FaCogs, // We can reuse FaHotel or another icon
+      path: "/dashboard/services",
+      subItems: [
+        { name: "View All Services", path: "/dashboard/services" }
+      ],
+    },
     {
       name: "Bookings",
       icon: FaHotel, 
@@ -115,11 +136,23 @@ export const MENU_CONFIG = {
       name: "Guests",
       icon: IoMdPeople,
       path: "/dashboard/guests",
+      subItems: [
+        { name: "View All Guests", path: "/dashboard/guests" }
+      ],
     },
     {
       name: "Rooms",
       icon: LuHouse,
       path: "/dashboard/rooms",
+      subItems: [
+        { 
+          name: "View All Rooms", 
+          path: "/dashboard/rooms" 
+        },
+        {
+          name: "View Room Types",
+          path: "/dashboard/rooms/types"
+        }],
     }
   ]
 };
