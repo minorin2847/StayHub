@@ -118,12 +118,7 @@ BEGIN
         FOREIGN KEY (guestID) REFERENCES guests (id) ON DELETE CASCADE;
     END IF;
 
-    -- 2. Link Booking to Rooms
-    IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_book_room' AND conrelid = 'booking'::regclass) THEN 
-        ALTER TABLE booking 
-        ADD CONSTRAINT fk_book_room 
-        FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
-    END IF;
+
 
     -- 3. Link Booking to the Online Reservation (reserves table)
     IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_book_reserve' AND conrelid = 'booking'::regclass) THEN 
@@ -141,6 +136,17 @@ BEGIN
         ADD CONSTRAINT fk_book_hotel 
         FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
     END IF;
+
+
+    IF to_regclass('booked_room') IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'fk_booked_room_booking' AND conrelid = 'booked_room'::regclass
+    ) THEN 
+        ALTER TABLE booked_room 
+        ADD CONSTRAINT fk_booked_room_booking 
+        FOREIGN KEY (bookingID) REFERENCES booking (id) ON DELETE CASCADE;
+    END IF;
+
 
     -- Guests
     --   Link Guests to Hotels
