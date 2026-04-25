@@ -198,3 +198,36 @@ FROM roomTypes rt
             JOIN amenities am ON rta.amenity_name = am.name
         GROUP BY rta.room_typeID
     ) a_info ON rt.id = a_info.room_typeID;
+
+
+CREATE OR REPLACE VIEW vw_reserve_details AS
+SELECT 
+    r.id,
+    CONCAT(g.first_name, ' ', g.last_name) AS guest_full_name,
+    r.guestID,
+    r.userID,
+    r.status AS overall_status,
+    r.created_at,
+    COUNT(rr.id) AS total_rooms,
+    COALESCE(SUM(rr.final_price), 0) AS total_price,
+    -- Concatenate confirmation codes so we can perform text searches against them
+    string_agg(rr.confirmation_code, ' ') AS confirmation_codes, 
+    -- Bundle all room data into a JSON array
+    jsonb_agg(
+        jsonb_build_object(
+            'id', rr.id,
+            'roomID', rr.roomID,
+            'hotelID', rr.hotelID,
+            'confirmation_code', rr.confirmation_code,
+            'booking_status', rr.booking_status,
+            'payment_status', rr.payment_status,
+            'checkin_date', rr.checkin_date,
+            'checkout_date', rr.checkout_date,
+            'final_price', rr.final_price
+        )
+    ) AS rooms
+FROM reserves r
+LEFT JOIN guests g ON r.guestID = g.id 
+LEFT JOIN reserved_room rr ON r.id = rr.reserveID
+GROUP BY 
+    r.id, g.first_name, g.last_name, r.guestID, r.userID, r.status, r.created_at;

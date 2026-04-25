@@ -23,7 +23,6 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booked_room ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reserves ENABLE ROW LEVEL SECURITY;
 -- ============================================================================
 -- 1. ADMINISTRATOR POLICIES FOR EMPLOYEES TABLE
 -- ============================================================================

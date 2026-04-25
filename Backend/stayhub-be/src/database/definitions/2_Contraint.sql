@@ -95,10 +95,23 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_res_user' AND conrelid = 'reserves'::regclass) THEN 
             ALTER TABLE reserves ADD CONSTRAINT fk_res_user FOREIGN KEY (userID) REFERENCES users (id) ON DELETE CASCADE;
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_res_room' AND conrelid = 'reserves'::regclass) THEN 
-            ALTER TABLE reserves ADD CONSTRAINT fk_res_room FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
+    END IF;
+
+    IF to_regclass('reserves') IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_res_guest' AND conrelid = 'reserves'::regclass) THEN 
+            ALTER TABLE reserves ADD CONSTRAINT fk_res_guest FOREIGN KEY (guestID) REFERENCES guests (id) ON DELETE CASCADE;
         END IF;
     END IF;
+
+        -- Foreign Key: reserved_room -> reserves
+        IF to_regclass('reserved_room') IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM pg_constraint 
+            WHERE conname = 'fk_reserved_room_reserve' AND conrelid = 'reserved_room'::regclass
+        ) THEN 
+            ALTER TABLE reserved_room 
+            ADD CONSTRAINT fk_reserved_room_reserve 
+            FOREIGN KEY (reserveID) REFERENCES reserves (id) ON DELETE CASCADE;
+        END IF;  
 
     IF to_regclass('reviews') IS NOT NULL THEN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rev_user' AND conrelid = 'reviews'::regclass) THEN 
