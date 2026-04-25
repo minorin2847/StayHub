@@ -1272,3 +1272,144 @@ BEGIN
     RETURN NULL; -- result is ignored since this is an AFTER trigger
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_reserve_status()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_pending INT;
+    v_awaiting INT;
+    v_confirmed INT;
+    v_completed INT;
+    v_cancelled INT;
+    v_total INT;
+    v_reserve_id INT;
+BEGIN
+    v_reserve_id := COALESCE(NEW.reserveID, OLD.reserveID);
+
+    SELECT 
+        COUNT(*),
+        COUNT(*) FILTER (WHERE booking_status = 'Pending'),
+        COUNT(*) FILTER (WHERE booking_status = 'Awaiting Confirmation'),
+        COUNT(*) FILTER (WHERE booking_status = 'Confirmed'),
+        COUNT(*) FILTER (WHERE booking_status = 'Completed'),
+        COUNT(*) FILTER (WHERE booking_status = 'Cancelled')
+    INTO v_total, v_pending, v_awaiting, v_confirmed, v_completed, v_cancelled
+    FROM reserved_room
+    WHERE reserveID = v_reserve_id;
+
+    IF v_total = 0 OR v_cancelled = v_total THEN
+        UPDATE reserves SET status = 'Cancelled' WHERE id = v_reserve_id;
+    ELSIF v_confirmed = v_total THEN
+        UPDATE reserves SET status = 'Confirmed' WHERE id = v_reserve_id;
+    ELSIF v_completed = v_total THEN
+        UPDATE reserves SET status = 'Completed' WHERE id = v_reserve_id;
+    ELSIF v_awaiting = v_total THEN
+        UPDATE reserves SET status = 'Awaiting Confirmation' WHERE id = v_reserve_id;
+    ELSIF v_pending = v_total THEN
+        UPDATE reserves SET status = 'Pending' WHERE id = v_reserve_id;
+    ELSE
+        UPDATE reserves SET status = 'Partial Confirmed' WHERE id = v_reserve_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_reserves_by_page(
+    p_query TEXT DEFAULT NULL,             -- Searches guest full name OR any confirmation code
+    p_room_id INT DEFAULT NULL,
+    p_overall_status VARCHAR DEFAULT NULL, -- E.g., 'Pending', 'Partial Confirmed'
+    p_booking_status VARCHAR DEFAULT NULL, -- Checks if ANY room in the cart has this status
+    p_payment_status VARCHAR DEFAULT NULL, -- Checks if ANY room in the cart has this status
+    p_sort_column TEXT DEFAULT 'created_at',
+    p_sort_dir TEXT DEFAULT 'DESC',
+    p_page INT DEFAULT 1
+) RETURNS TABLE (
+    id INT,
+    guest_full_name TEXT,
+    guestID INT,
+    userID INT,
+    overall_status VARCHAR,
+    created_at TIMESTAMP,
+    total_rooms BIGINT,
+    total_price DECIMAL,
+    rooms JSONB,
+    has_next BOOLEAN
+) AS $$
+DECLARE 
+    v_limit INT := 10;
+    v_total_rows INT;
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+BEGIN 
+
+    -- 1. Dynamic Filtering
+    IF p_query IS NOT NULL AND p_query <> '' THEN 
+        v_where := v_where || format(' AND (v.guest_full_name ILIKE %L OR v.confirmation_codes ILIKE %L)', '%' || p_query || '%', '%' || p_query || '%');
+    END IF;
+
+    IF p_room_id IS NOT NULL THEN 
+        v_where := v_where || format(' AND v.id IN (SELECT reserveID FROM reserved_room WHERE roomID = %L)', p_room_id);
+    END IF;
+
+    IF p_overall_status IS NOT NULL AND p_overall_status <> '' THEN 
+        v_where := v_where || format(' AND v.overall_status = %L', p_overall_status);
+    END IF;
+
+    IF p_booking_status IS NOT NULL AND p_booking_status <> '' THEN 
+        v_where := v_where || format(' AND v.id IN (SELECT reserveID FROM reserved_room WHERE booking_status = %L)', p_booking_status);
+    END IF;
+
+    IF p_payment_status IS NOT NULL AND p_payment_status <> '' THEN 
+        v_where := v_where || format(' AND v.id IN (SELECT reserveID FROM reserved_room WHERE payment_status = %L)', p_payment_status);
+    END IF;
+
+    -- 2. Pagination Math
+    EXECUTE 'SELECT COUNT(*) FROM vw_reserve_details v ' || v_where INTO v_total_rows;
+    v_offset := (GREATEST(1, p_page) - 1) * v_limit;
+
+    -- 3. Dynamic Sorting
+    v_sort_clause := CASE
+        p_sort_column
+        WHEN 'guest' THEN 'v.guest_full_name'
+        WHEN 'status' THEN 'v.overall_status'
+        WHEN 'price' THEN 'v.total_price'
+        WHEN 'created_at' THEN 'v.created_at'
+        ELSE 'v.created_at'
+    END;
+
+    IF UPPER(p_sort_dir) NOT IN ('ASC', 'DESC') THEN p_sort_dir := 'DESC'; END IF;
+
+    -- 4. Final Execution
+    v_query := format(
+        '
+        WITH raw_data AS (
+            SELECT 
+                v.id, v.guest_full_name, v.guestID, v.userID, v.overall_status, v.created_at,
+                v.total_rooms, v.total_price, v.rooms
+            FROM vw_reserve_details v
+            %s
+            ORDER BY %s %s, v.id ASC
+            LIMIT %L 
+            OFFSET %L
+        )
+        SELECT rd.id, rd.guest_full_name, rd.guestID, rd.userID, rd.overall_status, 
+               rd.created_at, rd.total_rooms, rd.total_price, rd.rooms, 
+               (%L + (SELECT COUNT(*) FROM raw_data)) < %L AS has_next
+        FROM raw_data rd',
+        v_where,
+        v_sort_clause,
+        p_sort_dir,
+        v_limit,
+        v_offset,
+        v_offset,
+        v_total_rows
+    );
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$ LANGUAGE plpgsql;

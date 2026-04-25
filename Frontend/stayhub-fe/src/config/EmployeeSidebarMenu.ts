@@ -162,5 +162,11 @@ export const MENU_CONFIG = {
       path: "/dashboard/bookings",
       subItems: [{ name: "Manage Bookings", path: "/dashboard/bookings" }],
     },
+        {
+      name: "Reserves",
+      icon: FaHotel, // change later
+      path: "/dashboard/reserves",
+      subItems: [{ name: "Manage Reserves", path: "/dashboard/reserves" }],
+    },
   ]
 };

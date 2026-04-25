@@ -12,6 +12,7 @@ import type { Room, RoomType } from "../rooms/room.js";
 import type Guest from "../guests/guests.js";
 import type { DashboardGuest } from "../guests/guests.type.js";
 import type { DashboardBooking } from "../bookings/booking.type.js";
+import type { DashboardReserve } from "../reserves/reserve.type.js";
 
 // Prerequisite: isLoggedIn
 export function hasPermission(roles: string[]) {
@@ -679,6 +680,67 @@ export async function getDashboardAmenities(
       );
     },
     (result) => {
+      const hasNext = result.length > 0 ? result[0].has_next : false;
+      const response = result.map(({ has_next, ...data }) => data);
+
+      res
+        .status(200)
+        .json(
+          result.length > 0
+            ? { hasNext: !!hasNext, response }
+            : { hasNext: false, response: [] },
+        );
+    },
+  );
+}
+
+
+export async function getDashboardReserves(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const {
+    query,
+    roomId,
+    overallStatus,
+    bookingStatus,
+    paymentStatus,
+    sort,
+    order,
+    page,
+  } = req.query;
+
+  type ReserveTable = DashboardReserve & { has_next: boolean };
+
+  rlsWrapper(
+    "get-dashboard-reserves",
+    req.user,
+    async (t) => {
+      return await t.manyOrNone(
+        `SELECT * FROM get_reserves_by_page(
+                    $(query), 
+                    $(roomId), 
+                    $(overallStatus), 
+                    $(bookingStatus), 
+                    $(paymentStatus), 
+                    $(sort), 
+                    $(order), 
+                    $(page)
+                )`,
+        {
+          query: query ?? null,
+          roomId: roomId ? parseInt(roomId as string, 10) : null,
+          overallStatus: overallStatus ?? null,
+          bookingStatus: bookingStatus ?? null,
+          paymentStatus: paymentStatus ?? null,
+          sort: sort ?? "created_at",
+          order: order ?? "desc", // Defaulting to DESC for reserves based on the SQL function
+          page: page ? parseInt(page as string, 10) : 1,
+        },
+      );
+    },
+    (result: ReserveTable[]) => {
       const hasNext = result.length > 0 ? result[0].has_next : false;
       const response = result.map(({ has_next, ...data }) => data);
 
