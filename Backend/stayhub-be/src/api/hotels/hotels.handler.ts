@@ -206,59 +206,57 @@ export async function uploadHotelImage(req: Request, res: Response, next: NextFu
         upsert: false,
       });
 
-    // nếu file đã tồn tại trên storage thì không cần fail luôn
-    // vẫn có thể tiếp tục lấy path để insert/check DB
-    if (uploadError && !String(uploadError.message).toLowerCase().includes("already exists")) {
+    if (
+      uploadError &&
+      !String(uploadError.message).toLowerCase().includes("already exists")
+    ) {
       return next(uploadError);
     }
 
     const imagePath = uploadData?.path || objectPath;
-    const publicUrl = supabaseAdmin.storage
-      .from("hotel-images")
-      .getPublicUrl(imagePath).data.publicUrl;
 
     await rlsWrapper(
       "insert-hotel-image",
       user,
       async (t) => {
         if (isCover) {
-          await t.none(`UPDATE hotel_images SET isCover = false WHERE hotelid = $1`, [hotelId]);
-        }
-
-        const inserted = await t.oneOrNone(
-          `
-          INSERT INTO hotel_images (hotelid, image_hash, image_path, image_url, isCover)
-          VALUES ($1, $2, $3, $4, $5)
-          ON CONFLICT (hotelid, image_hash) DO UPDATE SET isCover = EXCLUDED.isCover
-          RETURNING id, hotelid, image_hash, image_path, image_url, isCover as is_cover
-          `,
-          [hotelId, hash, imagePath, publicUrl, isCover]
-        );
-
-        if (!inserted) {
-          const existing = await t.one(
-            `
-            SELECT id, hotelid, image_hash, image_path, image_url, isCover as is_cover
-            FROM hotel_images
-            WHERE hotelid = $1 AND image_hash = $2
-            `,
-            [hotelId, hash]
+          await t.none(
+            `UPDATE hotel_images SET is_cover = false WHERE hotelid = $1`,
+            [hotelId]
           );
-
-          return {
-            ...existing,
-            duplicated: true,
-          };
         }
+
+        const inserted = await t.one(
+          `
+          INSERT INTO hotel_images (
+            hotelid,
+            image_hash,
+            image_path,
+            is_cover
+          )
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (hotelid, image_hash)
+          DO UPDATE SET is_cover = EXCLUDED.is_cover
+          RETURNING
+            id,
+            hotelid,
+            image_hash,
+            image_path,
+            is_cover
+          `,
+          [hotelId, hash, imagePath, isCover]
+        );
 
         return {
           ...inserted,
-          duplicated: false,
+          duplicated: Boolean(uploadError),
         };
       },
       (row) => {
         res.status(201).json({
-          message: row.duplicated ? "Image already exists" : "Upload image successfully",
+          message: row.duplicated
+            ? "Image already exists"
+            : "Upload image successfully",
           image: row,
         });
       }
@@ -267,11 +265,16 @@ export async function uploadHotelImage(req: Request, res: Response, next: NextFu
     if (uploadedPath) {
       await supabaseAdmin.storage.from("hotel-images").remove([uploadedPath]);
     }
+
     next(error);
   }
 }
 
-export async function getHotelImages(req: Request, res: Response, next: NextFunction) {
+export async function getHotelImages(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const user = (req as any).user;
     const hotelIdRaw = req.params.hotelId ?? user?.hotelid;
@@ -291,18 +294,26 @@ export async function getHotelImages(req: Request, res: Response, next: NextFunc
             id,
             hotelid,
             image_path,
-            image_url,
-            isCover as is_cover,
+            is_cover,
             sort_order,
             created_at
           FROM hotel_images
           WHERE hotelid = $1
-          ORDER BY isCover DESC, sort_order ASC, created_at ASC
+          ORDER BY is_cover DESC, sort_order ASC, created_at ASC
           `,
           [hotelId]
         );
 
-        return rows;
+        return rows.map((row) => {
+          const { data } = supabaseAdmin.storage
+            .from("hotel-images")
+            .getPublicUrl(row.image_path);
+
+          return {
+            ...row,
+            image_url: data.publicUrl,
+          };
+        });
       },
       (rows) => {
         res.status(200).json(rows);
@@ -313,7 +324,11 @@ export async function getHotelImages(req: Request, res: Response, next: NextFunc
   }
 }
 
-export async function deleteHotelImage(req: Request, res: Response, next: NextFunction) {
+export async function deleteHotelImage(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const user = (req as any).user;
     const hotelIdParam = req.params.hotelId;
@@ -322,11 +337,11 @@ export async function deleteHotelImage(req: Request, res: Response, next: NextFu
     const hotelId = Number(hotelIdParam || user?.hotelid);
     const imageId = Number(imageIdParam);
 
-    if (!hotelId || Number.isNaN(hotelId)) {
+    if (Number.isNaN(hotelId) || hotelId <= 0) {
       return res.status(400).json({ message: "Invalid hotelId" });
     }
 
-    if (!imageId || Number.isNaN(imageId)) {
+    if (Number.isNaN(imageId) || imageId <= 0) {
       return res.status(400).json({ message: "Invalid imageId" });
     }
 
@@ -336,9 +351,13 @@ export async function deleteHotelImage(req: Request, res: Response, next: NextFu
       async (t) => {
         const image = await t.oneOrNone(
           `
-          SELECT id, hotelID as hotelid, image_url as image_url
+          SELECT
+            id,
+            hotelid,
+            image_path,
+            is_cover
           FROM hotel_images
-          WHERE id = $1 AND hotelID = $2
+          WHERE id = $1 AND hotelid = $2
           `,
           [imageId, hotelId]
         );
@@ -349,7 +368,7 @@ export async function deleteHotelImage(req: Request, res: Response, next: NextFu
 
         const { error: storageError } = await supabaseAdmin.storage
           .from("hotel-images")
-          .remove([image.image_url]);
+          .remove([image.image_path]);
 
         if (storageError) {
           throw storageError;
@@ -358,7 +377,7 @@ export async function deleteHotelImage(req: Request, res: Response, next: NextFu
         await t.none(
           `
           DELETE FROM hotel_images
-          WHERE id = $1 AND hotelID = $2
+          WHERE id = $1 AND hotelid = $2
           `,
           [imageId, hotelId]
         );
@@ -381,7 +400,11 @@ export async function deleteHotelImage(req: Request, res: Response, next: NextFu
   }
 }
 
-export async function setCoverImage(req: Request, res: Response, next: NextFunction) {
+export async function setCoverImage(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const user = (req as any).user;
     const hotelIdParam = req.params.hotelId;
@@ -390,11 +413,11 @@ export async function setCoverImage(req: Request, res: Response, next: NextFunct
     const hotelId = Number(hotelIdParam || user?.hotelid);
     const imageId = Number(imageIdParam);
 
-    if (!hotelId || Number.isNaN(hotelId)) {
+    if (Number.isNaN(hotelId) || hotelId <= 0) {
       return res.status(400).json({ message: "Invalid hotelId" });
     }
 
-    if (!imageId || Number.isNaN(imageId)) {
+    if (Number.isNaN(imageId) || imageId <= 0) {
       return res.status(400).json({ message: "Invalid imageId" });
     }
 
@@ -402,25 +425,53 @@ export async function setCoverImage(req: Request, res: Response, next: NextFunct
       "set-cover-image",
       user,
       async (t) => {
-        // Ensure image belongs to hotel before unsetting others
         const image = await t.oneOrNone(
-          `SELECT id FROM hotel_images WHERE id = $1 AND hotelid = $2`,
+          `
+          SELECT id
+          FROM hotel_images
+          WHERE id = $1 AND hotelid = $2
+          `,
           [imageId, hotelId]
         );
 
-        if (!image) return null;
+        if (!image) {
+          return null;
+        }
 
-        await t.none(`UPDATE hotel_images SET isCover = false WHERE hotelid = $1`, [hotelId]);
-        return await t.one(
-          `UPDATE hotel_images SET isCover = true WHERE id = $1 RETURNING id, isCover as is_cover`,
-          [imageId]
+        await t.none(
+          `
+          UPDATE hotel_images
+          SET is_cover = false
+          WHERE hotelid = $1
+          `,
+          [hotelId]
         );
+
+        const updatedImage = await t.one(
+          `
+          UPDATE hotel_images
+          SET is_cover = true
+          WHERE id = $1 AND hotelid = $2
+          RETURNING
+            id,
+            hotelid,
+            image_path,
+            is_cover
+          `,
+          [imageId, hotelId]
+        );
+
+        return updatedImage;
       },
       (updatedImage) => {
         if (!updatedImage) {
           return res.status(404).json({ message: "Image not found" });
         }
-        res.status(200).json({ message: "Cover image updated successfully" });
+
+        res.status(200).json({
+          message: "Cover image updated successfully",
+          image: updatedImage,
+        });
       }
     );
   } catch (error) {
