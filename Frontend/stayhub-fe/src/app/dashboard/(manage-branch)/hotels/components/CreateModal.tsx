@@ -105,22 +105,30 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
   };
 
   const handleFinish = async (values: any) => {
-    if (!API_URL) return;
+    if (!API_URL) {
+      message.error("API URL is not configured.");
+      return;
+    }
 
     try {
       setSubmitting(true);
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/create`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(payload),
+      const payload = {
+        name: values.name,
+        location: values.location,
+        description: values.description || "",
+        contact_email: values.contact_email || "",
+        contact_phone: values.contact_phone || "",
+      };
+
+      const createRes = await fetch(`${API_URL}/employee/hotels/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
       if (!createRes.ok) {
         const errorText = await createRes.text();
@@ -128,32 +136,35 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
       }
 
       const data = await createRes.json();
-      const hotelId = data.hotel.id;
+
+      const hotelId = data?.hotel?.id || data?.id;
+
+      if (!hotelId) {
+        throw new Error("Hotel created successfully but hotel ID was not returned.");
+      }
 
       if (fileList.length > 0) {
         await Promise.all(
           fileList.map(async (file) => {
             const originFile = file.originFileObj;
+
             if (!originFile) return;
 
             const formData = new FormData();
             formData.append("image", originFile);
             formData.append("isCover", String(file.uid === coverImageUid));
 
-            const res = await fetch(
-              `${API_URL}/employee/hotels/${hotelId}/images`,
-              {
-                method: "POST",
-                credentials: "include",
-                body: formData,
-              },
-            );
+            const uploadRes = await fetch(`${API_URL}/employee/hotels/${hotelId}/images`, {
+              method: "POST",
+              credentials: "include",
+              body: formData,
+            });
 
-            if (!res.ok) {
-              const errorText = await res.text();
+            if (!uploadRes.ok) {
+              const errorText = await uploadRes.text();
               throw new Error(errorText || `Upload failed: ${file.name}`);
             }
-          }),
+          })
         );
       }
 
@@ -161,7 +172,14 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
         content: "Hotel created successfully!",
         className: "mt-12",
       });
+
       await onSuccess();
+
+      form.resetFields();
+      setFileList([]);
+      setSelectedPreview(null);
+      setCoverImageUid(null);
+
       onClose();
     } catch (err: any) {
       console.error(err);
@@ -294,11 +312,10 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                     return (
                       <div
                         key={img.key}
-                        className={`shrink-0 w-24 h-24 relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border-2 ${
-                          isSelected
-                            ? "border-blue-500 shadow-md scale-95"
-                            : "border-slate-200 hover:border-blue-300"
-                        }`}
+                        className={`shrink-0 w-24 h-24 relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border-2 ${isSelected
+                          ? "border-blue-500 shadow-md scale-95"
+                          : "border-slate-200 hover:border-blue-300"
+                          }`}
                         onClick={() => setSelectedPreview(img.url)}
                       >
                         {img.url && (

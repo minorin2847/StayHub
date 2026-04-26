@@ -157,6 +157,32 @@ SELECT ha.hotelID,
     a.category
 FROM hotel_amenities ha
     JOIN amenities a ON ha.amenity_name = a.name;
+
+
+CREATE OR REPLACE VIEW vw_room_details AS
+SELECT
+  r.id,
+  r.hotelID,
+  r.name,
+  r.typeID,
+  rt.name AS room_type_name,
+  rt.size,
+  rt.capacity,
+  rt.base_price,
+  rt.description AS room_type_description,
+  r.note,
+  (
+    SELECT rti.image_path
+    FROM room_type_images rti
+    WHERE rti.room_typeID = rt.id
+    ORDER BY rti.id ASC
+    LIMIT 1
+  ) AS room_type_cover_image
+FROM rooms r
+JOIN roomTypes rt
+  ON rt.id = r.typeID
+ AND rt.hotelID = r.hotelID;
+
 -- ==========================================
 -- VIEWS DÀNH CHO PHÒNG & LOẠI PHÒNG (ROOM TYPES, ROOMS)
 -- ==========================================

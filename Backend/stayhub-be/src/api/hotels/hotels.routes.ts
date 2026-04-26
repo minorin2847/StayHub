@@ -3,7 +3,7 @@ import { getHotels, createHotel, updateHotel, deleteHotel, getOtherRoomsInHotel 
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
 import { uploadImage } from "../../middlewares/upload.js";
-import { uploadHotelImage, getHotelImages, deleteHotelImage, setCoverImage } from "./hotels.handler.js";
+import { uploadHotelImage, getHotelImages, deleteHotelImage } from "./hotels.handler.js";
 
 const hotelsRoute = Router();
 const publicHotelRoute = Router();
