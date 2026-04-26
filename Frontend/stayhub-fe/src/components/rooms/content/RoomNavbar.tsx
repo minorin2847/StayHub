@@ -1,22 +1,28 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 export default function RoomNavbar({ sections }: { sections: string[] }) {
-  const toggleVisible = (name: string) => {
-    setVisible(name);
-  };
-  const [visible, setVisible] = useState<string>(sections[0].toLowerCase());
+  const [activeSection, setActiveSection] = useState(sections[0].toLowerCase());
+
   return (
-    <nav className="gap-[24px] sticky top-0 bg-white z-50 flex font-normal text-[20px] h-[59px] w-full border-b border-b-gray-300">
-      {sections.map((item, index) => (
-        <a
-          key={index}
-          onClick={() => toggleVisible(item.toLowerCase())}
-          href={`#${item.toLowerCase()}`}
-          className={`flex h-full items-center ${visible === item.toLowerCase() ? "border-b-2 text-blue-500 border-b-blue-500" : "text-neutral-500 hover:text-neutral-600 hover:border-b-2 hover:border-b-neutral-600"}`}
-        >
-          {item}
-        </a>
-      ))}
+    // top-0 will stick it to the very top of the screen
+    <nav className="sticky top-0 bg-white z-[100] flex gap-[24px] font-normal text-[20px] h-[60px] w-full border-b border-b-gray-300">
+      {sections.map((item, index) => {
+        const id = item.toLowerCase();
+        return (
+          <a
+            key={index}
+            href={`#${id}`}
+            onClick={() => setActiveSection(id)}
+            className={`flex h-full items-center transition-all ${
+              activeSection === id 
+                ? "border-b-2 text-blue-500 border-b-blue-500 font-semibold" 
+                : "text-neutral-500 hover:text-neutral-800"
+            }`}
+          >
+            {item}
+          </a>
+        );
+      })}
     </nav>
   );
 }

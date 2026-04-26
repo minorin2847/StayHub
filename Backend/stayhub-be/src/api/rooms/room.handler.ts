@@ -553,6 +553,37 @@ export async function deleteRoom(req: Request, res: Response, next: NextFunction
     );
 }
 
+
+export async function getRoomTypePage(req: Request, res: Response, next: NextFunction) {
+  const { id } = req.params;
+
+  try {
+    // 1. Query the view using the room_id
+    // We use oneOrNone because a specific ID should return exactly one room or nothing
+    const roomDetails = await db.oneOrNone(
+      `SELECT * FROM room_details_view WHERE room_id = $1`,
+      [id]
+    );
+
+    // 2. If no room is found, return 404
+    if (!roomDetails) {
+      return res.status(404).json({
+        message: "Room type not found",
+      });
+    }
+
+    // 3. Return the data
+    // The keys (room_amenities, hotel_policies, etc.) match your frontend state
+    res.status(200).json(roomDetails);
+
+  } catch (error) {
+    console.error("Error fetching room type details:", error);
+    res.status(500).json({
+      message: "Internal server error while retrieving room details",
+    });
+    next(error);
+  }
+}
 export const uploadRoomImage = async (req: any, res: any) => {
   try {
     const { roomId } = req.params;

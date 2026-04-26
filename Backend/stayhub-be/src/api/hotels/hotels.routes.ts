@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { getHotels, createHotel, updateHotel, deleteHotel } from "./hotels.handler.js";
+import { getHotels, createHotel, updateHotel, deleteHotel, getOtherRoomsInHotel } from "./hotels.handler.js";
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
 import { uploadImage } from "../../middlewares/upload.js";
 import { uploadHotelImage, getHotelImages, deleteHotelImage } from "./hotels.handler.js";
 
 const hotelsRoute = Router();
-
+const publicHotelRoute = Router();
 hotelsRoute.get("/", isLoggedIn, getHotels);
 hotelsRoute.get("/get/:id", isLoggedIn, getHotels);
 hotelsRoute.post("/create", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), createHotel);
@@ -36,4 +36,15 @@ hotelsRoute.delete(
   deleteHotelImage
 );
 
+hotelsRoute.put(
+  "/:hotelId/images/:imageId/cover",
+  isLoggedIn,
+  hasPermission(["MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+  setCoverImage
+);
+
+
+publicHotelRoute.get("/:hotel_id/other-rooms", getOtherRoomsInHotel);
+
 export default hotelsRoute;
+export {publicHotelRoute};

@@ -40,9 +40,9 @@ const RegisterForm = () => {
           body: JSON.stringify(formData),
         },
       );
-      const data = await res.json();
+      const data = await res.text();
       if (!res.ok) {
-        throw new Error(data.message || "Đăng ký thất bại");
+        throw new Error(data || "Đăng ký thất bại");
       }
       setStatus("success");
       setTimeout(() => {

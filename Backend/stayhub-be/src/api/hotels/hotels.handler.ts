@@ -506,3 +506,37 @@ export async function setCoverImage(
     next(error);
   }
 }
+
+
+/**
+ * Fetches other room types available in the same hotel,
+ * excluding the one currently being viewed.
+ */
+export async function getOtherRoomsInHotel(req: Request, res: Response, next: NextFunction) {
+  // hotel_id: current hotel context
+  // exclude_id: the current room type ID to omit from the results
+  const { hotel_id } = req.params;
+  const { exclude_id } = req.query;
+
+  try {
+    // We use manyOrNone because a hotel might have multiple other rooms or none
+    const otherRooms = await db.manyOrNone(
+      `SELECT * FROM hotel_other_rooms_view 
+       WHERE hotel_id = $1 AND room_id != $2
+       ORDER BY final_price ASC
+       LIMIT 10`,
+      [hotel_id, exclude_id || 0] // Default to 0 if no exclude_id provided
+    );
+
+    // Note: We return an empty array if none found (200 OK), 
+    // as it's a valid state for a carousel.
+    res.status(200).json(otherRooms);
+
+  } catch (error) {
+    console.error("Error fetching other rooms in hotel:", error);
+    res.status(500).json({
+      message: "Internal server error while retrieving related rooms",
+    });
+    next(error);
+  }
+}

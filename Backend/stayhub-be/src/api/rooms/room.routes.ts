@@ -13,6 +13,8 @@ import {
   editRoomType,
   deleteRoomType,
   getAllRoomTypes,
+  
+  getRoomTypePage,
 
   uploadRoomImage,
   getRoomImages,
@@ -20,6 +22,7 @@ import {
 } from "./room.handler.js";
 
 const roomRoute = Router();
+const publicRoomRoute = Router();
 
 const canManageRooms = hasPermission([
   "MANAGE_ROOM",
@@ -155,4 +158,7 @@ roomRoute.delete(
   deleteRoomImage
 );
 
-export { roomRoute };
+
+// GET /rooms/:id
+publicRoomRoute.get("/:id", getRoomTypePage);
+export { roomRoute, publicRoomRoute };
