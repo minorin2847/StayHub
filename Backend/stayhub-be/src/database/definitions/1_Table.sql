@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS users_reviews (
 );
 
 CREATE TABLE IF NOT EXISTS rooms_reviews (
-  rooms_id int,
+  id int,
   reviews_roomID int,
   PRIMARY KEY (rooms_id, reviews_roomID)
 );
