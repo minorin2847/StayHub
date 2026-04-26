@@ -1957,3 +1957,165 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+
+CREATE OR REPLACE FUNCTION search_by_page(
+    p_min_price INT DEFAULT NULL,
+    p_max_price INT DEFAULT NULL,
+    p_min_available_room INT DEFAULT NULL,
+    p_min_bed_count INT DEFAULT NULL,
+    p_min_size INT DEFAULT NULL, 
+    p_max_size INT DEFAULT NULL, 
+    p_min_review_score NUMERIC DEFAULT NULL,
+    p_classification INT DEFAULT NULL,
+    p_amenities TEXT[] DEFAULT NULL,
+    p_city_abbreviation VARCHAR DEFAULT NULL, -- NEW CITY PARAMETER
+    p_sort_by TEXT DEFAULT 'highest_review', 
+    p_page INT DEFAULT 1
+)
+RETURNS TABLE (
+    hotelid INT,
+    roomtypeid INT,
+    hotel_name VARCHAR,
+    hotel_classification INT,
+    hotel_location VARCHAR,
+    hotel_city_abbreviation VARCHAR, -- ADDED TO MATCH VIEW
+    hotel_city VARCHAR,
+    avg_room_rating NUMERIC,
+    review_count BIGINT,
+    roomtype_name VARCHAR,
+    roomtype_size INT,
+    roomtype_bed TEXT,
+    total_beds BIGINT,
+    roomtype_capacity INT,
+    roomtype_base_price INT,
+    roomtype_images TEXT[],
+    roomtype_amenities VARCHAR[],
+    room_count BIGINT,
+    deal_name TEXT,
+    deal_starttime DATE,
+    deal_endtime DATE,
+    deal_discount_price INT,
+    final_price INT,
+    priceRange INT[],     
+    has_next BOOLEAN
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_limit INT := 12;  
+    v_offset INT;
+    v_where TEXT := ' WHERE TRUE';
+    v_query TEXT;
+    v_sort_clause TEXT;
+BEGIN
+    -- 1. Apply Filters Dynamically
+    IF p_min_price IS NOT NULL THEN
+        v_where := v_where || format(' AND final_price >= %L', p_min_price);
+    END IF;
+
+    IF p_max_price IS NOT NULL THEN
+        v_where := v_where || format(' AND final_price <= %L', p_max_price);
+    END IF;
+
+    IF p_min_available_room IS NOT NULL THEN
+        v_where := v_where || format(' AND room_count >= %L', p_min_available_room);
+    END IF;
+
+    IF p_min_bed_count IS NOT NULL THEN
+        v_where := v_where || format(' AND total_beds >= %L', p_min_bed_count);
+    END IF;
+
+    IF p_min_size IS NOT NULL THEN
+        v_where := v_where || format(' AND roomtype_size >= %L', p_min_size);
+    END IF;
+
+    IF p_max_size IS NOT NULL THEN
+        v_where := v_where || format(' AND roomtype_size <= %L', p_max_size);
+    END IF;
+
+    IF p_min_review_score IS NOT NULL THEN
+        v_where := v_where || format(' AND avg_room_rating >= %L', p_min_review_score);
+    END IF;
+
+    IF p_classification IS NOT NULL THEN
+        v_where := v_where || format(' AND hotel_classification = %L', p_classification);
+    END IF;
+
+    IF p_amenities IS NOT NULL AND array_length(p_amenities, 1) > 0 THEN
+        v_where := v_where || format(' AND roomtype_amenities @> %L', p_amenities);
+    END IF;
+
+    -- NEW: Apply City Abbreviation Filter
+    IF p_city_abbreviation IS NOT NULL AND p_city_abbreviation <> '' THEN
+        v_where := v_where || format(' AND hotel_city_abbreviation ILIKE %L', p_city_abbreviation);
+    END IF;
+
+    -- 2. Calculate Pagination Offsets
+    v_offset := (GREATEST(1, p_page) - 1) * v_limit;
+
+    -- 3. Determine Sorting
+    v_sort_clause := CASE p_sort_by
+        WHEN 'highest_review' THEN 'avg_room_rating DESC NULLS LAST'
+        WHEN 'lowest_price' THEN 'final_price ASC'
+        WHEN 'highest_price' THEN 'final_price DESC'
+        WHEN 'high_classification' THEN 'hotel_classification DESC'
+        ELSE 'avg_room_rating DESC NULLS LAST' 
+    END;
+
+    -- 4. Construct and Execute Final Unified Query
+    v_query := format($q$
+        WITH filtered_data AS (
+            SELECT * FROM searchpage_view 
+            %s
+        ),
+        total_count AS (
+            SELECT COUNT(*) AS total FROM filtered_data
+        ),
+        histogram_raw AS (
+            SELECT 
+                LEAST(width_bucket(final_price, 0, 1500, 30), 30) AS bucket,
+                COUNT(*) AS bucket_count
+            FROM filtered_data
+            GROUP BY 1
+        ),
+        histogram_stats AS (
+            SELECT MIN(bucket_count) AS min_c, MAX(bucket_count) AS max_c FROM histogram_raw
+        ),
+        histogram_scaled AS (
+            SELECT 
+                r.bucket,
+                CASE 
+                    WHEN s.max_c = s.min_c THEN 100 
+                    ELSE 10 + ((r.bucket_count - s.min_c)::FLOAT / (s.max_c - s.min_c) * 90)::INT
+                END AS scaled_count
+            FROM histogram_raw r CROSS JOIN histogram_stats s
+        ),
+        histogram_array AS (
+            SELECT ARRAY(
+                SELECT COALESCE(hs.scaled_count, 0)
+                FROM generate_series(1, 30) AS g(b)
+                LEFT JOIN histogram_scaled hs ON hs.bucket = g.b
+                ORDER BY g.b
+            ) AS price_range_arr
+        ),
+        paged_data AS (
+            SELECT * FROM filtered_data
+            ORDER BY %s
+            LIMIT %s OFFSET %s 
+        )
+        SELECT 
+            pd.*,
+            ha.price_range_arr AS priceRange,
+            (%s + %s) < (SELECT total FROM total_count) AS has_next
+        FROM paged_data pd
+        CROSS JOIN histogram_array ha;
+    $q$, 
+    v_where, 
+    v_sort_clause, 
+    v_limit, v_offset,
+    v_offset, v_limit);
+
+    RETURN QUERY EXECUTE v_query;
+END;
+$$;
