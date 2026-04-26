@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getHotels, createHotel, updateHotel, deleteHotel, getOtherRoomsInHotel } from "./hotels.handler.js";
+import { getHotels, createHotel, updateHotel, deleteHotel, getOtherRoomsInHotel, setCoverImage } from "./hotels.handler.js";
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
 import { uploadImage } from "../../middlewares/upload.js";

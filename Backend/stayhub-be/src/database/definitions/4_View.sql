@@ -172,7 +172,7 @@ SELECT
   rt.description AS room_type_description,
   r.note,
   (
-    SELECT rti.image_path
+    SELECT rti.image_url
     FROM room_type_images rti
     WHERE rti.room_typeID = rt.id
     ORDER BY rti.id ASC
