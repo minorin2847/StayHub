@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS hotels (
   name varchar(100) NOT NULL,
   classification INT NOT NULL DEFAULT 0 CHECK (classification >= 0 AND classification <= 5),
   branchID int,
-  city_abbreviation varchar(10),
+  city_abbreviation varchar(10), -- New column added here
   location varchar(255) NOT NULL,
   description text,
   contact_email varchar(100),

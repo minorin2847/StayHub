@@ -38,6 +38,41 @@ export function getAmenityStats(
       };
     },
     (stats) => res.status(200).json(stats),
+    (err) => res.status(500).json({ message: "Failed to fetch amenity stats" }),
+  );
+}
+
+// 1b. API: Hotel-specific Stats
+export function getHotelAmenityStats(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  rlsWrapper(
+    "get-hotel-amenity-stats",
+    req.user,
+    async (t) => {
+      const totalRes = await t.one(
+        "SELECT COUNT(*)::int as total FROM hotel_amenities ha JOIN amenities a ON ha.amenity_name = a.name WHERE ha.hotelid = $1",
+        [req.user.hotelid],
+      );
+      const totalCategoriesRes = await t.one(
+        "SELECT COUNT(DISTINCT a.category)::int as total_categories FROM hotel_amenities ha JOIN amenities a ON ha.amenity_name = a.name WHERE ha.hotelid = $1",
+        [req.user.hotelid],
+      );
+      const topCategoryRes = await t.oneOrNone(
+        "SELECT a.category FROM hotel_amenities ha JOIN amenities a ON ha.amenity_name = a.name WHERE ha.hotelid = $1 GROUP BY a.category ORDER BY COUNT(*) DESC LIMIT 1",
+        [req.user.hotelid],
+      );
+      return {
+        total: totalRes.total,
+        totalCategories: totalCategoriesRes.total_categories,
+        topCategory: topCategoryRes ? topCategoryRes.category : "N/A",
+      };
+    },
+    (stats) => res.status(200).json(stats),
+    (err) =>
+      res.status(500).json({ message: "Failed to fetch hotel amenity stats" }),
   );
 }
 
@@ -48,18 +83,26 @@ export function getAmenityList(
   next: NextFunction,
 ) {
   const page = parseInt(req.query.page as string) || 1;
-  const name = (req.query.name as string) || null;
+  const name =
+    (req.query.query as string) || (req.query.name as string) || null;
   const category = (req.query.category as string) || null;
   const sortColumn = (req.query.sort as string) || "name";
   const sortDir = (req.query.order as string) || "ASC";
+  const excludeCurrent = req.query.excludeCurrent === "true";
+  const minCount = req.query.minCount
+    ? parseInt(req.query.minCount as string)
+    : 0;
+  const maxCount = req.query.maxCount
+    ? parseInt(req.query.maxCount as string)
+    : 1000;
 
   rlsWrapper(
     "list-amenities",
     req.user,
     async (t) => {
       const rawData = await t.any(
-        `SELECT * FROM get_amenities_by_page($1::text, $2::text, $3::text, $4::text, $5::int)`,
-        [name, category, sortColumn, sortDir, page],
+        `SELECT * FROM get_amenities_by_page($1::text, $2::text, $3::int, $4::int, $5::int, $6::text, $7::text, $8::int)`,
+        [name, category, null, 0, 1000, sortColumn, sortDir, page],
       );
 
       const hasNext = rawData.length > 0 ? rawData[0].has_next : false;
@@ -68,6 +111,7 @@ export function getAmenityList(
       return { response, hasNext };
     },
     (result) => res.status(200).json(result),
+    (err) => res.status(500).json({ message: "Failed to fetch amenity list" }),
   );
 }
 
@@ -153,6 +197,141 @@ export function deleteAmenity(req: Request, res: Response, next: NextFunction) {
         return res.status(404).send("Lỗi xóa amenity!");
       }
       res.status(200).send("Xóa thành công");
+    },
+  );
+}
+
+// 6. API: Get Hotel Amenities
+export function getHotelAmenities(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const page = parseInt(req.query.page as string) || 1;
+  const name =
+    (req.query.query as string) || (req.query.name as string) || null;
+  const category = (req.query.category as string) || null;
+  const sortColumn = (req.query.sort as string) || "name";
+  const sortDir = (req.query.order as string) || "ASC";
+
+  rlsWrapper(
+    "list-hotel-amenities",
+    req.user,
+    async (t) => {
+      const rawData = await t.any(
+        `SELECT * FROM get_hotel_amenities_by_page($(hotelid), $(name), $(category), $(sort), $(order), $(page))`,
+        {
+          hotelid: req.user.hotelid,
+          name,
+          category,
+          sort: sortColumn,
+          order: sortDir,
+          page,
+        },
+      );
+
+      const hasNext = rawData.length > 0 ? rawData[0].has_next : false;
+      const response = rawData.map(({ has_next, ...rest }) => rest);
+
+      return { response, hasNext };
+    },
+    (result) => res.status(200).json(result),
+    (err) =>
+      res.status(500).json({ message: "Failed to fetch hotel amenities" }),
+  );
+}
+
+// 6b. API: Get All Hotel Amenities (No Pagination)
+export function getAllHotelAmenities(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  rlsWrapper(
+    "list-all-hotel-amenities",
+    req.user,
+    async (t) => {
+      const data = await t.any(
+        `SELECT a.name, a.icon, a.category FROM hotel_amenities ha JOIN amenities a ON ha.amenity_name = a.name WHERE ha.hotelid = $1 ORDER BY a.name ASC`,
+        [req.user.hotelid],
+      );
+      return data;
+    },
+    (result) => res.status(200).json({ response: result }),
+    (err) =>
+      res.status(500).json({ message: "Failed to fetch all hotel amenities" }),
+  );
+}
+
+// 7. API: Insert Amenity To Hotel
+export async function insertAmenityToHotel(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  // Ưu tiên lấy hotelId từ request body (Nếu tài khoản Admin truyền xuống)
+  // Nếu không có thì fallback về lấy hotelid của chính Manager đang đăng nhập
+  const { name, hotelid, hotelId } = req.body;
+  const targetHotelId = hotelId || hotelid || req.user.hotelid;
+
+  if (!targetHotelId) {
+    return res.status(400).send("Missing hotel ID. Vui lòng truyền hotelid.");
+  }
+
+  rlsWrapper(
+    "insert-amenity-to-hotel",
+    req.user,
+    async (t) => {
+      return await t.oneOrNone(
+        `
+        INSERT INTO hotel_amenities(hotelid, amenity_name) \
+        VALUES ($(hotelid), $(name)) \
+        ON CONFLICT (hotelid, amenity_name) DO NOTHING \
+        RETURNING hotelid, amenity_name
+        `,
+        {
+          hotelid: targetHotelId, // Dùng biến an toàn này thay vì req.user.hotelid cứng
+          name: name,
+        },
+      );
+    },
+    (result) => {
+      if (!result)
+        return res.status(409).send("Amenity already exists for the hotel!");
+      return res.status(200).json(result);
+    },
+  );
+}
+
+// 8. API: Remove Amenity From Hotel
+export async function removeAmenityFromHotel(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { name } = req.params;
+  rlsWrapper(
+    "remove-amenity-from-hotel",
+    req.user,
+    async (t) => {
+      return await t.oneOrNone(
+        `
+                DELETE FROM hotel_amenities \
+                WHERE hotelid=$(hotelid) AND amenity_name=$(name) \
+                RETURNING hotelid, amenity_name
+                `,
+        {
+          hotelid: req.user.hotelid,
+          name: name,
+        },
+      );
+    },
+    (result) => {
+      if (!result)
+        return res
+          .status(404)
+          .send("Amenity not found or already deleted from hotel!");
+      return res.status(200).json(result);
     },
   );
 }

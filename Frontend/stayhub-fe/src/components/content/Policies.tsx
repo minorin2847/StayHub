@@ -1,4 +1,14 @@
 import { Hotel } from "@/types/Hotel";
+import { BsCardChecklist } from "react-icons/bs";
+import { 
+  FaWifi, FaSwimmer, FaLeaf, FaCoffee, FaCar, FaTv, FaSnowflake, FaPaw, 
+  FaWineBottle, FaSmile, FaTshirt, FaGlassMartiniAlt, FaSmokingBan, FaUmbrella, FaDoorClosed, FaSuitcaseRolling 
+} from "react-icons/fa";
+
+const AVAILABLE_ICONS: any = {
+  FaWifi, FaSwimmer, FaLeaf, FaCoffee, FaCar, FaTv, FaSnowflake, FaPaw, 
+  FaWineBottle, FaSmile, FaTshirt, FaGlassMartiniAlt, FaSmokingBan, FaUmbrella, FaDoorClosed, FaSuitcaseRolling
+};
 
 export default function Policies({ hotelData }: {
     hotelData: Hotel
@@ -11,15 +21,18 @@ export default function Policies({ hotelData }: {
             </div>
             <div className="flex flex-col border border-neutral-200 rounded-[20px]">
                 {
-                    hotelData.policies.map((obj, index) => (
-                        <div key={index} className={`flex px-[24px] py-[18px] w-full gap-x-[270px] items-center ${index+1 < hotelData.policies.length ? "border-b border-b-neutral-200" : ""}`}>
-                            <div className="flex gap-x-[8px] w-fit">
-                                <img src={obj.icon} alt={obj.name} width={24} height={24} />
-                                <p className="font-semibold text-[24px]">{obj.name}</p>
+                    hotelData.policies.map((obj, index) => {
+                        const IconComponent = AVAILABLE_ICONS[obj.icon] || BsCardChecklist;
+                        return (
+                            <div key={index} className={`flex px-[24px] py-[18px] w-full gap-x-[270px] items-center ${index+1 < hotelData.policies.length ? "border-b border-b-neutral-200" : ""}`}>
+                                <div className="flex gap-x-[8px] w-fit items-center text-slate-700">
+                                    <IconComponent size={24} />
+                                    <p className="font-semibold text-[24px]">{obj.name}</p>
+                                </div>
+                                <p className="text-[16px] max-w-2/3">{obj.description}</p>
                             </div>
-                            <p className="text-[16px] max-w-2/3">{obj.description}</p>
-                        </div>
-                    ))
+                        );
+                    })
                 }
             </div>
         </div>

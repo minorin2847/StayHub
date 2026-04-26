@@ -1,7 +1,7 @@
 "use client";
 
 import buildQueryParams from "@/utils/BuildQueryParams";
-import { Button, message, Space, Table, Modal } from "antd";
+import { Button, message, Space, Table, Modal, TableProps } from "antd";
 import {
   EyeOutlined,
   EditOutlined,
@@ -33,16 +33,25 @@ interface BaseProps<
   TFilter extends Record<string, any>,
 > {
   resourceName: string;
-  resourceId: string;
+  resourceId?: string;
   searchPlaceholder: string;
   tableDataEndpoint: string;
   onDataFetched?: (data: TData[]) => void;
+  expandable?: (context: { 
+    fetchData: () => Promise<void>; 
+    setLoading: Dispatch<SetStateAction<boolean>>; 
+  }) => TableProps<TData>['expandable'];
 
   loading: boolean;
   setLoading: Dispatch<SetStateAction<boolean>>;
 
   hasDelete?: boolean;
-
+  // NEW: Allow passing custom actions that get access to the record and the refresh context
+  customActions?: (
+    record: TData, 
+    context: { fetchData: () => Promise<void>; setLoading: Dispatch<SetStateAction<boolean>> }
+  ) => ReactNode;
+  
   tableColumns: TableColumn[];
 
   currentRecord: TData | null;
@@ -113,6 +122,7 @@ export default function GenericTableView<
   searchPlaceholder = "Search...",
   tableDataEndpoint,
   onDataFetched = () => null,
+  expandable = undefined,
   loading,
   setLoading,
 
@@ -120,7 +130,7 @@ export default function GenericTableView<
   hasFilter = true,
   hasEdit = true,
   hasDelete = true,
-
+  customActions = undefined,
   renderCreateModal = () => null,
   renderFilterModal = () => null,
   renderEditModal = () => null,
@@ -132,7 +142,6 @@ export default function GenericTableView<
 
   generatedDeletePrompt,
   generatedDeleteEndpoint,
-  tableRowKey = "id",
 }: GenericTableViewProps<TData, TFilter>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -173,7 +182,6 @@ export default function GenericTableView<
       async onOk() {
         try {
           setLoading(true);
-
           const res = await fetch(generatedDeleteEndpoint(record), {
             method: "DELETE",
             credentials: "include",
@@ -193,21 +201,22 @@ export default function GenericTableView<
         }
       },
 
-      onCancel() {
-        message.error(`Error deleting ${resourceName}`);
-      },
+      onCancel() {},
     });
   };
 
   const columns: TableColumn[] = [
     ...tableColumns,
-    ...(hasEdit || hasDelete
+    ...(hasEdit || hasDelete || !!customActions
       ? [
           {
             title: "ACTIONS",
             key: "actions",
             render: (_: unknown, record: TData) => (
               <Space size="middle">
+                {/* Render any passed-in custom actions first */}
+                {customActions && customActions(record, { fetchData, setLoading })}
+
                 {hasEdit && (
                   <Button
                     type="text"
@@ -352,6 +361,7 @@ export default function GenericTableView<
               rowKey={resourceId}
               pagination={false}
               className="w-full"
+              expandable={expandable ? expandable({ fetchData, setLoading }) : undefined}
             />
             {hasEdit &&
               renderEditModal({

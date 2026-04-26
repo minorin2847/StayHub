@@ -1,15 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  Form,
-  Input,
-  Modal,
-  message,
-  Upload,
-  Empty,
-} from "antd";
+import { Button, Form, Input, Modal, message, Upload, Empty } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import {
   PlusOutlined,
@@ -77,7 +69,9 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
 
   const handleCancel = () => {
     const currentValues = form.getFieldsValue();
-    const isFormDirty = Object.keys(currentValues).some((key) => currentValues[key]);
+    const isFormDirty = Object.keys(currentValues).some(
+      (key) => currentValues[key],
+    );
     const hasImages = fileList.length > 0;
 
     if (isFormDirty || hasImages) {
@@ -116,17 +110,17 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
     try {
       setSubmitting(true);
 
-      const createRes = await fetch(`${API_URL}/employee/hotels`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          ...values,
-          branchid: values.branchid ? parseInt(values.branchid, 10) : null,
-          classification: values.classification || 0,
-          description: values.description || "",
-        }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/create`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        },
+      );
 
       if (!createRes.ok) {
         const errorText = await createRes.text();
@@ -146,17 +140,20 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
             formData.append("image", originFile);
             formData.append("isCover", String(file.uid === coverImageUid));
 
-            const res = await fetch(`${API_URL}/employee/hotels/${hotelId}/images`, {
-              method: "POST",
-              credentials: "include",
-              body: formData,
-            });
+            const res = await fetch(
+              `${API_URL}/employee/hotels/${hotelId}/images`,
+              {
+                method: "POST",
+                credentials: "include",
+                body: formData,
+              },
+            );
 
             if (!res.ok) {
               const errorText = await res.text();
               throw new Error(errorText || `Upload failed: ${file.name}`);
             }
-          })
+          }),
         );
       }
 
@@ -218,12 +215,13 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
         {/* Modal Body */}
         <div className="p-8 pb-0">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
             {/* Left: Gallery Preview */}
             <div className="lg:col-span-5">
               <div className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 flex flex-col gap-4 h-full">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-50">
-                  <h3 className="font-semibold text-slate-700">Gallery Preview</h3>
+                  <h3 className="font-semibold text-slate-700">
+                    Gallery Preview
+                  </h3>
                   <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">
                     {previewItems.length} photos
                   </span>
@@ -244,8 +242,13 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const currentIndex = previewItems.findIndex(img => img.url === selectedPreview);
-                              const newIndex = currentIndex > 0 ? currentIndex - 1 : previewItems.length - 1;
+                              const currentIndex = previewItems.findIndex(
+                                (img) => img.url === selectedPreview,
+                              );
+                              const newIndex =
+                                currentIndex > 0
+                                  ? currentIndex - 1
+                                  : previewItems.length - 1;
                               setSelectedPreview(previewItems[newIndex].url);
                             }}
                             className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/70 hover:bg-white backdrop-blur-sm shadow-md text-slate-700 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10"
@@ -257,8 +260,13 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const currentIndex = previewItems.findIndex(img => img.url === selectedPreview);
-                              const newIndex = currentIndex < previewItems.length - 1 ? currentIndex + 1 : 0;
+                              const currentIndex = previewItems.findIndex(
+                                (img) => img.url === selectedPreview,
+                              );
+                              const newIndex =
+                                currentIndex < previewItems.length - 1
+                                  ? currentIndex + 1
+                                  : 0;
                               setSelectedPreview(previewItems[newIndex].url);
                             }}
                             className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/70 hover:bg-white backdrop-blur-sm shadow-md text-slate-700 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10"
@@ -271,7 +279,9 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                   ) : (
                     <div className="flex flex-col items-center gap-3 text-slate-400">
                       <PictureOutlined className="text-4xl opacity-50" />
-                      <span className="text-sm font-medium">No image spotlighted</span>
+                      <span className="text-sm font-medium">
+                        No image spotlighted
+                      </span>
                     </div>
                   )}
                 </div>
@@ -285,7 +295,9 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                       <div
                         key={img.key}
                         className={`shrink-0 w-24 h-24 relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border-2 ${
-                          isSelected ? "border-blue-500 shadow-md scale-95" : "border-slate-200 hover:border-blue-300"
+                          isSelected
+                            ? "border-blue-500 shadow-md scale-95"
+                            : "border-slate-200 hover:border-blue-300"
                         }`}
                         onClick={() => setSelectedPreview(img.url)}
                       >
@@ -350,15 +362,17 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                               } as unknown as UploadFile);
                             }
                           });
-                          
+
                           // Select newest image automatically
                           const newest = updated[updated.length - 1];
                           if (newest && newest.originFileObj) {
-                             const newUrl = URL.createObjectURL(newest.originFileObj as Blob);
-                             (newest as any)._previewUrl = newUrl;
-                             setSelectedPreview(newUrl);
+                            const newUrl = URL.createObjectURL(
+                              newest.originFileObj as Blob,
+                            );
+                            (newest as any)._previewUrl = newUrl;
+                            setSelectedPreview(newUrl);
                           }
-                          
+
                           return updated;
                         });
                         return false;
@@ -376,9 +390,9 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
             {/* Right: Form Information */}
             <div className="lg:col-span-7">
               <div className="bg-white rounded-3xl p-6 shadow-[0_2px_12px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 h-full">
-                <Form 
-                  layout="vertical" 
-                  form={form} 
+                <Form
+                  layout="vertical"
+                  form={form}
                   onFinish={handleFinish}
                   requiredMark="optional"
                 >
@@ -389,38 +403,74 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                   <div className="grid grid-cols-2 gap-x-5 gap-y-1">
                     <Form.Item
                       name="name"
-                      label={<span className="font-medium text-slate-600">Hotel Name <span className="text-red-500">*</span></span>}
+                      label={
+                        <span className="font-medium text-slate-600">
+                          Hotel Name <span className="text-red-500">*</span>
+                        </span>
+                      }
                       rules={[{ required: true, message: "Required" }]}
                     >
-                      <Input size="large" className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200" placeholder="E.g. Azure Resort & Spa" />
+                      <Input
+                        size="large"
+                        className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200"
+                        placeholder="E.g. Azure Resort & Spa"
+                      />
                     </Form.Item>
 
                     <Form.Item
                       name="location"
-                      label={<span className="font-medium text-slate-600">Location <span className="text-red-500">*</span></span>}
+                      label={
+                        <span className="font-medium text-slate-600">
+                          Location <span className="text-red-500">*</span>
+                        </span>
+                      }
                       rules={[{ required: true, message: "Required" }]}
                     >
-                      <Input size="large" className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200" placeholder="E.g. Miami, FL" />
+                      <Input
+                        size="large"
+                        className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200"
+                        placeholder="E.g. Miami, FL"
+                      />
                     </Form.Item>
 
-                    <Form.Item 
-                      name="contact_email" 
-                      label={<span className="font-medium text-slate-600">Contact Email</span>}
+                    <Form.Item
+                      name="contact_email"
+                      label={
+                        <span className="font-medium text-slate-600">
+                          Contact Email
+                        </span>
+                      }
                     >
-                      <Input size="large" className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200" placeholder="contact@address.com" />
+                      <Input
+                        size="large"
+                        className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200"
+                        placeholder="contact@address.com"
+                      />
                     </Form.Item>
 
-                    <Form.Item 
-                      name="contact_phone" 
-                      label={<span className="font-medium text-slate-600">Contact Phone</span>}
+                    <Form.Item
+                      name="contact_phone"
+                      label={
+                        <span className="font-medium text-slate-600">
+                          Contact Phone
+                        </span>
+                      }
                     >
-                      <Input size="large" className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200" placeholder="+1 (305) 555-0123" />
+                      <Input
+                        size="large"
+                        className="rounded-xl bg-slate-50 hover:bg-white focus:bg-white border-slate-200"
+                        placeholder="+1 (305) 555-0123"
+                      />
                     </Form.Item>
 
                     <div className="col-span-2">
-                      <Form.Item 
-                        name="description" 
-                        label={<span className="font-medium text-slate-600">Description</span>}
+                      <Form.Item
+                        name="description"
+                        label={
+                          <span className="font-medium text-slate-600">
+                            Description
+                          </span>
+                        }
                       >
                         <Input.TextArea
                           rows={4}
@@ -433,7 +483,6 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
                 </Form>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -441,11 +490,13 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
         <div className="mt-8 px-8 py-5 bg-white border-t border-slate-100 flex items-center justify-between z-10 w-full relative">
           <div className="flex-1">
             {previewItems.length === 0 ? (
-              <span className="text-sm text-slate-400 font-medium">Ready when you are...</span>
+              <span className="text-sm text-slate-400 font-medium">
+                Ready when you are...
+              </span>
             ) : (
-                <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full">
-                  Ready to deploy
-                </span>
+              <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full">
+                Ready to deploy
+              </span>
             )}
           </div>
 
@@ -460,8 +511,8 @@ const CreateModal = ({ open, onClose, onSuccess }: CreateModalProps) => {
               Reset
             </Button>
 
-            <Button 
-              onClick={handleCancel} 
+            <Button
+              onClick={handleCancel}
               size="large"
               className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-medium"
             >

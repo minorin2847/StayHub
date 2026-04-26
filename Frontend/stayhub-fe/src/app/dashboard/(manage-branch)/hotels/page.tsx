@@ -142,7 +142,7 @@ export default function ManageHotels() {
                 currentRecord={currentRecord}
                 setCurrentRecord={setCurrentRecord}
                 generatedDeletePrompt={(record: Hotel) => `Do you want to delete ${record.name}?`}
-                generatedDeleteEndpoint={(record: Hotel) => `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/${record.id}`}
+                generatedDeleteEndpoint={(record: Hotel) => `${process.env.NEXT_PUBLIC_API_URL}/employee/hotels/delete/${record.id}`}
             />
 
         </div>

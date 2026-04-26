@@ -23,11 +23,13 @@ import hotelsRouter from "./api/hotels/hotels.routes.js";
 import branchRoute from "./api/branch/branch.routes.js";
 import roleRoutes from "./api/roles/roles.routes.js";
 import amenityRoute from "./api/amenities/amenity.routes.js";
+import policyRoute from "./api/policies/policy.routes.js";
 import { employeeBedRoute, publicBedRoute } from "./api/bed/bed.routes.js";
 import { privateServicesRoute } from "./api/services/services.routes.js";
 import { roomRoute } from "./api/rooms/room.routes.js";
 import { guestsRoute } from "./api/guests/guests.routes.js";
 import { bookingsRoute } from "./api/bookings/booking.routes.js";
+import { employeeReservesRoute, publicReservesRoute } from "./api/reserves/reserve.routes.js";
 
 /* Middleware */
 app.use(cors({ credentials: true, origin: process.env.FRONTEND_URL }));
@@ -45,6 +47,7 @@ user.use(passport.initialize());
 user.use(passport.session());
 user.use("/", userRoute);
 user.use("/auth", authRouter);
+user.use("/reserves", publicReservesRoute);
 app.use("/user", user);
 
 /* Employee routes */
@@ -52,8 +55,8 @@ const employee = Router();
 employee.use(initializeEmployeeSession());
 employee.use(passport.initialize());
 employee.use(passport.session());
-employee.use("/dashboard", dashboardRoute);
 employee.use("/", employeeRoute);
+employee.use("/dashboard", dashboardRoute);
 employee.use("/hotels", hotelsRouter);
 employee.use("/branches", branchRoute);
 employee.use("/roles", roleRoutes);
@@ -61,8 +64,10 @@ employee.use("/amenities", amenityRoute);
 employee.use("/beds", employeeBedRoute);
 employee.use("/services", privateServicesRoute);
 employee.use("/rooms", roomRoute);
+employee.use("/policies", policyRoute);
 employee.use("/guests", guestsRoute);
 employee.use("/bookings", bookingsRoute);
+employee.use("/reserves", employeeReservesRoute);
 app.use("/employee", employee);
 
 /* No login */
