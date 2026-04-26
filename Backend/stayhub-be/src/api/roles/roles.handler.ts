@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from "express";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import pgPromise from "pg-promise";
 
+
 const roleColumns = new (pgPromise().helpers.ColumnSet)(
   [
     { name: "name", skip: (c: any) => c.value === undefined },
