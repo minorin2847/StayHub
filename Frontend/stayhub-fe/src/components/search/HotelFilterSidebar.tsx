@@ -1,39 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Card, Checkbox, Slider, Tag } from "antd";
-import { MdKeyboardArrowDown } from "react-icons/md";
-import {
-  LuArmchair,
-  LuBath,
-  LuBedSingle,
-  LuBriefcaseBusiness,
-  LuCoffee,
-  LuCookingPot,
-  LuDumbbell,
-  LuFlame,
-  LuMapPinned,
-  LuMinus,
-  LuCircleParking,
-  LuPlus,
-  LuShirt,
-  LuTv,
-  LuUtensilsCrossed,
-  LuWaves,
-  LuWifi,
-  LuWind,
-} from "react-icons/lu";
-import { TbIroningSteam } from "react-icons/tb";
-import { PiHairDryerBold } from "react-icons/pi";
-import { GiBarbecue, GiSmokeBomb } from "react-icons/gi";
-import { TbAlarmSmoke, TbBuildingWarehouse, TbPool } from "react-icons/tb";
-import { IoWaterOutline } from "react-icons/io5";
-import { RiHotelBedLine } from "react-icons/ri";
-import { BiDrink } from "react-icons/bi";
-import { FaRegSnowflake } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { Card, Checkbox, Slider } from "antd";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-const { CheckableTag } = Tag;
+// UI Icons
+import { MdKeyboardArrowDown } from "react-icons/md";
+import { LuMinus, LuPlus } from "react-icons/lu";
+import { DynamicIcon } from "@/utils/amenityIconMap";
 
 const FILTER_CATEGORIES = [
   "Price Range",
@@ -42,15 +16,6 @@ const FILTER_CATEGORIES = [
   "Guest Review Score",
   "Property Classification",
   "Amenities",
-  "Booking Options",
-  "Payment Options",
-  "Property Type",
-  "Accessibility Features",
-];
-
-const PRICE_BARS = [
-  8, 10, 14, 18, 22, 28, 34, 40, 48, 58, 68, 82, 96, 100, 94, 82, 72, 60, 52,
-  45, 40, 36, 32, 28, 24, 20, 18, 15, 12, 10,
 ];
 
 const REVIEW_OPTIONS = [
@@ -70,191 +35,235 @@ const STAR_OPTIONS = [
   { value: "No rating", label: "No rating", count: 0 },
 ];
 
-const AMENITY_GROUPS = [
-  {
-    title: "Popular",
-    defaultOpen: true,
-    items: [
-      { key: "air-conditioning", label: "Air Conditioning", icon: LuWind },
-      { key: "wifi", label: "Wi-Fi", icon: LuWifi },
-      { key: "bbq", label: "BBQ Grill", icon: GiBarbecue },
-      { key: "washing-machine", label: "Washing machine", icon: LuShirt },
-      { key: "tv", label: "TV", icon: LuTv },
-      { key: "kitchen", label: "Kitchen", icon: LuCookingPot },
-    ],
-  },
-  {
-    title: "Essentials",
-    defaultOpen: true,
-    items: [
-      { key: "radiant-heating", label: "Radiant Heating", icon: FaRegSnowflake },
-      { key: "iron", label: "Iron", icon: TbIroningSteam  },
-      { key: "hair-dryer", label: "Hair Dryer", icon: PiHairDryerBold },
-      {
-        key: "workspace",
-        label: "Dedicated Workspace",
-        icon: LuBriefcaseBusiness,
-      },
-    ],
-  },
-  {
-    title: "On-site Services",
-    defaultOpen: false,
-    items: [
-      { key: "daily-housekeeping", label: "Daily Housekeeping", icon: LuBath },
-      { key: "front-desk", label: "24h Front Desk", icon: TbBuildingWarehouse },
-      { key: "airport-shuttle", label: "Airport Shuttle", icon: LuMapPinned },
-    ],
-  },
-  {
-    title: "Features",
-    defaultOpen: true,
-    items: [
-      { key: "breakfast", label: "Breakfast Included", icon: LuCoffee },
-      { key: "pool", label: "Pool", icon: TbPool },
-      { key: "hot-tub", label: "Hot Tub", icon: LuBath },
-      { key: "parking", label: "Free Parking", icon: LuCircleParking  },
-      { key: "cot", label: "Cot", icon: LuBedSingle },
-      { key: "wellness", label: "Wellness", icon: LuArmchair },
-      { key: "kingbed", label: "Kingbed", icon: RiHotelBedLine },
-      { key: "petrol", label: "Petrol Station", icon: IoWaterOutline },
-      { key: "gym", label: "Gym", icon: LuDumbbell },
-      { key: "family-room", label: "Family Room", icon: LuBedSingle },
-      { key: "bar", label: "Bar", icon: BiDrink },
-      { key: "tea-maker", label: "Tea/coffee Maker", icon: LuCoffee },
-      { key: "smoking", label: "Smoking Allowed", icon: GiSmokeBomb },
-      { key: "fireplace", label: "Indoor Fireplace", icon: LuFlame },
-      { key: "restaurant", label: "Restaurant", icon: LuUtensilsCrossed },
-    ],
-  },
-  {
-    title: "Location",
-    defaultOpen: true,
-    items: [
-      { key: "private-beach", label: "Private Beach Area", icon: LuWaves },
-      { key: "waterfront", label: "Waterfront", icon: IoWaterOutline },
-      { key: "balcony", label: "Balcony", icon: TbBuildingWarehouse },
-    ],
-  },
-  {
-    title: "Safety",
-    defaultOpen: true,
-    items: [
-      { key: "smoke-alarm", label: "Smoke Alarm", icon: TbAlarmSmoke },
-      { key: "carbon-alarm", label: "Carbon monoxide Alarm", icon: TbAlarmSmoke },
-    ],
-  },
+const SIZE_OPTIONS = [
+  { label: "Small (≤ 25 m²)", min: 0, max: 25 },
+  { label: "Medium (26–40 m²)", min: 26, max: 40 },
+  { label: "Large (≥ 41 m²)", min: 41, max: 9999 },
 ];
 
-type CounterKey = "beds";
+type CounterKey = "minAvailableRoom" | "minBedCount";
 
-export default function HotelFilterSidebar() {
+interface AmenityItem {
+  name: string;
+  icon: string;
+  hotel_count: number;
+}
+
+interface AmenityCategory {
+  category: string;
+  amenities_list: AmenityItem[];
+}
+
+interface HotelFilterSidebarProps {
+  priceHistogram?: number[];
+}
+
+// Helper to extract numeric values from review labels
+const parseReviewScore = (label: string) => {
+  if (label.includes("<")) return 0;
+  return parseFloat(label.match(/\d+\.\d+/)?.[0] || "0");
+};
+
+export default function HotelFilterSidebar({ priceHistogram = [] }: HotelFilterSidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // --- States ---
   const [openSections, setOpenSections] = useState<string[]>([
     "Price Range",
     "Rooms and Beds",
     "Room Size",
   ]);
   const [priceRange, setPriceRange] = useState<[number, number]>([200, 1500]);
-  const [roomCounts, setRoomCounts] = useState<Record<CounterKey, number>>({
-    beds: 0,
+  
+  const [roomCounts, setRoomCounts] = useState<Record<CounterKey, number>>({ 
+    minAvailableRoom: 0, 
+    minBedCount: 0 
   });
+  
   const [selectedRoomSizes, setSelectedRoomSizes] = useState<string[]>([]);
   const [selectedReviewScores, setSelectedReviewScores] = useState<string[]>([]);
-  const [selectedClassifications, setSelectedClassifications] = useState<
-    string[]
-  >([]);
+  const [selectedClassifications, setSelectedClassifications] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [openAmenityGroups, setOpenAmenityGroups] = useState<string[]>(
-    AMENITY_GROUPS.filter((group) => group.defaultOpen).map((group) => group.title),
-  );
 
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  // Fetched Data States
+  const [amenityGroups, setAmenityGroups] = useState<AmenityCategory[]>([]);
+  const [openAmenityGroups, setOpenAmenityGroups] = useState<string[]>([]);
 
+  // --- Fetch Amenities ---
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/amenities`);
+        if (res.ok) {
+          const data: AmenityCategory[] = await res.json();
+          setAmenityGroups(data);
+          setOpenAmenityGroups(data.map((group) => group.category));
+        }
+      } catch (error) {
+        console.error("Failed to fetch amenities", error);
+      }
+    };
+    fetchAmenities();
+  }, []);
+
+  // --- Sync State from URL Params ---
+  useEffect(() => {
+    // Sync Price
+    const minP = searchParams.get("minPrice");
+    const maxP = searchParams.get("maxPrice");
+    setPriceRange([minP ? Number(minP) : 200, maxP ? Number(maxP) : 1500]);
+
+    // Sync Counters
+    const minR = searchParams.get("minAvailableRoom");
+    const minB = searchParams.get("minBedCount");
+    setRoomCounts({
+      minAvailableRoom: minR ? Number(minR) : 0,
+      minBedCount: minB ? Number(minB) : 0,
+    });
+
+    // Sync Room Sizes
+    const minS = searchParams.get("minSize");
+    const maxS = searchParams.get("maxSize");
+    if (minS || maxS) {
+      const parsedMin = minS ? Number(minS) : 0;
+      const parsedMax = maxS ? Number(maxS) : 9999;
+      const matchedSizes = SIZE_OPTIONS.filter(
+        (opt) => opt.min >= parsedMin && opt.max <= parsedMax
+      ).map((opt) => opt.label);
+      setSelectedRoomSizes(matchedSizes);
+    } else {
+      setSelectedRoomSizes([]);
+    }
+
+    // Sync Review Scores
+    const minRev = searchParams.get("minReviewScore");
+    if (minRev) {
+      const parsedRev = Number(minRev);
+      const matched = REVIEW_OPTIONS.filter((opt) => parseReviewScore(opt) === parsedRev);
+      setSelectedReviewScores(matched);
+    } else {
+      setSelectedReviewScores([]);
+    }
+
+    // Sync Classifications
+    const classes = searchParams.getAll("classification");
+    setSelectedClassifications(
+      classes.map((c) => (Number(c) === 0 ? "No rating" : `${c}-star`))
+    );
+
+    // Sync Amenities
+    setSelectedAmenities(searchParams.getAll("amenities"));
+  }, [searchParams]);
+
+  // --- URL Update Helpers ---
   const updateUrl = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    // This pushes the new parameters to the URL without a full page reload
-    router.push(`${pathname}?${params.toString()}`);
+    if (value) params.set(key, value);
+    else params.delete(key);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
-  // UI toggle
+
+  const updateUrlMultiple = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== null && value !== "") params.set(key, value);
+      else params.delete(key);
+    });
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const updateUrlArray = (key: string, values: string[]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(key);
+    values.forEach((val) => params.append(key, val));
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // --- Toggles & Handlers ---
   const toggleSection = (category: string) => {
     setOpenSections((prev) =>
-      prev.includes(category)
-        ? prev.filter((item) => item !== category)
-        : [...prev, category],
+      prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]
     );
   };
 
   const toggleAmenityGroup = (title: string) => {
     setOpenAmenityGroups((prev) =>
-      prev.includes(title)
-        ? prev.filter((item) => item !== title)
-        : [...prev, title],
+      prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]
     );
   };
 
-
-  // Filter toggles
   const toggleAmenity = (value: string, checked: boolean) => {
-    const next = checked ? [...selectedAmenities, value] : selectedAmenities.filter((item) => item !== value);
-    setSelectedAmenities(next);
-    updateUrl("amenities", next.length > 0 ? next.join(",") : "");
+    const next = checked
+      ? [...selectedAmenities, value]
+      : selectedAmenities.filter((item) => item !== value);
+    updateUrlArray("amenities", next);
   };
 
-  const updateBedsCounter = (key: CounterKey, delta: number) => {
+  const updateCounter = (key: CounterKey, delta: number) => {
     const newValue = Math.max(0, roomCounts[key] + delta);
-    setRoomCounts((prev) => ({
-      ...prev,
-      [key]: newValue,
-    }));
     updateUrl(key, newValue > 0 ? String(newValue) : "");
   };
+
   const handleRoomSizeChange = (values: string[]) => {
-    setSelectedRoomSizes(values);
-    updateUrl("sizes", values.length > 0 ? values.join(",") : "");
+    if (values.length === 0) {
+      updateUrlMultiple({ minSize: null, maxSize: null });
+      return;
+    }
+    const selectedObjects = SIZE_OPTIONS.filter((opt) => values.includes(opt.label));
+    const minSize = Math.min(...selectedObjects.map((opt) => opt.min));
+    const maxSize = Math.max(...selectedObjects.map((opt) => opt.max));
+
+    updateUrlMultiple({
+      minSize: minSize > 0 ? String(minSize) : null,
+      maxSize: maxSize < 9999 ? String(maxSize) : null, 
+    });
   };
 
   const handleReviewChange = (values: string[]) => {
-    setSelectedReviewScores(values);
-    updateUrl("reviews", values.length > 0 ? values.join(",") : "");
+    if (values.length === 0) {
+      updateUrl("minReviewScore", "");
+      return;
+    }
+    const minScore = Math.min(...values.map(parseReviewScore));
+    updateUrl("minReviewScore", String(minScore));
   };
 
   const handleStarChange = (values: string[]) => {
-    setSelectedClassifications(values);
-    updateUrl("stars", values.length > 0 ? values.join(",") : "");
-  };
-  const counterLabel = (value: number) => {
-    return value === 0 ? "Any" : String(value);
+    const classVals = values.map((v) => (v === "No rating" ? "0" : parseInt(v).toString()));
+    updateUrlArray("classification", classVals);
   };
 
+  const counterLabel = (value: number) => (value === 0 ? "Any" : String(value));
 
+  const clearAllFilters = () => {
+    // Pushing the bare pathname immediately clears all URL search params, 
+    // which safely resets our UI state via the useEffect
+    router.push(pathname, { scroll: false });
+  };
+
+  // --- Render Functions ---
   const renderPriceRange = () => {
     const formatPrice = (value: number, isMax = false) => {
-      if (isMax && value >= 1500) {
-        return "$ 1,500+";
-      }
-
+      if (isMax && value >= 1500) return "$ 1,500+";
       return `$ ${value.toLocaleString("en-US")}`;
     };
+
+    const displayBars = (priceHistogram.length === 30 ? priceHistogram : Array(30).fill(0))
+      .map(val => Math.max(10, val));
+
     return (
       <div className="px-4 pb-6">
         <p className="text-[14px] font-medium text-slate-500">
           Nightly prices including fees and taxes
         </p>
-
         <div className="mt-5">
           <div className="relative h-[88px]">
             <div className="absolute inset-x-3 bottom-[28px] flex items-end gap-[2px]">
-              {PRICE_BARS.map((height, index) => {
-                const position = (index / (PRICE_BARS.length - 1)) * 1500;
-                const dark =
-                  position >= priceRange[0] && position <= priceRange[1];
+              {displayBars.map((height, index) => {
+                const position = (index / (displayBars.length - 1)) * 1500;
+                const dark = position >= priceRange[0] && position <= priceRange[1];
 
                 return (
                   <span
@@ -277,8 +286,10 @@ export default function HotelFilterSidebar() {
                 value={priceRange}
                 onChange={(value) => setPriceRange(value as [number, number])}
                 onChangeComplete={(value: number[]) => {
-                  updateUrl("minPrice", String(value[0]));
-                  updateUrl("maxPrice", String(value[1]));
+                  updateUrlMultiple({
+                    minPrice: String(value[0]),
+                    maxPrice: String(value[1])
+                  });
                 }}
                 tooltip={{ open: false }}
                 className="hotel-price-slider"
@@ -308,7 +319,8 @@ export default function HotelFilterSidebar() {
 
   const renderRoomsAndBeds = () => {
     const counters: { key: CounterKey; label: string }[] = [
-      { key: "beds", label: "Beds" },
+      { key: "minAvailableRoom", label: "Rooms" },
+      { key: "minBedCount", label: "Beds" },
     ];
 
     return (
@@ -321,7 +333,7 @@ export default function HotelFilterSidebar() {
 
             <div className="flex items-center gap-4">
               <button
-                onClick={() => updateBedsCounter(counter.key, -1)}
+                onClick={() => updateCounter(counter.key, -1)}
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition hover:text-slate-600"
               >
                 <LuMinus size={18} />
@@ -332,7 +344,7 @@ export default function HotelFilterSidebar() {
               </span>
 
               <button
-                onClick={() => updateBedsCounter(counter.key, 1)}
+                onClick={() => updateCounter(counter.key, 1)}
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-500 text-slate-700 transition hover:bg-slate-50"
               >
                 <LuPlus size={18} />
@@ -345,26 +357,20 @@ export default function HotelFilterSidebar() {
   };
 
   const renderRoomSize = () => {
-    const options = [
-      "Small (≤ 25 m²)",
-      "Medium (26–40 m²)",
-      "Large (≥ 41 m²)",
-    ];
-
     return (
       <div className="px-4 pb-6">
         <Checkbox.Group
           value={selectedRoomSizes}
-          onChange={(values) => handleRoomSizeChange(values)}
+          onChange={(values) => handleRoomSizeChange(values as string[])}
           className="flex flex-col gap-4"
         >
-          {options.map((option) => (
+          {SIZE_OPTIONS.map((option) => (
             <Checkbox
-              key={option}
-              value={option}
+              key={option.label}
+              value={option.label}
               className="text-[16px] font-medium text-slate-700"
             >
-              {option}
+              {option.label}
             </Checkbox>
           ))}
         </Checkbox.Group>
@@ -372,13 +378,12 @@ export default function HotelFilterSidebar() {
     );
   };
 
-
   const renderGuestReviewScore = () => {
     return (
       <div className="px-4 pb-6">
         <Checkbox.Group
           value={selectedReviewScores}
-          onChange={(values) => handleReviewChange(values)}
+          onChange={(values) => handleReviewChange(values as string[])}
           className="flex flex-col gap-3"
         >
           {REVIEW_OPTIONS.map((option) => (
@@ -397,10 +402,7 @@ export default function HotelFilterSidebar() {
 
   const renderPropertyClassification = () => {
     const renderStars = (count: number) => {
-      if (count === 0) {
-        return <span className="text-[15px] text-slate-300">☆☆☆☆☆</span>;
-      }
-
+      if (count === 0) return <span className="text-[15px] text-slate-300">☆☆☆☆☆</span>;
       return (
         <span className="text-[15px] tracking-[2px] text-[#f4b400]">
           {"★".repeat(count)}
@@ -413,7 +415,7 @@ export default function HotelFilterSidebar() {
       <div className="px-4 pb-6">
         <Checkbox.Group
           value={selectedClassifications}
-          onChange={(values) => handleStarChange(values)}
+          onChange={(values) => handleStarChange(values as string[])}
           className="flex flex-col gap-3"
         >
           {STAR_OPTIONS.map((option) => (
@@ -434,19 +436,23 @@ export default function HotelFilterSidebar() {
   };
 
   const renderAmenities = () => {
+    if (amenityGroups.length === 0) {
+      return <div className="px-4 pb-6 text-slate-500 text-sm">Loading amenities...</div>;
+    }
+
     return (
       <div className="space-y-1 px-4 pb-6">
-        {AMENITY_GROUPS.map((group) => {
-          const isOpen = openAmenityGroups.includes(group.title);
+        {amenityGroups.map((group) => {
+          const isOpen = openAmenityGroups.includes(group.category);
 
           return (
-            <div key={group.title}>
+            <div key={group.category}>
               <button
-                onClick={() => toggleAmenityGroup(group.title)}
+                onClick={() => toggleAmenityGroup(group.category)}
                 className="flex w-full items-center justify-between py-3 text-left focus:outline-none"
               >
                 <span className="text-[14.5px] font-semibold text-slate-800">
-                  {group.title}
+                  {group.category}
                 </span>
                 <MdKeyboardArrowDown
                   size={20}
@@ -458,14 +464,13 @@ export default function HotelFilterSidebar() {
 
               {isOpen ? (
                 <div className="flex flex-wrap gap-2.5 pb-2 pt-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const checked = selectedAmenities.includes(item.key);
+                  {group.amenities_list.map((item) => {
+                    const checked = selectedAmenities.includes(item.name);
 
                     return (
                       <button
-                        key={item.key}
-                        onClick={() => toggleAmenity(item.key, !checked)}
+                        key={item.name}
+                        onClick={() => toggleAmenity(item.name, !checked)}
                         className={`
                           flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200 focus:outline-none
                           ${
@@ -475,12 +480,12 @@ export default function HotelFilterSidebar() {
                           }
                         `}
                       >
-                        <Icon
+                        <DynamicIcon
+                          name={item.icon}
                           size={16}
                           className={checked ? "text-[#0051cb]" : "text-slate-500"}
                         />
-                        {/* whitespace-nowrap là class quan trọng nhất để giữ form pill không bị vỡ */}
-                        <span className="whitespace-nowrap">{item.label}</span>
+                        <span className="whitespace-nowrap">{item.name}</span>
                       </button>
                     );
                   })}
@@ -495,58 +500,24 @@ export default function HotelFilterSidebar() {
 
   const renderSectionContent = (category: string) => {
     switch (category) {
-      case "Price Range":
-        return renderPriceRange();
-      case "Rooms and Beds":
-        return renderRoomsAndBeds();
-      case "Room Size":
-        return renderRoomSize();
-      case "Guest Review Score":
-        return renderGuestReviewScore();
-      case "Property Classification":
-        return renderPropertyClassification();
-      case "Amenities":
-        return renderAmenities();
-      default:
-        return (
-          <div className="px-4 pb-4 text-sm text-slate-500">
-            <p>Options for {category} will go here...</p>
-          </div>
-        );
+      case "Price Range": return renderPriceRange();
+      case "Rooms and Beds": return renderRoomsAndBeds();
+      case "Room Size": return renderRoomSize();
+      case "Guest Review Score": return renderGuestReviewScore();
+      case "Property Classification": return renderPropertyClassification();
+      case "Amenities": return renderAmenities();
+      default: return null;
     }
-  };
-
-  const clearAllFilters = () => {
-    setPriceRange([200, 1500]);
-    setRoomCounts({ beds: 0 });
-    setSelectedAmenities([]);
-    setSelectedRoomSizes([]);
-    setSelectedReviewScores([]);
-    setSelectedClassifications([]);
-    router.push(pathname, { scroll: false });
   };
 
   return (
     <aside className="space-y-4">
-      {/* <Card className="w-full max-w-[280px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-sm mb-4!">
-        <div className="-m-6">
-          <div className="relative h-[220px] overflow-hidden bg-[#f6f6f7]">
-            <div className="relative flex h-full items-center justify-center p-5">
-              <button className="flex items-center gap-3 rounded-[20px] border-2 border-[#0051ff] bg-white px-7 py-4 text-[17px] font-semibold text-[#0051ff] shadow-sm transition hover:bg-blue-50">
-                <LuMapPinned size={24} />
-                Show on Map
-              </button>
-            </div>
-          </div>
-        </div>
-      </Card> */}
-
       <Card className="w-full max-w-[280px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="-m-6">
           <div className="flex items-center justify-between border-b border-slate-200 bg-white p-4">
             <h3 className="text-[15px] font-bold text-slate-700">Filter by:</h3>
             <button
-              onClick={() => clearAllFilters()}
+              onClick={clearAllFilters}
               className="text-sm text-slate-400 underline decoration-slate-300 underline-offset-2 transition-colors hover:text-slate-600"
             >
               Clear
@@ -561,9 +532,7 @@ export default function HotelFilterSidebar() {
               return (
                 <div
                   key={category}
-                  className={`flex flex-col ${
-                    !isLast ? "border-b border-slate-100" : ""
-                  }`}
+                  className={`flex flex-col ${!isLast ? "border-b border-slate-100" : ""}`}
                 >
                   <button
                     onClick={() => toggleSection(category)}
@@ -596,35 +565,27 @@ export default function HotelFilterSidebar() {
           border-radius: 4px;
           border-color: rgb(203 213 225);
         }
-
         .ant-checkbox-wrapper {
           align-items: center;
           margin-inline-start: 0 !important;
         }
-
         .ant-checkbox + span {
           padding-inline-start: 10px;
           font-size: 14px;
           color: rgb(51 65 85);
         }
-
- 
-
         .hotel-price-slider {
           margin: 0 !important;
           padding: 0 12px !important;
         }
-
         .hotel-price-slider .ant-slider-rail {
           height: 2px !important;
           background: #d7dce4 !important;
         }
-
         .hotel-price-slider .ant-slider-track {
           height: 2px !important;
           background: #23262f !important;
         }
-
         .hotel-price-slider .ant-slider-handle::after {
           width: 26px !important;
           height: 26px !important;
@@ -634,36 +595,10 @@ export default function HotelFilterSidebar() {
           box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12) !important;
           border: 1px solid rgb(226 232 240) !important;
         }
-
         .hotel-price-slider .ant-slider-handle:focus::after,
         .hotel-price-slider .ant-slider-handle:hover::after,
         .hotel-price-slider .ant-slider-handle-dragging::after {
           box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12) !important;
-        }
-
-        .hotel-distance-slider {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-
-        .hotel-distance-slider .ant-slider-rail {
-          height: 2px !important;
-          background: #d7dce4 !important;
-        }
-
-        .hotel-distance-slider .ant-slider-track {
-          height: 2px !important;
-          background: #23262f !important;
-        }
-
-        .hotel-distance-slider .ant-slider-handle::after {
-          width: 16px !important;
-          height: 16px !important;
-          inset-block-start: -7px !important;
-          inset-inline-start: -7px !important;
-          background: #23262f !important;
-          border: 3px solid white !important;
-          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12) !important;
         }
       `}</style>
     </aside>
