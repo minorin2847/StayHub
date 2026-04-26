@@ -100,6 +100,7 @@ SELECT h.id,
     h.name,
     h.classification,
     h.branchid,
+    h.city_abbreviation,
     h.location,
     h.description,
     h.contact_email,
@@ -255,3 +256,87 @@ SELECT
 FROM city_activity ca
 LEFT JOIN cities c ON c.abbreviation = ca.city_abbreviation
 WHERE ca.type = 'landmarks';
+
+
+CREATE OR REPLACE VIEW searchpage_view AS
+WITH bed_agg AS (
+    -- Combine beds into a readable string and sum total beds
+    SELECT room_typeID, 
+           string_agg(bed_count || ' ' || bed_name, ', ') AS roomtype_bed,
+           SUM(bed_count) AS total_beds
+    FROM room_type_beds
+    GROUP BY room_typeID
+),
+image_agg AS (
+    -- Aggregate image URLs
+    SELECT room_typeID, array_agg(image_url) AS roomtype_images
+    FROM room_type_images
+    GROUP BY room_typeID
+),
+room_agg AS (
+    -- Count how many physical rooms exist for each room type
+    SELECT typeID AS room_typeID, count(id) AS room_count
+    FROM rooms
+    GROUP BY typeID
+),
+hotel_reviews AS (
+    -- Calculate average rating and total review count per hotel
+    SELECT r.hotelID,
+           ROUND(AVG(rev.rating), 2) AS avg_room_rating,
+           COUNT(rev.id) AS review_count
+    FROM rooms r
+    JOIN reviews rev ON r.id = rev.roomID
+    GROUP BY r.hotelID
+),
+amenity_agg AS (
+    -- Aggregate amenities into an array for easy filtering
+    SELECT room_typeID, array_agg(amenity_name) AS roomtype_amenities
+    FROM room_type_amenities
+    GROUP BY room_typeID
+)
+SELECT 
+    -- Primary IDs
+    h.id AS hotelid,
+    rt.id AS roomtypeid,
+
+    -- Hotel Info
+    h.name AS hotel_name,
+    h.classification AS hotel_classification,
+    h.location AS hotel_location,
+    h.city_abbreviation AS hotel_city_abbreviation, -- ADDED ABBREVIATION HERE
+    c.name AS hotel_city,
+    
+    -- Review Info
+    COALESCE(hr.avg_room_rating, 0) AS avg_room_rating,
+    COALESCE(hr.review_count, 0) AS review_count,
+    
+    -- Room Type Info
+    rt.name AS roomtype_name,
+    rt.size AS roomtype_size,
+    b.roomtype_bed,
+    COALESCE(b.total_beds, 0) AS total_beds,
+    rt.capacity AS roomtype_capacity,
+    rt.base_price AS roomtype_base_price,
+    i.roomtype_images,
+    am.roomtype_amenities,
+    COALESCE(ra.room_count, 0) AS room_count,
+    
+    -- Deal Info
+    d.name AS deal_name,
+    d.startDate AS deal_starttime,
+    d.endDate AS deal_endtime,
+    d.price_discount AS deal_discount_price,
+
+    -- Calculated Final Price (Base Price - Discount, floored at 0)
+    GREATEST(0, rt.base_price - COALESCE(d.price_discount, 0)) AS final_price
+
+FROM roomTypes rt
+JOIN hotels h ON rt.hotelID = h.id
+LEFT JOIN cities c ON h.city_abbreviation = c.abbreviation
+LEFT JOIN bed_agg b ON rt.id = b.room_typeID
+LEFT JOIN image_agg i ON rt.id = i.room_typeID
+LEFT JOIN room_agg ra ON rt.id = ra.room_typeID
+LEFT JOIN hotel_reviews hr ON h.id = hr.hotelID
+LEFT JOIN amenity_agg am ON rt.id = am.room_typeID
+LEFT JOIN deals d ON rt.id = d.roomTypeID 
+    AND CURRENT_DATE BETWEEN d.startDate AND d.endDate;

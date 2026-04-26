@@ -1,31 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckOutlined } from "@ant-design/icons";
 import { Select } from "antd";
 import type { SelectProps } from "antd";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { LuLayoutGrid, LuList } from "react-icons/lu";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const sortOptions = [
-  { value: "recommended", label: "Recommended" },
-  { value: "distance", label: "Distance" },
-  { value: "top_reviewed", label: "Top Reviewed" },
+  { value: "highest_review", label: "Top Reviewed" },
   { value: "highest_price", label: "Highest Price" },
   { value: "lowest_price", label: "Lowest Price" },
-  { value: "star_rating", label: "Star Rating" },
+  { value: "high_classification", label: "Classification" },
 ];
 
 type HotelListHeaderProps = {
   viewMode?: "list" | "grid";
   onViewModeChange?: (mode: "list" | "grid") => void;
+  searchCount?: number;
+  cityName?: string | null;
 };
 
 export default function HotelListHeader({
   viewMode = "list",
   onViewModeChange,
+  searchCount = 0,
+  cityName,
 }: HotelListHeaderProps) {
-  const [selectedSort, setSelectedSort] = useState("top_reviewed");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Sync sorting with the URL parameter
+  const selectedSort = searchParams.get("sortBy") || "highest_review";
+  const abbreviation = searchParams.get("abbreviation");
+
+  const [fetchedCityName, setFetchedCityName] = useState<string | null>(null);
+
+  // Fetch city name if we have an abbreviation but no results (cityName is null)
+  useEffect(() => {
+    if (!cityName && abbreviation) {
+      const fetchCity = async () => {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cities/${abbreviation}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Assuming your API returns an object with a 'name' field (e.g., { name: "Hanoi" })
+            setFetchedCityName(data.name || abbreviation);
+          }
+        } catch (error) {
+          console.error("Failed to fetch city name:", error);
+        }
+      };
+      fetchCity();
+    } else {
+      // Clear fetched name if we don't need it
+      setFetchedCityName(null);
+    }
+  }, [abbreviation, cityName]);
+
+  const handleSortChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sortBy", value);
+    // Reset to page 1 when changing the sort order
+    params.set("page", "1");
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const optionRender: SelectProps["optionRender"] = (option) => {
     const selected = option.value === selectedSort;
@@ -52,12 +93,20 @@ export default function HotelListHeader({
     );
   };
 
+  // Determine dynamic title
+  // Priority: 1. Prop from search results -> 2. Fetched from API -> 3. Raw Abbreviation
+  const displayCity = cityName || fetchedCityName || abbreviation;
+
+  const title = abbreviation && displayCity
+    ? `Explore ${searchCount} Places in ${displayCity}`
+    : `Explore ${searchCount} Places around the World`;
+
   return (
     <div className="space-y-6">
       <div className="mb-2 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <h2 className="text-[24px] leading-tight font-bold tracking-tight text-slate-950 md:text-[26px]">
-            Explore 300+ Places in Barcelona
+            {title}
           </h2>
         </div>
       </div>
@@ -65,7 +114,7 @@ export default function HotelListHeader({
       <div className="flex items-center justify-between">
         <Select
           value={selectedSort}
-          onChange={setSelectedSort}
+          onChange={handleSortChange}
           options={sortOptions}
           optionRender={optionRender}
           labelRender={labelRender}

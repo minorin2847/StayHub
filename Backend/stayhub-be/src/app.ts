@@ -22,7 +22,7 @@ import employeeRoute from "./api/employee/employee.routes.js";
 import hotelsRouter from "./api/hotels/hotels.routes.js";
 import branchRoute from "./api/branch/branch.routes.js";
 import roleRoutes from "./api/roles/roles.routes.js";
-import amenityRoute from "./api/amenities/amenity.routes.js";
+import { amenityRoute, publicAmenity } from "./api/amenities/amenity.routes.js";
 import policyRoute from "./api/policies/policy.routes.js";
 import { employeeBedRoute, publicBedRoute } from "./api/bed/bed.routes.js";
 import { privateServicesRoute } from "./api/services/services.routes.js";
@@ -30,6 +30,8 @@ import { roomRoute } from "./api/rooms/room.routes.js";
 import { guestsRoute } from "./api/guests/guests.routes.js";
 import { bookingsRoute } from "./api/bookings/booking.routes.js";
 import { employeeReservesRoute, publicReservesRoute } from "./api/reserves/reserve.routes.js";
+import { cityRoutes } from "./api/cities/city.routes.js";
+import searchRoute from "./api/search/search.routes.js";
 
 /* Middleware */
 app.use(cors({ credentials: true, origin: process.env.FRONTEND_URL }));
@@ -75,6 +77,10 @@ app.use("/beds", publicBedRoute);
 app.use("/destinations", destinationRouter);
 app.use("/deals", dealsRouter);
 app.use("/sights", sightsRouter);
+app.use("/amenities", publicAmenity);
+app.use("/cities", cityRoutes);
+app.use("/search", searchRoute);
+
 app.use("/things", thingsRouter);
 app.use("/homeGuests", homeGuestsRouter);
 const server = app.listen(port, () => {
