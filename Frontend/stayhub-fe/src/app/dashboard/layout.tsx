@@ -17,9 +17,11 @@ export default function DashBoardLayout({
         <div className="min-h-screen bg-gradient-to-br bg-[oklch(1 0 0)] transition-all duration-500">
           <div className="flex h-screen overflow-hidden">
             <SideBar />
-            <div className="flex-1 flex flex-col coverflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col">
               <Header />
-              {children}
+              <main className="min-h-0 flex-1 overflow-y-auto">
+                {children}
+              </main>
             </div>
           </div>
         </div>
