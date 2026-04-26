@@ -340,3 +340,171 @@ LEFT JOIN hotel_reviews hr ON h.id = hr.hotelID
 LEFT JOIN amenity_agg am ON rt.id = am.room_typeID
 LEFT JOIN deals d ON rt.id = d.roomTypeID 
     AND CURRENT_DATE BETWEEN d.startDate AND d.endDate;
+
+
+CREATE OR REPLACE VIEW room_details_view AS
+WITH 
+-- 1. Aggregate Amenities for the Room Type
+room_amenities_agg AS (
+    SELECT 
+        rta.room_typeID,
+        jsonb_agg(jsonb_build_object(
+            'name', a.name,
+            'icon', a.icon,
+            'category', a.category
+        )) AS amenities
+    FROM room_type_amenities rta
+    JOIN amenities a ON rta.amenity_name = a.name
+    GROUP BY rta.room_typeID
+),
+
+-- 2. Aggregate Beds for the Room Type
+room_beds_agg AS (
+    SELECT 
+        room_typeID,
+        jsonb_agg(jsonb_build_object(
+            'name', bed_name,
+            'count', bed_count
+        )) AS beds
+    FROM room_type_beds
+    GROUP BY room_typeID
+),
+
+-- 3. Aggregate Images for the Room Type
+room_images_agg AS (
+    SELECT 
+        room_typeID,
+        jsonb_agg(image_url) AS previewimages
+    FROM room_type_images
+    GROUP BY room_typeID
+),
+
+-- 4. Aggregate Hotel Policies
+hotel_policies_agg AS (
+    SELECT 
+        hp.hotelID,
+        jsonb_agg(jsonb_build_object(
+            'name', p.name,
+            'icon', p.icon,
+            'description', p.description
+        )) AS policies
+    FROM hotel_policies hp
+    JOIN policies p ON hp.policy_name = p.name
+    GROUP BY hp.hotelID
+)
+
+SELECT 
+    -- Room Basic Info
+    rt.id AS room_id,
+    rt.hotelID AS hotel_id,
+    rt.name AS room_type, 
+    rt.description AS room_description,
+    rt.base_price AS price,
+    rt.size,
+    rt.capacity,
+    
+    -- Aggregated Room Data
+    COALESCE(ra.amenities, '[]'::jsonb) AS room_amenities,
+    COALESCE(rb.beds, '[]'::jsonb) AS room_beds,
+    COALESCE(ri.previewimages, '[]'::jsonb) AS previewimages,
+
+    -- Hotel Data (Joined with Cities)
+    h.name AS hotel_name,
+    h.classification AS hotel_classification,
+    h.location AS hotel_location,
+    c.name AS hotel_city, -- Pulled from cities table
+    h.city_abbreviation AS hotel_city_abbreviation, -- Pulled from hotels table
+    h.description AS hotel_description,
+    COALESCE(hp.policies, '[]'::jsonb) AS hotel_policies,
+
+    -- Summary Review Data
+    (SELECT COUNT(*) FROM reviews WHERE roomID = rt.id) AS total_reviews,
+    (SELECT ROUND(AVG(rating), 1) FROM reviews WHERE roomID = rt.id) AS avg_rating
+
+FROM roomTypes rt
+JOIN hotels h ON rt.hotelID = h.id
+LEFT JOIN cities c ON h.city_abbreviation = c.abbreviation -- Join to get city name
+LEFT JOIN room_amenities_agg ra ON rt.id = ra.room_typeID
+LEFT JOIN room_beds_agg rb ON rt.id = rb.room_typeID
+LEFT JOIN room_images_agg ri ON rt.id = ri.room_typeID
+LEFT JOIN hotel_policies_agg hp ON h.id = hp.hotelID;
+
+
+CREATE OR REPLACE VIEW hotel_other_rooms_view AS
+WITH 
+-- 1. Aggregate Amenities (top 6 for the carousel display)
+room_amenities_agg AS (
+    SELECT 
+        rta.room_typeID,
+        jsonb_agg(jsonb_build_object(
+            'name', a.name,
+            'icon', a.icon,
+            'category', a.category
+        )) AS amenities
+    FROM room_type_amenities rta
+    JOIN amenities a ON rta.amenity_name = a.name
+    GROUP BY rta.room_typeID
+),
+
+-- 2. Aggregate Beds
+room_beds_agg AS (
+    SELECT 
+        room_typeID,
+        jsonb_agg(jsonb_build_object(
+            'name', bed_name,
+            'count', bed_count
+        )) AS beds
+    FROM room_type_beds
+    GROUP BY room_typeID
+),
+
+-- 3. Aggregate Images
+room_images_agg AS (
+    SELECT 
+        room_typeID,
+        jsonb_agg(image_url) AS previewimages
+    FROM room_type_images
+    GROUP BY room_typeID
+),
+
+-- 4. Dynamic Pricing / Deals logic
+room_deals AS (
+    SELECT 
+        roomTypeID,
+        name AS deal_name,
+        price_discount
+    FROM deals
+    WHERE CURRENT_DATE BETWEEN startDate AND endDate
+)
+
+SELECT 
+    rt.hotelID AS hotel_id,
+    rt.id AS room_id,
+    rt.name AS room_type,
+    rt.description AS room_description,
+    rt.base_price AS price,
+    rt.size,
+    rt.capacity,
+    
+    -- Aggregated Room Data
+    COALESCE(ra.amenities, '[]'::jsonb) AS amenities,
+    COALESCE(rb.beds, '[]'::jsonb) AS beds,
+    COALESCE(ri.previewimages, '[]'::jsonb) AS previewimages,
+
+    -- Deal / Discount Data
+    COALESCE(d.price_discount, 0) AS discount_amount,
+    CASE 
+        WHEN rt.base_price > 0 THEN ROUND((COALESCE(d.price_discount, 0)::numeric / rt.base_price::numeric), 2)
+        ELSE 0 
+    END AS discount_percentage,
+    GREATEST(0, rt.base_price - COALESCE(d.price_discount, 0)) AS final_price,
+
+    -- Summary Review Data
+    COALESCE((SELECT COUNT(*) FROM reviews WHERE roomID = rt.id), 0) AS total_reviews,
+    COALESCE((SELECT ROUND(AVG(rating), 1) FROM reviews WHERE roomID = rt.id), 0) AS avg_rating
+
+FROM roomTypes rt
+LEFT JOIN room_amenities_agg ra ON rt.id = ra.room_typeID
+LEFT JOIN room_beds_agg rb ON rt.id = rb.room_typeID
+LEFT JOIN room_images_agg ri ON rt.id = ri.room_typeID
+LEFT JOIN room_deals d ON rt.id = d.roomTypeID;
