@@ -320,8 +320,7 @@ export async function getHotelImages(
             id,
             hotelid,
             image_path,
-            is_cover,
-            sort_order,
+            image_hash,
             created_at
           FROM hotel_images
           WHERE hotelid = $1

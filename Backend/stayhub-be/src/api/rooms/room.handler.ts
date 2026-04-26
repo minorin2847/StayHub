@@ -1,7 +1,13 @@
+import db from "@/database/db.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 import type { NextFunction, Request, Response } from "express";
 import { Room, RoomType } from "./room.js";
 import pgPromise from "pg-promise";
+import path from "node:path";
+import crypto from "node:crypto";
+import { supabaseAdmin } from "../../utils/initializeSession.js";
+
+const ROOM_IMAGES_BUCKET = "room-images";
 
 export async function getAllRoomTypes(req: Request, res: Response, next: NextFunction) {
     rlsWrapper(
@@ -249,3 +255,155 @@ export async function deleteRoom(req: Request, res: Response, next: NextFunction
         }
     );
 }
+
+export const uploadRoomImage = async (req: any, res: any) => {
+  try {
+    const { roomId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).send("No image uploaded");
+    }
+
+    const fileExt = req.file.originalname.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2)}.${fileExt}`;
+
+    const filePath = `rooms/${roomId}/${fileName}`;
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(ROOM_IMAGES_BUCKET)
+      .upload(filePath, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const created = await db.one(
+      `
+      INSERT INTO room_images (
+        roomid,
+        image_url
+      )
+      VALUES ($(roomId), $(filePath))
+      RETURNING *
+      `,
+      {
+        roomId: Number(roomId),
+        filePath,
+      }
+    );
+
+    return res.status(201).json(created);
+  } catch (error: any) {
+    console.error("uploadRoomImage error:", error);
+    return res.status(500).send(error.message || "Failed to upload room image");
+  }
+};
+
+export async function getRoomImages(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const user = (req as any).user;
+    const roomIdRaw = req.params.roomId;
+    const roomId = Number(roomIdRaw);
+
+    if (Number.isNaN(roomId) || roomId <= 0) {
+      return res.status(400).json({ message: "Invalid roomId" });
+    }
+
+    await rlsWrapper(
+      "get-all-room-images",
+      user,
+      async (t) => {
+        const rows = await t.manyOrNone(
+          `
+          SELECT
+            id,
+            roomid,
+            image_url,
+            image_hash,
+            created_at
+          FROM room_images
+          WHERE roomid = $1
+          ORDER BY id ASC
+          `,
+          [roomId]
+        );
+
+        return rows.map((row, index) => {
+          const { data } = supabaseAdmin.storage
+            .from(ROOM_IMAGES_BUCKET)
+            .getPublicUrl(row.image_url);
+
+          return {
+            ...row,
+            image_path: row.image_url,
+            image_url: data.publicUrl,
+            signed_url: data.publicUrl,
+            is_cover: index === 0,
+          };
+        });
+      },
+      (rows) => {
+        res.status(200).json(rows);
+      }
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const deleteRoomImage = async (req: any, res: any) => {
+  try {
+    const { roomId, imageId } = req.params;
+
+    const image = await db.oneOrNone(
+      `
+      SELECT *
+      FROM room_images
+      WHERE id = $(imageId)
+        AND roomid = $(roomId)
+      `,
+      {
+        imageId: Number(imageId),
+        roomId: Number(roomId),
+      }
+    );
+
+    if (!image) {
+      return res.status(404).send("Room image not found");
+    }
+
+    const { error: deleteStorageError } = await supabaseAdmin.storage
+      .from(ROOM_IMAGES_BUCKET)
+      .remove([image.image_url]);
+
+    if (deleteStorageError) {
+      throw deleteStorageError;
+    }
+
+    await db.none(
+      `
+      DELETE FROM room_images
+      WHERE id = $(imageId)
+        AND roomid = $(roomId)
+      `,
+      {
+        imageId: Number(imageId),
+        roomId: Number(roomId),
+      }
+    );
+
+    return res.json({ message: "Room image deleted successfully" });
+  } catch (error: any) {
+    console.error("deleteRoomImage error:", error);
+    return res.status(500).send(error.message || "Failed to delete room image");
+  }
+};

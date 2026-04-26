@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
-import { createRoom, createRoomType, deleteRoom, deleteRoomType, editRoom, editRoomType, getAllRooms, getAllRoomTypes } from "./room.handler.js";
+import { uploadImage } from "../../middlewares/upload.js";
+import { createRoom, createRoomType, deleteRoom, deleteRoomType, editRoom, editRoomType, getAllRooms, getAllRoomTypes, uploadRoomImage,
+  getRoomImages,
+  deleteRoomImage } from "./room.handler.js";
 
 const roomRoute = Router();
 
@@ -28,5 +31,28 @@ roomRoute.patch("/edit/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), editRo
 
 // DELETE /employee/rooms/delete/:id
 roomRoute.delete("/delete/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL']), deleteRoom);
+
+roomRoute.get(
+  "/:roomId/images",
+  isLoggedIn,
+  hasPermission(["MANAGE_ROOM", "MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+  getRoomImages
+);
+
+roomRoute.post(
+  "/:roomId/images",
+  isLoggedIn,
+  hasPermission(["MANAGE_ROOM", "MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+  uploadImage.single("image"),
+  uploadRoomImage
+);
+
+roomRoute.delete(
+  "/:roomId/images/:imageId",
+  isLoggedIn,
+  hasPermission(["MANAGE_ROOM", "MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+  deleteRoomImage
+);
+
 
 export { roomRoute };

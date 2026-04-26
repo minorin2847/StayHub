@@ -3,7 +3,7 @@ import { getHotels, createHotel, updateHotel, deleteHotel } from "./hotels.handl
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
 import { uploadImage } from "../../middlewares/upload.js";
-import { uploadHotelImage, getHotelImages, deleteHotelImage, setCoverImage } from "./hotels.handler.js";
+import { uploadHotelImage, getHotelImages, deleteHotelImage } from "./hotels.handler.js";
 
 const hotelsRoute = Router();
 
@@ -34,13 +34,6 @@ hotelsRoute.delete(
   isLoggedIn,
   hasPermission(["MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
   deleteHotelImage
-);
-
-hotelsRoute.put(
-  "/:hotelId/images/:imageId/cover",
-  isLoggedIn,
-  hasPermission(["MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
-  setCoverImage
 );
 
 export default hotelsRoute;
