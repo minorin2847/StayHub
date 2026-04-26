@@ -2,47 +2,148 @@ import { Router } from "express";
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
 import { uploadImage } from "../../middlewares/upload.js";
-import { createRoom, createRoomType, deleteRoom, deleteRoomType, editRoom, editRoomType, getAllRooms, getAllRoomTypes, uploadRoomImage,
+
+import {
+  createRoom,
+  editRoom,
+  deleteRoom,
+  getAllRooms,
+
+  createRoomType,
+  editRoomType,
+  deleteRoomType,
+  getAllRoomTypes,
+
+  uploadRoomImage,
   getRoomImages,
-  deleteRoomImage } from "./room.handler.js";
+  deleteRoomImage,
+} from "./room.handler.js";
 
 const roomRoute = Router();
 
-// GET /employee/rooms/types
-roomRoute.get("/types", isLoggedIn, getAllRoomTypes);
+const canManageRooms = hasPermission([
+  "MANAGE_ROOM",
+  "MANAGE_HOTEL",
+  "MANAGE_BRANCH",
+  "ADMINISTRATOR",
+]);
 
-// POST /employee/rooms/types/create
-roomRoute.post("/types/create", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), createRoomType);
+const canViewRooms = hasPermission([
+  "MANAGE_ROOM",
+  "MANAGE_HOTEL",
+  "MANAGE_BRANCH",
+  "ADMINISTRATOR",
+]);
 
-// PATCH /employee/rooms/types/edit/:id
-roomRoute.patch("/types/edit/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), editRoomType);
+/**
+ * ROOM TYPES
+ * Mounted under: /employee/rooms
+ *
+ * GET    /employee/rooms/types
+ * POST   /employee/rooms/types/create
+ * PATCH  /employee/rooms/types/edit/:id
+ * PUT    /employee/rooms/types/edit/:id
+ * DELETE /employee/rooms/types/delete/:id
+ */
+roomRoute.get(
+  "/types",
+  isLoggedIn,
+  canViewRooms,
+  getAllRoomTypes
+);
 
-// DELETE /employee/rooms/types/delete/:id
-roomRoute.delete("/types/delete/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), deleteRoomType);
+roomRoute.post(
+  "/types/create",
+  isLoggedIn,
+  canManageRooms,
+  createRoomType
+);
 
-// GET /employee/rooms
-roomRoute.get("/", isLoggedIn, getAllRooms);
+roomRoute.patch(
+  "/types/edit/:id",
+  isLoggedIn,
+  canManageRooms,
+  editRoomType
+);
 
-// POST /employee/rooms/create
-roomRoute.post("/create", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), createRoom);
+roomRoute.put(
+  "/types/edit/:id",
+  isLoggedIn,
+  canManageRooms,
+  editRoomType
+);
 
-// PATCH /employee/rooms/edit/:id
-roomRoute.patch("/edit/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), editRoom);
+roomRoute.delete(
+  "/types/delete/:id",
+  isLoggedIn,
+  canManageRooms,
+  deleteRoomType
+);
 
-// DELETE /employee/rooms/delete/:id
-roomRoute.delete("/delete/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL']), deleteRoom);
+/**
+ * ROOMS
+ * Mounted under: /employee/rooms
+ *
+ * GET    /employee/rooms
+ * POST   /employee/rooms/create
+ * PATCH  /employee/rooms/edit/:id
+ * PUT    /employee/rooms/edit/:id
+ * DELETE /employee/rooms/delete/:id
+ */
+roomRoute.get(
+  "/",
+  isLoggedIn,
+  canViewRooms,
+  getAllRooms
+);
 
+roomRoute.post(
+  "/create",
+  isLoggedIn,
+  canManageRooms,
+  createRoom
+);
+
+roomRoute.patch(
+  "/edit/:id",
+  isLoggedIn,
+  canManageRooms,
+  editRoom
+);
+
+roomRoute.put(
+  "/edit/:id",
+  isLoggedIn,
+  canManageRooms,
+  editRoom
+);
+
+roomRoute.delete(
+  "/delete/:id",
+  isLoggedIn,
+  canManageRooms,
+  deleteRoom
+);
+
+/**
+ * ROOM IMAGES
+ * Mounted under: /employee/rooms
+ *
+ * GET    /employee/rooms/:roomId/images
+ * POST   /employee/rooms/:roomId/images
+ * DELETE /employee/rooms/:roomId/images/:imageId
+ */
 roomRoute.get(
   "/:roomId/images",
   isLoggedIn,
-  hasPermission(["MANAGE_ROOM", "MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+  canViewRooms,
   getRoomImages
 );
 
 roomRoute.post(
   "/:roomId/images",
   isLoggedIn,
-  hasPermission(["MANAGE_ROOM", "MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+  canManageRooms,
   uploadImage.single("image"),
   uploadRoomImage
 );
@@ -50,9 +151,8 @@ roomRoute.post(
 roomRoute.delete(
   "/:roomId/images/:imageId",
   isLoggedIn,
-  hasPermission(["MANAGE_ROOM", "MANAGE_HOTEL", "MANAGE_BRANCH", "ADMINISTRATOR"]),
+  canManageRooms,
   deleteRoomImage
 );
-
 
 export { roomRoute };

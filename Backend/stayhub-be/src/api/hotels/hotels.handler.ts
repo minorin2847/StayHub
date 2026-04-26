@@ -324,19 +324,22 @@ export async function getHotelImages(
             created_at
           FROM hotel_images
           WHERE hotelid = $1
-          ORDER BY is_cover DESC, sort_order ASC, created_at ASC
+          ORDER BY id ASC
           `,
           [hotelId]
         );
 
-        return rows.map((row) => {
+        return rows.map((row, index) => {
           const { data } = supabaseAdmin.storage
             .from("hotel-images")
             .getPublicUrl(row.image_path);
 
           return {
             ...row,
+            image_path: row.image_path,
             image_url: data.publicUrl,
+            signed_url: data.publicUrl,
+            is_cover: index === 0,
           };
         });
       },
