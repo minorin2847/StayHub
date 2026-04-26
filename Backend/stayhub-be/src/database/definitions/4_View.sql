@@ -231,3 +231,27 @@ LEFT JOIN guests g ON r.guestID = g.id
 LEFT JOIN reserved_room rr ON r.id = rr.reserveID
 GROUP BY 
     r.id, g.first_name, g.last_name, r.guestID, r.userID, r.status, r.created_at;
+
+
+
+CREATE OR REPLACE VIEW vw_landmark_lowest_prices AS
+SELECT 
+    ca.name AS landmark_name,
+    c.name AS city_name,
+    -- Trích xuất phần tử đầu tiên của mảng images (PostgreSQL index bắt đầu từ 1)
+    ca.images[1] AS coverImage,
+    ca.description,
+    -- Truy vấn con (Subquery) để tìm giá thấp nhất tại thành phố của Landmark này
+    COALESCE (
+    (
+        SELECT MIN(GREATEST(0, rt.base_price - COALESCE(d.price_discount, 0)))
+        FROM hotels h
+        JOIN roomTypes rt ON h.id = rt.hotelID
+        -- LEFT JOIN deals nhưng chỉ ưu tiên những deal đang trong hạn (Active Deals)
+        LEFT JOIN deals d ON rt.id = d.roomTypeID 
+                          AND CURRENT_DATE BETWEEN d.startDate AND d.endDate
+        WHERE h.city_abbreviation = ca.city_abbreviation
+    ), 0) AS lowest_price
+FROM city_activity ca
+LEFT JOIN cities c ON c.abbreviation = ca.city_abbreviation
+WHERE ca.type = 'landmarks';
