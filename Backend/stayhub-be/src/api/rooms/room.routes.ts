@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
-import { createRoom, createRoomType, deleteRoom, deleteRoomType, editRoom, editRoomType, getAllRooms, getAllRoomTypes } from "./room.handler.js";
+import { createRoom, createRoomType, deleteRoom, deleteRoomType, editRoom, editRoomType, getAllRooms, getAllRoomTypes, getRoomTypePage } from "./room.handler.js";
 
 const roomRoute = Router();
+const publicRoomRoute = Router();
 
 // GET /employee/rooms/types
 roomRoute.get("/types", isLoggedIn, getAllRoomTypes);
@@ -29,4 +30,7 @@ roomRoute.patch("/edit/:id", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), editRo
 // DELETE /employee/rooms/delete/:id
 roomRoute.delete("/delete/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL']), deleteRoom);
 
-export { roomRoute };
+
+// GET /rooms/:id
+publicRoomRoute.get("/:id", getRoomTypePage);
+export { roomRoute, publicRoomRoute };
