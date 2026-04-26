@@ -201,7 +201,7 @@ const EditModal = ({ open, onClose, onSuccess, current }: EditModalProps) => {
       description: values.description || "",
     };
 
-    const res = await fetch(`${API_URL}/employee/hotels/${hotelId}`, {
+    const res = await fetch(`${API_URL}/employee/hotels/edit/${hotelId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
