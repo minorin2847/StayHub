@@ -20,12 +20,8 @@ BEGIN
         ALTER TABLE employees ADD CONSTRAINT check_employee_salary_positive CHECK (salary >= 0);
     END IF;
 
-    -- Content Uniques (Marketing Tables)
-    IF to_regclass('destinations') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_dest_name' AND conrelid = 'destinations'::regclass) THEN 
-        ALTER TABLE destinations ADD CONSTRAINT unique_dest_name UNIQUE (name, category);
-    END IF;
-    IF to_regclass('deals') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_deal_title' AND conrelid = 'deals'::regclass) THEN 
-        ALTER TABLE deals ADD CONSTRAINT unique_deal_title UNIQUE (title, location);
+    IF to_regclass('city_activity') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_city_activity_name_abbr' AND conrelid = 'city_activity'::regclass) THEN 
+        ALTER TABLE city_activity ADD CONSTRAINT uq_city_activity_name_abbr UNIQUE (name, city_abbreviation);
     END IF;
 
     --------------------------------------------------------------------------------
@@ -35,6 +31,11 @@ BEGIN
     -- Hotels -> Branch
     IF to_regclass('hotels') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotels_branch' AND conrelid = 'hotels'::regclass) THEN 
         ALTER TABLE hotels ADD CONSTRAINT fk_hotels_branch FOREIGN KEY (branchID) REFERENCES branch (id) ON DELETE SET NULL;
+    END IF;
+    
+    -- Hotels -> City
+    IF to_regclass('hotels') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotels_city' AND conrelid = 'hotels'::regclass) THEN 
+        ALTER TABLE hotels ADD CONSTRAINT fk_hotels_city FOREIGN KEY (city_abbreviation) REFERENCES cities (abbreviation) ON DELETE SET NULL;
     END IF;
 
     -- RoomTypes -> Hotels
@@ -95,10 +96,23 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_res_user' AND conrelid = 'reserves'::regclass) THEN 
             ALTER TABLE reserves ADD CONSTRAINT fk_res_user FOREIGN KEY (userID) REFERENCES users (id) ON DELETE CASCADE;
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_res_room' AND conrelid = 'reserves'::regclass) THEN 
-            ALTER TABLE reserves ADD CONSTRAINT fk_res_room FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
+    END IF;
+
+    IF to_regclass('reserves') IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_res_guest' AND conrelid = 'reserves'::regclass) THEN 
+            ALTER TABLE reserves ADD CONSTRAINT fk_res_guest FOREIGN KEY (guestID) REFERENCES guests (id) ON DELETE CASCADE;
         END IF;
     END IF;
+
+        -- Foreign Key: reserved_room -> reserves
+        IF to_regclass('reserved_room') IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM pg_constraint 
+            WHERE conname = 'fk_reserved_room_reserve' AND conrelid = 'reserved_room'::regclass
+        ) THEN 
+            ALTER TABLE reserved_room 
+            ADD CONSTRAINT fk_reserved_room_reserve 
+            FOREIGN KEY (reserveID) REFERENCES reserves (id) ON DELETE CASCADE;
+        END IF;  
 
     IF to_regclass('reviews') IS NOT NULL THEN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rev_user' AND conrelid = 'reviews'::regclass) THEN 
@@ -118,12 +132,7 @@ BEGIN
         FOREIGN KEY (guestID) REFERENCES guests (id) ON DELETE CASCADE;
     END IF;
 
-    -- 2. Link Booking to Rooms
-    IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_book_room' AND conrelid = 'booking'::regclass) THEN 
-        ALTER TABLE booking 
-        ADD CONSTRAINT fk_book_room 
-        FOREIGN KEY (roomID) REFERENCES rooms (id) ON DELETE CASCADE;
-    END IF;
+
 
     -- 3. Link Booking to the Online Reservation (reserves table)
     IF to_regclass('booking') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_book_reserve' AND conrelid = 'booking'::regclass) THEN 
@@ -141,6 +150,17 @@ BEGIN
         ADD CONSTRAINT fk_book_hotel 
         FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
     END IF;
+
+
+    IF to_regclass('booked_room') IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'fk_booked_room_booking' AND conrelid = 'booked_room'::regclass
+    ) THEN 
+        ALTER TABLE booked_room 
+        ADD CONSTRAINT fk_booked_room_booking 
+        FOREIGN KEY (bookingID) REFERENCES booking (id) ON DELETE CASCADE;
+    END IF;
+
 
     -- Guests
     --   Link Guests to Hotels
@@ -169,6 +189,17 @@ BEGIN
 
     IF to_regclass('shifts') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_shift_emp' AND conrelid = 'shifts'::regclass) THEN 
         ALTER TABLE shifts ADD CONSTRAINT fk_shift_emp FOREIGN KEY (employeeID) REFERENCES employees (id) ON DELETE CASCADE;
+    END IF;
+
+
+    IF to_regclass('city_activity') IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_city' AND conrelid = 'city_activity'::regclass) THEN
+            ALTER TABLE city_activity 
+            ADD CONSTRAINT fk_city 
+            FOREIGN KEY (city_abbreviation) 
+            REFERENCES cities(abbreviation) 
+            ON DELETE CASCADE;
+        END IF;
     END IF;
 
     --------------------------------------------------------------------------------
@@ -227,4 +258,8 @@ BEGIN
         ALTER TABLE room_type_images ADD CONSTRAINT fk_rti_type FOREIGN KEY (room_typeID) REFERENCES roomTypes (id) ON DELETE CASCADE;
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_deals_rt' AND conrelid = 'deals'::regclass) THEN 
+            ALTER TABLE deals ADD CONSTRAINT fk_deals_rt FOREIGN KEY (roomtypeid) REFERENCES roomTypes (id) ON UPDATE CASCADE;
+    END IF;
 END $$;
+

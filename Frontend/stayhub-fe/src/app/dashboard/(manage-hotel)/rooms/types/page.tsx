@@ -34,13 +34,16 @@ export default function RoomTypeView() {
 
     const fetchMasterData = async () => {
 
-        const [resBed] = await Promise.all([
-            //fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/amenities`, { credentials: "include" }),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/hotels/beds`, { credentials: "include" })
+        const [resBed, resAme] = await Promise.all([
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/hotels/beds`, { credentials: "include" }),
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/amenities/hotel-list`, { credentials: "include" })
         ]);
-        //setAmenities(await resAme.json());
+
         const bedResponse = await resBed.json();
         setBeds(bedResponse.response.map((i: {bed_name: string; total_qty: number})=>({name: i.bed_name})));
+
+        const ameResponse = await resAme.json();
+        setAmenities(ameResponse.response || []);
     };
 
     return (

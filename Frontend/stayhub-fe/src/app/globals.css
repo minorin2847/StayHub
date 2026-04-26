@@ -129,3 +129,13 @@ html, body {
     @apply bg-background text-foreground;
     }
 }
+
+/* Custom themes */
+.nested-room-table .ant-table {
+    background: transparent !important;
+}
+.nested-room-table .ant-table-thead > tr > th {
+    background: #f8fafc !important; /* slate-50 */
+    font-size: 11px;
+    color: #94a3b8; /* slate-400 */
+}
