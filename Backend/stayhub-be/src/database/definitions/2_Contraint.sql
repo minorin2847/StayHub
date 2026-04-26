@@ -20,12 +20,8 @@ BEGIN
         ALTER TABLE employees ADD CONSTRAINT check_employee_salary_positive CHECK (salary >= 0);
     END IF;
 
-    -- Content Uniques (Marketing Tables)
-    IF to_regclass('destinations') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_dest_name' AND conrelid = 'destinations'::regclass) THEN 
-        ALTER TABLE destinations ADD CONSTRAINT unique_dest_name UNIQUE (name, category);
-    END IF;
-    IF to_regclass('deals') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_deal_title' AND conrelid = 'deals'::regclass) THEN 
-        ALTER TABLE deals ADD CONSTRAINT unique_deal_title UNIQUE (title, location);
+    IF to_regclass('city_activity') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_city_activity_name_abbr' AND conrelid = 'city_activity'::regclass) THEN 
+        ALTER TABLE city_activity ADD CONSTRAINT uq_city_activity_name_abbr UNIQUE (name, city_abbreviation);
     END IF;
 
     --------------------------------------------------------------------------------
@@ -35,6 +31,11 @@ BEGIN
     -- Hotels -> Branch
     IF to_regclass('hotels') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotels_branch' AND conrelid = 'hotels'::regclass) THEN 
         ALTER TABLE hotels ADD CONSTRAINT fk_hotels_branch FOREIGN KEY (branchID) REFERENCES branch (id) ON DELETE SET NULL;
+    END IF;
+    
+    -- Hotels -> City
+    IF to_regclass('hotels') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_hotels_city' AND conrelid = 'hotels'::regclass) THEN 
+        ALTER TABLE hotels ADD CONSTRAINT fk_hotels_city FOREIGN KEY (city_abbreviation) REFERENCES cities (abbreviation) ON DELETE SET NULL;
     END IF;
 
     -- RoomTypes -> Hotels
@@ -190,6 +191,17 @@ BEGIN
         ALTER TABLE shifts ADD CONSTRAINT fk_shift_emp FOREIGN KEY (employeeID) REFERENCES employees (id) ON DELETE CASCADE;
     END IF;
 
+
+    IF to_regclass('city_activity') IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_city' AND conrelid = 'city_activity'::regclass) THEN
+            ALTER TABLE city_activity 
+            ADD CONSTRAINT fk_city 
+            FOREIGN KEY (city_abbreviation) 
+            REFERENCES cities(abbreviation) 
+            ON DELETE CASCADE;
+        END IF;
+    END IF;
+
     --------------------------------------------------------------------------------
     -- PHASE 5: JUNCTION TABLES & ASSET TABLES
     --------------------------------------------------------------------------------
@@ -246,4 +258,8 @@ BEGIN
         ALTER TABLE room_type_images ADD CONSTRAINT fk_rti_type FOREIGN KEY (room_typeID) REFERENCES roomTypes (id) ON DELETE CASCADE;
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_deals_rt' AND conrelid = 'deals'::regclass) THEN 
+            ALTER TABLE deals ADD CONSTRAINT fk_deals_rt FOREIGN KEY (roomtypeid) REFERENCES roomTypes (id) ON UPDATE CASCADE;
+    END IF;
 END $$;
+

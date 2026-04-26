@@ -3,6 +3,7 @@ import Container from "../ui/Container";
 import Image from "next/image";
 import { TiWeatherSnow, TiWeatherSunny } from "react-icons/ti";
 import { GiChestnutLeaf, GiFlowerEmblem } from "react-icons/gi";
+import { Carousel } from "antd";
 
 type Destination = {
   id: number;
@@ -90,46 +91,70 @@ const TrendingDestination = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-6">
+        <div className="w-full h-[400px]">
           {loading
-            ? (Array(4)
-                .fill(0)
-                .map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-[400px] w-full rounded-[20px] bg-gray-200 animate-pulse"
-                  ></div>
-                )))
-            : destinations.length>0 ? (destinations.map((item) => (
-                <div
-                  key={item.id}
-                  className="group relative h-[400px] w-full rounded-[20px] overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-shadow"
-                >
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
+            ? (
+              <div className="grid grid-cols-4 w-full h-full gap-x-4">
+                {
+                  Array(4)
+                    .fill(0)
+                    .map((_, index) => (
+                      <div
+                        key={index}
+                        className="w-full h-full rounded-[20px] bg-gray-200 animate-pulse"
+                      ></div>
+                    ))
+                }
+              </div>
+            )
+            : destinations.length > 0 ? (
+              <Carousel
+                dots={false}
+                arrows={false}
+                slidesToShow={4}
+                slidesToScroll={1}
+                autoplay
+                autoplaySpeed={4000}
+                className="w-full h-full"
+              >
+                {destinations.map((item) => (
+                  /* Thẻ div bọc ngoài này giúp tạo khoảng cách (gap) giữa các slide bằng px-2 (padding ngang) */
+                  <div key={item.id} className="px-2">
+                    <div className="group relative w-full h-[400px] rounded-[20px] overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-shadow">
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90"></div>
+                      <img
+                        src={item.coverimage}
+                        alt={item.landmark_name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
 
-                  <div className="absolute bottom-0 left-0 w-full p-6 text-white">
-                    <h3 className="text-2xl font-bold mb-1">{item.name}</h3>
-                    <div className="flex items-center gap-1 mb-2">
-                      <span className="text-gray-300 text-sm">From</span>
-                      <span className="text-yellow-400 font-bold text-lg">
-                        ${item.price}/night
-                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90"></div>
+
+                      <div className="absolute bottom-0 left-0 w-full p-6 text-white">
+                        <h3 className="text-2xl font-bold mb-1">{item.landmark_name}</h3>
+                        <h3 className="text-md mb-1">{item.city_name}</h3>
+
+                        <div className="flex items-center gap-1 mb-2">
+                          <span className="text-gray-300 text-sm">From</span>
+                          <span className="text-yellow-400 font-bold text-lg">
+                            {/* Định dạng lại giá tiền nếu cần, hoặc giữ nguyên */}
+                            ${item.lowest_price}/night
+                          </span>
+                        </div>
+
+                        <p className="text-gray-300 text-sm line-clamp-1">
+                          {item.description}
+                        </p>
+                      </div>
+
                     </div>
-                    <p className="text-gray-300 text-sm line-clamp-1">
-                      {item.description}
-                    </p>
                   </div>
-                </div>
-              ))): (
-                <p className="col-span-full text-center text-gray-500">Không tìm thấy điểm đến nào.</p>
-              )}
+                ))}
+              </Carousel>
+
+            ) : (
+              <p className="col-span-full text-center text-gray-500">Không tìm thấy điểm đến nào.</p>
+            )}
         </div>
       </Container>
     </section>
