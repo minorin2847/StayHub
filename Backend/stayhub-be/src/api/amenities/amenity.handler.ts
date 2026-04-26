@@ -3,6 +3,42 @@ import type { NextFunction, Request, Response } from "express";
 import Amenity from "./amenity.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 
+export async function getAllAmenities(req: Request, res: Response, next: NextFunction) {
+  try {
+    const query = `
+        WITH AmenityCounts AS (
+    -- Step 1: Calculate the hotel_count for every amenity
+    SELECT 
+        a.name,
+        a.icon,
+        a.category,
+        COUNT(ha.hotelID) AS hotel_count
+    FROM amenities a
+    LEFT JOIN hotel_amenities ha ON a.name = ha.amenity_name
+    GROUP BY a.name, a.icon, a.category
+)
+-- Step 2: Aggregate the amenities into their respective categories
+SELECT 
+    category,
+    json_agg(
+        json_build_object(
+            'name', name,
+            'icon', icon,
+            'hotel_count', hotel_count
+        ) ORDER BY hotel_count DESC, name ASC -- Sorts most popular amenities first
+    ) AS amenities_list
+FROM AmenityCounts
+GROUP BY category
+ORDER BY category ASC;
+        `
+    // In a real app, you would fetch this from a database
+    const result = await db.manyOrNone(query, []);
+    return res.status(200).json(result)
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving amenities", error });
+  }
+}
+
 // Helper to find Amenity
 export async function findAmenityByName(name: string): Promise<Amenity | null> {
   const amenity = await db.oneOrNone(
