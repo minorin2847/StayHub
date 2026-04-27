@@ -5,8 +5,6 @@ import {
   updateHotel,
   deleteHotel,
   getOtherRoomsInHotel,
-  getPublicHotelDetail,
-  getPublicRoomDetail,
   setCoverImage,
 } from "./hotels.handler.js";
 import { isLoggedIn } from "../auth/auth.handler.js";
@@ -52,8 +50,6 @@ hotelsRoute.put(
   setCoverImage
 );
 
-publicHotelRoute.get("/:hotel_id/rooms/:room_type_id", getPublicRoomDetail);
-publicHotelRoute.get("/:hotel_id", getPublicHotelDetail);
 publicHotelRoute.get("/:hotel_id/other-rooms", getOtherRoomsInHotel);
 
 export default hotelsRoute;

@@ -159,16 +159,16 @@ export default function RoomReserve({ roomData, bookingDates }: RoomReserveProps
         footer={null}
         onCancel={() => setIsModalOpen(false)}
         centered
-        width={500}
+        width={700}
       >
         <Result
           status="success"
           title="Room added to your reservation cart"
-          subTitle={`Your stay at ${roomData.hotel_name} is ready for checkout.`}
+          subTitle={`Your stay at ${roomData.hotel_name} is added to the reservation cart.`}
           extra={[
-            <Link href="/checkout" key="checkout">
+            <Link href={`/search?abbreviation=${roomData.hotel_city_abbreviation}`} key="explore">
               <Button type="primary" className="rounded-md">
-                Continue to checkout
+                Exploring more rooms in {roomData.hotel_city}
               </Button>
             </Link>,
             <Link href="/cart" key="cart">

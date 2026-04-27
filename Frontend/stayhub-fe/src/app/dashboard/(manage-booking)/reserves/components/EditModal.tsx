@@ -63,15 +63,6 @@ const EditReservedRoomModal = ({ open, onClose, onSuccess, current, rooms, roomT
     const onSelectRoom = (_value: string, option: RoomOption) => {
         const roomId = option.id;
         form.setFieldsValue({ roomID: roomId });
-
-        const selectedRoomData = rooms.find((room) => room.id === roomId);
-        if (selectedRoomData) {
-            const matchingType = roomTypes.find((roomType) => roomType.id === selectedRoomData.typeid);
-            if (matchingType) {
-                form.setFieldsValue({ final_price: matchingType.base_price });
-                message.info(`Price adjusted to ${matchingType.name} base rate.`);
-            }
-        }
     };
 
     const handleFinish = async (values: EditReservedRoomFormValues) => {

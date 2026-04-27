@@ -544,9 +544,9 @@ DO $$ BEGIN IF NOT EXISTS (
         string_to_array(current_setting('app.roles', true), ',')
     )
     OR (
-        'MANAGE_HOTEL' = ANY(
-            string_to_array(current_setting('app.roles', true), ',')
-        )
+        -- 2. Explicitly deny MANAGE_BRANCH
+        NOT ('MANAGE_BRANCH' = ANY(string_to_array(current_setting('app.roles', true), ',')))
+        -- 3. Everyone else can access their respective hotel
         AND hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
     )
 );

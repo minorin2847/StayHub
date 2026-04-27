@@ -398,6 +398,27 @@ AND NOT EXISTS (
 ALTER TABLE hotel_images
 ADD CONSTRAINT fk_hi_hotel FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
 END IF;
+
+IF to_regclass('hotel_beds') IS NOT NULL THEN IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'fk_hb_hotel'
+        AND conrelid = 'hotel_beds'::regclass
+) THEN
+ALTER TABLE hotel_beds
+ADD CONSTRAINT fk_hb_hotel FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+END IF;
+END IF;
+IF to_regclass('hotel_beds') IS NOT NULL THEN IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'fk_hb_beds'
+        AND conrelid = 'hotel_beds'::regclass
+) THEN
+ALTER TABLE hotel_beds
+ADD CONSTRAINT fk_hb_beds FOREIGN KEY (bed_name) REFERENCES beds (name) ON DELETE CASCADE;
+END IF;
+END IF;
 -- RoomType Assets
 IF to_regclass('room_type_amenities') IS NOT NULL THEN IF NOT EXISTS (
     SELECT 1

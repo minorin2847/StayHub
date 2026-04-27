@@ -66,7 +66,7 @@ export default function CartPage() {
           Select an available room from a hotel detail page and it will appear here before checkout.
         </p>
         <Link
-          href="/hotels"
+          href="/search"
           className="mt-8 rounded-2xl bg-[#0057FF] px-6 py-3 text-sm font-semibold text-white"
         >
           Explore hotels

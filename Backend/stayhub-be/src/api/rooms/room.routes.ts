@@ -32,6 +32,7 @@ const canManageRooms = hasPermission([
 ]);
 
 const canViewRooms = hasPermission([
+  "MANAGE_BOOKING",
   "MANAGE_ROOM",
   "MANAGE_HOTEL",
   "MANAGE_BRANCH",

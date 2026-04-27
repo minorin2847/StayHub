@@ -27,7 +27,7 @@ export default function ConfirmPage() {
           View trips
         </Link>
         <Link
-          href="/hotels"
+          href="/search"
           className="rounded-2xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700"
         >
           Continue searching
