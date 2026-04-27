@@ -11,9 +11,9 @@ export default function MainLayout({
     <div className="flex flex-col min-h-screen">
       <AuthProvider>
         <MainHeader />
-      </AuthProvider>
       {children}
       <MainFooter />
+      </AuthProvider>
     </div>
   );
 }
