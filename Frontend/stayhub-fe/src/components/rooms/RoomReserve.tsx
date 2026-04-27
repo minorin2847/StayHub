@@ -5,7 +5,8 @@ import { Button, Input, InputNumber, message, Modal, Result } from "antd";
 import { IoPeopleOutline } from "react-icons/io5";
 import dayjs from "dayjs";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext"; // Ensure this path is correct
+import { useAuth } from "@/context/AuthContext";
+import { addRoomToCart } from "@/services/publicStay";
 
 interface RoomReserveProps {
   roomData: any;
@@ -16,7 +17,7 @@ interface RoomReserveProps {
 }
 
 export default function RoomReserve({ roomData, bookingDates }: RoomReserveProps) {
-  const { isAuthenticated } = useAuth(); // Hook to check login status
+  const { isAuthenticated } = useAuth();
   const [numGuests, setNumGuests] = useState(roomData.capacity || 1);
   const [specialRequests, setSpecialRequests] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,33 +31,23 @@ export default function RoomReserve({ roomData, bookingDates }: RoomReserveProps
 
   const handleReserve = async () => {
     if (!isAuthenticated) return;
-    
+
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/reserves/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          hotelID: roomData.hotel_id,
-          roomTypeID: roomData.id,
-          checkin_date: dayjs(bookingDates.from).format("YYYY-MM-DD"),
-          checkout_date: dayjs(bookingDates.to).format("YYYY-MM-DD"),
-          num_guests: numGuests,
-          final_price: finalPrice,
-          special_requests: specialRequests,
-        }),
+      await addRoomToCart({
+        hotelID: roomData.hotel_id,
+        roomTypeID: roomData.id,
+        checkin_date: dayjs(bookingDates.from).format("YYYY-MM-DD"),
+        checkout_date: dayjs(bookingDates.to).format("YYYY-MM-DD"),
+        num_adults: numGuests,
+        num_children: 0,
+        final_price: finalPrice,
+        special_requests: specialRequests,
       });
-
-      if (response.ok) {
-        setIsModalOpen(true);
-      } else {
-        const errData = await response.json();
-        message.error(errData.message || "Failed to process reservation.");
-      }
+      setIsModalOpen(true);
     } catch (error) {
       console.error("Reservation Error:", error);
-      message.error("Network error. Please try again.");
+      message.error(error instanceof Error ? error.message : "Failed to process reservation.");
     } finally {
       setLoading(false);
     }
@@ -131,11 +122,12 @@ export default function RoomReserve({ roomData, bookingDates }: RoomReserveProps
               type="primary" 
               size="large" 
               loading={loading}
+              disabled={roomData.availableRoomCount === 0}
               onClick={handleReserve}
               className="h-[56px] rounded-[15px] bg-blue-600 hover:!bg-blue-700 text-[18px] font-bold"
               block
             >
-              Reserve Now
+              {roomData.availableRoomCount === 0 ? "Sold out for these dates" : "Reserve Now"}
             </Button>
           </div>
         ) : (
@@ -155,7 +147,11 @@ export default function RoomReserve({ roomData, bookingDates }: RoomReserveProps
         )}
         {/* --- END AUTH DEPENDENT SECTION --- */}
 
-        <p className="text-center text-[12px] text-slate-400">You won't be charged yet</p>
+        <p className="text-center text-[12px] text-slate-400">
+          {roomData.availableRoomCount > 0
+            ? "Your room will be added to the pending reservation cart first."
+            : "This room type is currently unavailable for the selected stay."}
+        </p>
       </div>
 
       <Modal
@@ -167,20 +163,17 @@ export default function RoomReserve({ roomData, bookingDates }: RoomReserveProps
       >
         <Result
           status="success"
-          title="Your reservation has been added"
-          subTitle={`We've received your request for ${roomData.hotel_name}. You can manage your bookings in your profile.`}
+          title="Room added to your reservation cart"
+          subTitle={`Your stay at ${roomData.hotel_name} is ready for checkout.`}
           extra={[
-            <Link href="/reserves" key="reserves">
+            <Link href="/checkout" key="checkout">
               <Button type="primary" className="rounded-md">
-                View your reservations
+                Continue to checkout
               </Button>
             </Link>,
-            <Link 
-              href={`/search?abbreviation=${roomData.hotel_city_abbreviation}`} 
-              key="search"
-            >
+            <Link href="/cart" key="cart">
               <Button className="rounded-md mt-2 md:mt-0">
-                Check out other rooms in {roomData.hotel_city}
+                Review reservation cart
               </Button>
             </Link>,
           ]}

@@ -1,5 +1,14 @@
 import { Router } from "express";
-import { getHotels, createHotel, updateHotel, deleteHotel, getOtherRoomsInHotel, setCoverImage } from "./hotels.handler.js";
+import {
+  getHotels,
+  createHotel,
+  updateHotel,
+  deleteHotel,
+  getOtherRoomsInHotel,
+  getPublicHotelDetail,
+  getPublicRoomDetail,
+  setCoverImage,
+} from "./hotels.handler.js";
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
 import { uploadImage } from "../../middlewares/upload.js";
@@ -9,9 +18,9 @@ const hotelsRoute = Router();
 const publicHotelRoute = Router();
 hotelsRoute.get("/", isLoggedIn, getHotels);
 hotelsRoute.get("/get/:id", isLoggedIn, getHotels);
-hotelsRoute.post("/create", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), createHotel);
-hotelsRoute.put("/edit/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), updateHotel);
-hotelsRoute.delete("/delete/:id", isLoggedIn, hasPermission(['MANAGE_HOTEL', 'MANAGE_BRANCH', 'ADMINISTRATOR']), deleteHotel);
+hotelsRoute.post("/create", isLoggedIn, hasPermission(['MANAGE_BRANCH', 'ADMINISTRATOR']), createHotel);
+hotelsRoute.put("/edit/:id", isLoggedIn, hasPermission(['MANAGE_BRANCH', 'ADMINISTRATOR']), updateHotel);
+hotelsRoute.delete("/delete/:id", isLoggedIn, hasPermission(['MANAGE_BRANCH', 'ADMINISTRATOR']), deleteHotel);
 
 // route to upload images for hotels
 hotelsRoute.get(
@@ -43,7 +52,8 @@ hotelsRoute.put(
   setCoverImage
 );
 
-
+publicHotelRoute.get("/:hotel_id/rooms/:room_type_id", getPublicRoomDetail);
+publicHotelRoute.get("/:hotel_id", getPublicHotelDetail);
 publicHotelRoute.get("/:hotel_id/other-rooms", getOtherRoomsInHotel);
 
 export default hotelsRoute;

@@ -29,7 +29,10 @@ import { privateServicesRoute } from "./api/services/services.routes.js";
 import { publicRoomRoute, roomRoute } from "./api/rooms/room.routes.js";
 import { guestsRoute } from "./api/guests/guests.routes.js";
 import { bookingsRoute } from "./api/bookings/booking.routes.js";
-import { employeeReservesRoute, publicReservesRoute } from "./api/reserves/reserve.routes.js";
+import {
+  employeeReservesRoute,
+  publicReservesRoute,
+} from "./api/reserves/reserve.routes.js";
 import { cityRoutes } from "./api/cities/city.routes.js";
 import searchRoute from "./api/search/search.routes.js";
 

@@ -3,39 +3,70 @@ import React, { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, message, AutoComplete, InputNumber, Select, DatePicker } from "antd";
 import { HomeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { Room, RoomType } from "@/types/Room";
+import { ReservedRoom } from "@/types/Reserve";
 
-const EditReservedRoomModal = ({ open, onClose, onSuccess, current, rooms, roomTypes }: any) => {
+type EditReservedRoomModalProps = {
+    open: boolean;
+    onClose: () => void;
+    onSuccess: () => Promise<void>;
+    current: ReservedRoom | null;
+    rooms: Room[];
+    roomTypes: RoomType[];
+};
+
+type RoomOption = {
+    label: string;
+    value: string;
+    id: number;
+};
+
+type EditReservedRoomFormValues = {
+    room_display: string;
+    roomID: number;
+    roomTypeID: number;
+    booking_status: string;
+    payment_status: string;
+    final_price: number;
+    dates: [dayjs.Dayjs, dayjs.Dayjs];
+};
+
+const EditReservedRoomModal = ({ open, onClose, onSuccess, current, rooms, roomTypes }: EditReservedRoomModalProps) => {
     const [form] = Form.useForm();
-    const [roomOptions, setRoomOptions] = useState<any[]>([]);
+    const [roomOptions, setRoomOptions] = useState<RoomOption[]>([]);
 
     useEffect(() => {
         if (open && current) {
-            const roomInfo = rooms.find((r: any) => r.id === current.roomID);
+            const roomInfo = rooms.find((room) => room.id === current.roomID);
             form.setFieldsValue({
-                room_display: roomInfo?.name,
+                room_display: roomInfo?.name || current.room_name,
                 roomID: current.roomID,
+                roomTypeID: current.roomTypeID,
                 booking_status: current.booking_status,
                 payment_status: current.payment_status,
                 final_price: current.final_price,
                 dates: [dayjs(current.checkin_date), dayjs(current.checkout_date)]
             });
         }
-    }, [open, current, rooms]);
+    }, [current, form, open, rooms]);
 
     const handleRoomSearch = (searchText: string) => {
         const filtered = rooms
-            .filter((r: any) => r.name.toLowerCase().includes(searchText.toLowerCase()))
-            .map((r: any) => ({ label: r.name, value: r.name, id: r.id }));
+            .filter((room) =>
+                room.typeid === current?.roomTypeID &&
+                room.name.toLowerCase().includes(searchText.toLowerCase())
+            )
+            .map((room) => ({ label: room.name, value: room.name, id: room.id }));
         setRoomOptions(filtered);
     };
 
-    const onSelectRoom = (value: string, option: any) => {
+    const onSelectRoom = (_value: string, option: RoomOption) => {
         const roomId = option.id;
         form.setFieldsValue({ roomID: roomId });
 
-        const selectedRoomData = rooms.find((r: any) => r.id === roomId);
+        const selectedRoomData = rooms.find((room) => room.id === roomId);
         if (selectedRoomData) {
-            const matchingType = roomTypes.find((t: any) => t.id === selectedRoomData.typeid);
+            const matchingType = roomTypes.find((roomType) => roomType.id === selectedRoomData.typeid);
             if (matchingType) {
                 form.setFieldsValue({ final_price: matchingType.base_price });
                 message.info(`Price adjusted to ${matchingType.name} base rate.`);
@@ -43,7 +74,9 @@ const EditReservedRoomModal = ({ open, onClose, onSuccess, current, rooms, roomT
         }
     };
 
-    const handleFinish = async (values: any) => {
+    const handleFinish = async (values: EditReservedRoomFormValues) => {
+        if (!current) return;
+
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/reserves/rooms/edit/${current.id}`, {
                 method: "PATCH",
@@ -64,8 +97,8 @@ const EditReservedRoomModal = ({ open, onClose, onSuccess, current, rooms, roomT
             message.success("Reserved room updated");
             onSuccess();
             onClose();
-        } catch (error: any) {
-            message.error(error.message || "Failed to update room");
+        } catch (error: unknown) {
+            message.error(error instanceof Error ? error.message : "Failed to update room");
         }
     };
 
@@ -85,6 +118,10 @@ const EditReservedRoomModal = ({ open, onClose, onSuccess, current, rooms, roomT
                             <AutoComplete options={roomOptions} showSearch={{onSearch:handleRoomSearch}} onSelect={onSelectRoom} />
                         </Form.Item>
                         <Form.Item name="roomID" hidden><InputNumber /></Form.Item>
+                        <Form.Item name="roomTypeID" hidden><InputNumber /></Form.Item>
+                        <p className="mt-[-12px] text-xs text-slate-500">
+                            Reserve type: <b>{current?.room_type_name || "Unknown"}</b>
+                        </p>
                     </Col>
                     <Col span={12}>
                         <Form.Item name="final_price" label="Price ($)" rules={[{required: true}]}>

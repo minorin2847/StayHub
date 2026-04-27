@@ -29,7 +29,7 @@ export default class Booking {
     checkin_date: Date = new Date();
     checkout_date: Date = new Date();
     
-    booking_status: string = "Checked-In";
+    booking_status: string = "Confirmed Booking";
     actual_total_price: number | null = null;
     total_rooms: number = 0;
 

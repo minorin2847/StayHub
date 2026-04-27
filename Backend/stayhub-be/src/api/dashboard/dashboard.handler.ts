@@ -293,7 +293,7 @@ export async function getDashboardHotelBeds(
         "SELECT * FROM get_hotel_beds_by_page($(hotelid), $(query), $(minCount), $(maxCount), $(sort), $(order), $(page))",
         {
           hotelid: req.user.hotelid,
-          query: query ?? name ?? null,
+          query: (query as string) || (name as string) || null,
           minCount: minCount ? parseInt(minCount as string) : 0,
           maxCount: maxCount ? parseInt(maxCount as string) : 100,
           sort: sort ?? "name",

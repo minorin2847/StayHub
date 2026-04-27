@@ -27,14 +27,16 @@ export default function RoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [bookingDates, setBookingDates] = useState({
     from: new Date(),
-    to: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+    to: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
   });
   useEffect(() => {
     const fetchRoomData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rooms/${room_id}`);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/rooms/${room_id}`,
+        );
         const result = await response.json();
 
         if (!response.ok || result.message) {
@@ -82,25 +84,25 @@ export default function RoomPage() {
   if (!data) return null;
 
   // Prop Mapping
-// ... inside RoomPage component, update the roomData mapping:
-const roomData = {
-  id: data.room_id,
-  name: data.room_type,
-  description: data.room_description,
-  price: data.price,
-  size: data.size,
-  capacity: data.capacity,
-  previewimages: data.previewimages,
-  beds: data.room_beds,
-  amenities: data.room_amenities,
-  classification: data.hotel_classification,
-  // Add these lines:
-  hotel_name: data.hotel_name,
-  hotel_location: data.hotel_location,
-  hotel_city: data.hotel_city,
-  hotel_city_abbreviation: data.hotel_city_abbreviation,
-  hotel_id: data.hotel_id
-};
+  // ... inside RoomPage component, update the roomData mapping:
+  const roomData = {
+    id: data.room_id,
+    name: data.room_type,
+    description: data.room_description,
+    price: data.price,
+    size: data.size,
+    capacity: data.capacity,
+    previewimages: data.previewimages,
+    beds: data.room_beds,
+    amenities: data.room_amenities,
+    classification: data.hotel_classification,
+    // Add these lines:
+    hotel_name: data.hotel_name,
+    hotel_location: data.hotel_location,
+    hotel_city: data.hotel_city,
+    hotel_city_abbreviation: data.hotel_city_abbreviation,
+    hotel_id: data.hotel_id,
+  };
 
   const hotelData = {
     name: data.hotel_name,
@@ -127,15 +129,20 @@ const roomData = {
             <div id="overview">
               <RoomDescription roomData={roomData} />
             </div>
-            
+
             <RoomAmenities roomData={roomData} />
 
-
             <div id="calendar">
-              <Calendar 
-              fromDate={bookingDates.from} 
-              toDate={bookingDates.to} 
-              onChange={(start: Date | null, end: Date | null) => {setBookingDates({from: start ?? new Date(), to: end ?? new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)})}}/>
+              <Calendar
+                fromDate={bookingDates.from}
+                toDate={bookingDates.to}
+                onChange={(start: Date | null, end: Date | null) => {
+                  setBookingDates({
+                    from: start ?? new Date(),
+                    to: end ?? new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+                  });
+                }}
+              />
             </div>
           </div>
 
@@ -148,21 +155,27 @@ const roomData = {
         </div>
 
         {/* Review Section */}
-        <RoomReviews 
-          reviewData={[]}
-        />
+        <RoomReviews reviewData={[]} />
 
         {/* Policies Section */}
         <Policies hotelData={hotelData} />
       </div>
 
       {/* Footer Suggestions */}
-      <OtherRoom hotelName={data.hotel_name} hotelId={hotel_id || data.hotel_id} currentRoomId={room_id || data.room_id} />
-      
+      <OtherRoom
+        hotelName={data.hotel_name}
+        hotelId={hotel_id || data.hotel_id}
+        currentRoomId={room_id || data.room_id}
+      />
+
       {/* Scroll Spacing Helper */}
       <style jsx global>{`
-        html { scroll-behavior: smooth; }
-        [id] { scroll-margin-top: 100px; }
+        html {
+          scroll-behavior: smooth;
+        }
+        [id] {
+          scroll-margin-top: 100px;
+        }
       `}</style>
     </div>
   );

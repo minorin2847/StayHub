@@ -3,7 +3,11 @@ import type { NextFunction, Request, Response } from "express";
 import Amenity from "./amenity.js";
 import rlsWrapper from "@/utils/rlsWrapper.js";
 
-export async function getAllAmenities(req: Request, res: Response, next: NextFunction) {
+export async function getAllAmenities(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const query = `
         WITH AmenityCounts AS (
@@ -30,10 +34,10 @@ SELECT
 FROM AmenityCounts
 GROUP BY category
 ORDER BY category ASC;
-        `
+        `;
     // In a real app, you would fetch this from a database
     const result = await db.manyOrNone(query, []);
-    return res.status(200).json(result)
+    return res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: "Error retrieving amenities", error });
   }
@@ -125,6 +129,7 @@ export function getAmenityList(
   const sortColumn = (req.query.sort as string) || "name";
   const sortDir = (req.query.order as string) || "ASC";
   const excludeCurrent = req.query.excludeCurrent === "true";
+  const excludeHotelId = excludeCurrent ? req.user.hotelid : null;
   const minCount = req.query.minCount
     ? parseInt(req.query.minCount as string)
     : 0;
@@ -244,9 +249,8 @@ export function getHotelAmenities(
   next: NextFunction,
 ) {
   const page = parseInt(req.query.page as string) || 1;
-  const name =
-    (req.query.query as string) || (req.query.name as string) || null;
-  const category = (req.query.category as string) || null;
+  const name = (req.query.query as string) || (req.query.name as string) || "";
+  const category = (req.query.category as string) || "";
   const sortColumn = (req.query.sort as string) || "name";
   const sortDir = (req.query.order as string) || "ASC";
 
@@ -258,8 +262,8 @@ export function getHotelAmenities(
         `SELECT * FROM get_hotel_amenities_by_page($(hotelid), $(name), $(category), $(sort), $(order), $(page))`,
         {
           hotelid: req.user.hotelid,
-          name,
-          category,
+          name: name || null,
+          category: category || null,
           sort: sortColumn,
           order: sortDir,
           page,

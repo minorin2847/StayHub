@@ -13,13 +13,13 @@ export default function Home() {
   return (
     <div className="w-full overflow-x-hidden bg-white">
       <HeroSection />
-      <SearchSection/>
-      <TrendingDestination />  
+      <SearchSection />
+      <TrendingDestination />
       <DealsWeekend />
       <TravelMore />
-      <TopSights/>
-      <TopThings/>
-      <HomeGuests/>
+      <TopSights />
+      <TopThings />
+      <HomeGuests />
     </div>
   );
 }

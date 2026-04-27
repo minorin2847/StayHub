@@ -15,6 +15,16 @@ BEGIN
         RAISE EXCEPTION 'Reserve ID % is not awaiting confirmation.', p_reserve_id;
     END IF;
 
+    IF EXISTS (
+        SELECT 1
+        FROM reserved_room
+        WHERE reserveID = p_reserve_id
+          AND booking_status = 'Awaiting Confirmation'
+          AND roomID IS NULL
+    ) THEN
+        RAISE EXCEPTION 'Reserve ID % still has unassigned rooms.', p_reserve_id;
+    END IF;
+
     FOR v_hotel_id IN 
         SELECT DISTINCT hotelID FROM reserved_room 
         WHERE reserveID = p_reserve_id AND booking_status = 'Awaiting Confirmation'
@@ -34,7 +44,7 @@ BEGIN
             );
 
             UPDATE reserved_room 
-            SET booking_status = 'Confirmed', payment_status = 'Paid', updated_at = now()
+            SET booking_status = 'Confirmed', updated_at = now()
             WHERE id = v_room.id;
         END LOOP;
     END LOOP;

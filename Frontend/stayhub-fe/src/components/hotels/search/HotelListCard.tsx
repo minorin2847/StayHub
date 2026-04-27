@@ -64,9 +64,7 @@ const parseReviewScore = (label: string) => {
   return parseFloat(label.match(/\d+\.\d+/)?.[0] || "0");
 };
 
-export default function HotelFilterSidebar({
-  priceHistogram = [],
-}: HotelFilterSidebarProps) {
+export default function HotelFilterSidebar({ priceHistogram = [] }: HotelFilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -78,19 +76,15 @@ export default function HotelFilterSidebar({
     "Room Size",
   ]);
   const [priceRange, setPriceRange] = useState<[number, number]>([200, 1500]);
-
-  const [roomCounts, setRoomCounts] = useState<Record<CounterKey, number>>({
-    minAvailableRoom: 0,
-    minBedCount: 0,
+  
+  const [roomCounts, setRoomCounts] = useState<Record<CounterKey, number>>({ 
+    minAvailableRoom: 0, 
+    minBedCount: 0 
   });
-
+  
   const [selectedRoomSizes, setSelectedRoomSizes] = useState<string[]>([]);
-  const [selectedReviewScores, setSelectedReviewScores] = useState<string[]>(
-    [],
-  );
-  const [selectedClassifications, setSelectedClassifications] = useState<
-    string[]
-  >([]);
+  const [selectedReviewScores, setSelectedReviewScores] = useState<string[]>([]);
+  const [selectedClassifications, setSelectedClassifications] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
   // Fetched Data States
@@ -136,7 +130,7 @@ export default function HotelFilterSidebar({
       const parsedMin = minS ? Number(minS) : 0;
       const parsedMax = maxS ? Number(maxS) : 9999;
       const matchedSizes = SIZE_OPTIONS.filter(
-        (opt) => opt.min >= parsedMin && opt.max <= parsedMax,
+        (opt) => opt.min >= parsedMin && opt.max <= parsedMax
       ).map((opt) => opt.label);
       setSelectedRoomSizes(matchedSizes);
     } else {
@@ -147,9 +141,7 @@ export default function HotelFilterSidebar({
     const minRev = searchParams.get("minReviewScore");
     if (minRev) {
       const parsedRev = Number(minRev);
-      const matched = REVIEW_OPTIONS.filter(
-        (opt) => parseReviewScore(opt) === parsedRev,
-      );
+      const matched = REVIEW_OPTIONS.filter((opt) => parseReviewScore(opt) === parsedRev);
       setSelectedReviewScores(matched);
     } else {
       setSelectedReviewScores([]);
@@ -158,7 +150,7 @@ export default function HotelFilterSidebar({
     // Sync Classifications
     const classes = searchParams.getAll("classification");
     setSelectedClassifications(
-      classes.map((c) => (Number(c) === 0 ? "No rating" : `${c}-star`)),
+      classes.map((c) => (Number(c) === 0 ? "No rating" : `${c}-star`))
     );
 
     // Sync Amenities
@@ -192,17 +184,13 @@ export default function HotelFilterSidebar({
   // --- Toggles & Handlers ---
   const toggleSection = (category: string) => {
     setOpenSections((prev) =>
-      prev.includes(category)
-        ? prev.filter((item) => item !== category)
-        : [...prev, category],
+      prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]
     );
   };
 
   const toggleAmenityGroup = (title: string) => {
     setOpenAmenityGroups((prev) =>
-      prev.includes(title)
-        ? prev.filter((item) => item !== title)
-        : [...prev, title],
+      prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]
     );
   };
 
@@ -223,15 +211,13 @@ export default function HotelFilterSidebar({
       updateUrlMultiple({ minSize: null, maxSize: null });
       return;
     }
-    const selectedObjects = SIZE_OPTIONS.filter((opt) =>
-      values.includes(opt.label),
-    );
+    const selectedObjects = SIZE_OPTIONS.filter((opt) => values.includes(opt.label));
     const minSize = Math.min(...selectedObjects.map((opt) => opt.min));
     const maxSize = Math.max(...selectedObjects.map((opt) => opt.max));
 
     updateUrlMultiple({
       minSize: minSize > 0 ? String(minSize) : null,
-      maxSize: maxSize < 9999 ? String(maxSize) : null,
+      maxSize: maxSize < 9999 ? String(maxSize) : null, 
     });
   };
 
@@ -245,16 +231,14 @@ export default function HotelFilterSidebar({
   };
 
   const handleStarChange = (values: string[]) => {
-    const classVals = values.map((v) =>
-      v === "No rating" ? "0" : parseInt(v).toString(),
-    );
+    const classVals = values.map((v) => (v === "No rating" ? "0" : parseInt(v).toString()));
     updateUrlArray("classification", classVals);
   };
 
   const counterLabel = (value: number) => (value === 0 ? "Any" : String(value));
 
   const clearAllFilters = () => {
-    // Pushing the bare pathname immediately clears all URL search params,
+    // Pushing the bare pathname immediately clears all URL search params, 
     // which safely resets our UI state via the useEffect
     router.push(pathname, { scroll: false });
   };
@@ -266,9 +250,8 @@ export default function HotelFilterSidebar({
       return `$ ${value.toLocaleString("en-US")}`;
     };
 
-    const displayBars = (
-      priceHistogram.length === 30 ? priceHistogram : Array(30).fill(0)
-    ).map((val) => Math.max(10, val));
+    const displayBars = (priceHistogram.length === 30 ? priceHistogram : Array(30).fill(0))
+      .map(val => Math.max(10, val));
 
     return (
       <div className="px-4 pb-6">
@@ -280,8 +263,7 @@ export default function HotelFilterSidebar({
             <div className="absolute inset-x-3 bottom-[28px] flex items-end gap-[2px]">
               {displayBars.map((height, index) => {
                 const position = (index / (displayBars.length - 1)) * 1500;
-                const dark =
-                  position >= priceRange[0] && position <= priceRange[1];
+                const dark = position >= priceRange[0] && position <= priceRange[1];
 
                 return (
                   <span
@@ -306,7 +288,7 @@ export default function HotelFilterSidebar({
                 onChangeComplete={(value: number[]) => {
                   updateUrlMultiple({
                     minPrice: String(value[0]),
-                    maxPrice: String(value[1]),
+                    maxPrice: String(value[1])
                   });
                 }}
                 tooltip={{ open: false }}
@@ -317,18 +299,14 @@ export default function HotelFilterSidebar({
 
           <div className="mt-1 flex items-center justify-between">
             <div className="text-center">
-              <p className="text-[14px] font-semibold text-slate-400">
-                Minimum
-              </p>
+              <p className="text-[14px] font-semibold text-slate-400">Minimum</p>
               <div className="mt-2 rounded-[18px] border border-[#94a3b8] px-5 py-2.5 text-[15px] font-semibold text-slate-700">
                 {formatPrice(priceRange[0])}
               </div>
             </div>
 
             <div className="text-center">
-              <p className="text-[14px] font-semibold text-slate-400">
-                Maximum
-              </p>
+              <p className="text-[14px] font-semibold text-slate-400">Maximum</p>
               <div className="mt-2 rounded-[18px] border border-[#94a3b8] px-5 py-2.5 text-[15px] font-semibold text-slate-700">
                 {formatPrice(priceRange[1], true)}
               </div>
@@ -424,8 +402,7 @@ export default function HotelFilterSidebar({
 
   const renderPropertyClassification = () => {
     const renderStars = (count: number) => {
-      if (count === 0)
-        return <span className="text-[15px] text-slate-300">☆☆☆☆☆</span>;
+      if (count === 0) return <span className="text-[15px] text-slate-300">☆☆☆☆☆</span>;
       return (
         <span className="text-[15px] tracking-[2px] text-[#f4b400]">
           {"★".repeat(count)}
@@ -460,11 +437,7 @@ export default function HotelFilterSidebar({
 
   const renderAmenities = () => {
     if (amenityGroups.length === 0) {
-      return (
-        <div className="px-4 pb-6 text-slate-500 text-sm">
-          Loading amenities...
-        </div>
-      );
+      return <div className="px-4 pb-6 text-slate-500 text-sm">Loading amenities...</div>;
     }
 
     return (
@@ -510,9 +483,7 @@ export default function HotelFilterSidebar({
                         <DynamicIcon
                           name={item.icon}
                           size={16}
-                          className={
-                            checked ? "text-[#0051cb]" : "text-slate-500"
-                          }
+                          className={checked ? "text-[#0051cb]" : "text-slate-500"}
                         />
                         <span className="whitespace-nowrap">{item.name}</span>
                       </button>
@@ -529,20 +500,13 @@ export default function HotelFilterSidebar({
 
   const renderSectionContent = (category: string) => {
     switch (category) {
-      case "Price Range":
-        return renderPriceRange();
-      case "Rooms and Beds":
-        return renderRoomsAndBeds();
-      case "Room Size":
-        return renderRoomSize();
-      case "Guest Review Score":
-        return renderGuestReviewScore();
-      case "Property Classification":
-        return renderPropertyClassification();
-      case "Amenities":
-        return renderAmenities();
-      default:
-        return null;
+      case "Price Range": return renderPriceRange();
+      case "Rooms and Beds": return renderRoomsAndBeds();
+      case "Room Size": return renderRoomSize();
+      case "Guest Review Score": return renderGuestReviewScore();
+      case "Property Classification": return renderPropertyClassification();
+      case "Amenities": return renderAmenities();
+      default: return null;
     }
   };
 

@@ -352,8 +352,9 @@ $POLICY$;
 END IF;
 END $$;
 -- ===================================================================================
--- 13. POLICIES FOR HOTEL IMAGES TABLE 
--- (FULL READ ACCESS, CRUD ALL FOR ADMIN, CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
+-- 13. POLICIES FOR HOTEL IMAGES TABLE
+-- (CRUD ALL FOR ADMIN, CRUD FOR HOTELS IN OWN BRANCH FOR MANAGE_BRANCH,
+--  CRUD ONLY RESPECTIVE HOTEL FOR MANAGE_HOTEL)
 -- ===================================================================================
 DO $$ BEGIN IF NOT EXISTS (
     SELECT 1
@@ -365,10 +366,43 @@ DO $$ BEGIN IF NOT EXISTS (
         string_to_array(current_setting('app.roles', true), ',')
     )
     OR (
+        'MANAGE_BRANCH' = ANY(
+            string_to_array(current_setting('app.roles', true), ',')
+        )
+        AND EXISTS (
+            SELECT 1
+            FROM hotels h
+            WHERE h.id = hotel_images.hotelID
+              AND h.branchid = NULLIF(current_setting('app.branchid', true), '')::INT
+        )
+    )
+    OR (
         'MANAGE_HOTEL' = ANY(
             string_to_array(current_setting('app.roles', true), ',')
         )
-        AND hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+        AND hotel_images.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
+    )
+)
+WITH CHECK (
+    'ADMINISTRATOR' = ANY(
+        string_to_array(current_setting('app.roles', true), ',')
+    )
+    OR (
+        'MANAGE_BRANCH' = ANY(
+            string_to_array(current_setting('app.roles', true), ',')
+        )
+        AND EXISTS (
+            SELECT 1
+            FROM hotels h
+            WHERE h.id = hotel_images.hotelID
+              AND h.branchid = NULLIF(current_setting('app.branchid', true), '')::INT
+        )
+    )
+    OR (
+        'MANAGE_HOTEL' = ANY(
+            string_to_array(current_setting('app.roles', true), ',')
+        )
+        AND hotel_images.hotelID = NULLIF(current_setting('app.hotelid', true), '')::INT
     )
 );
 $POLICY$;

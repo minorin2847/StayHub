@@ -28,11 +28,15 @@ const CreateModal = ({
 }) => {
   const [form] = Form.useForm();
   const selectedBranch = Form.useWatch('branchid', form);
+  const selectedRoles = Form.useWatch('roles', form) || [];
+  const needsHotelAssignment = selectedRoles.includes("MANAGE_HOTEL");
 
   useEffect(() => {
     if (open) {
       form.setFieldsValue({
         password: generatePassword(),
+        branchid: branch?.id,
+        hotelid: undefined,
       });
     } else {
       form.resetFields();
@@ -53,6 +57,8 @@ const CreateModal = ({
     form.resetFields();
     form.setFieldsValue({
       password: generatePassword(),
+      branchid: branch?.id,
+      hotelid: undefined,
     });
   };
 
@@ -290,16 +296,21 @@ const SuccessContent = ({ username, password }: any) => {
             <Form.Item
               name="hotelid"
               label="Select hotel"
-              // rules={[{ required: true, message: "Please select a hotel!" }]}
+              rules={
+                needsHotelAssignment
+                  ? [{ required: true, message: "Please assign a hotel for Manage Hotel role!" }]
+                  : undefined
+              }
             >
               <Select 
-              placeholder={"Select hotel"}
+              placeholder={selectedBranch ? "Select hotel" : "No branch available"}
               options={[...hotels.filter(i=>i.branchid==selectedBranch).map(i=>{
                 return {
                   label: i.name,
                   value: i.id
                 }
               })]}
+              disabled={!selectedBranch}
               allowClear
               />
             </Form.Item>
