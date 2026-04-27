@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW vw_guest_directory AS
+CREATE OR REPLACE VIEW vw_guest_directory WITH (security_invoker = true) AS
 SELECT g.id,
     g.first_name,
     g.last_name,
@@ -17,7 +17,7 @@ LEFT JOIN booking b ON g.id = b.guestID
 -- Join the booked_room table to access the dates
 LEFT JOIN booked_room br ON b.id = br.bookingid
 GROUP BY g.id;
-CREATE OR REPLACE VIEW vw_booking_details AS
+CREATE OR REPLACE VIEW vw_booking_details WITH (security_invoker = true) AS
 SELECT b.id,
     b.guestID,
     (g.first_name || ' ' || g.last_name) AS guest_full_name,
@@ -41,7 +41,7 @@ SELECT b.id,
     (b.reserveID IS NOT NULL) AS has_reserve
 FROM booking b
     LEFT JOIN guests g ON b.guestID = g.id;
-CREATE OR REPLACE VIEW vw_employee_details AS
+CREATE OR REPLACE VIEW vw_employee_details WITH (security_invoker = true) AS
 SELECT e.id,
     e.username,
     e.email,
@@ -64,7 +64,7 @@ SELECT e.id,
         '[]'::jsonb
     ) AS roles
 FROM employees e;
-CREATE OR REPLACE VIEW vw_branch_details AS
+CREATE OR REPLACE VIEW vw_branch_details WITH (security_invoker = true) AS
 SELECT b.id,
     b.name,
     b.location,
@@ -81,7 +81,7 @@ FROM branch b
         FROM hotels
         GROUP BY branchID
     ) hc ON b.id = hc.branchID;
-CREATE OR REPLACE VIEW vw_role_details AS
+CREATE OR REPLACE VIEW vw_role_details WITH (security_invoker = true) AS
 SELECT r.name,
     r.tier,
     COALESCE(er.usercount, 0) as usercount
@@ -95,7 +95,7 @@ FROM roles r
 -- ==========================================
 -- VIEWS DÀNH CHO KHÁCH SẠN VÀ TIỆN ÍCH (HOTEL, AMENITIES, BEDS)
 -- ==========================================
-CREATE OR REPLACE VIEW vw_hotel_details AS
+CREATE OR REPLACE VIEW vw_hotel_details WITH (security_invoker = true) AS
 SELECT h.id,
     h.name,
     h.classification,
@@ -113,7 +113,7 @@ FROM hotels h
         FROM rooms
         GROUP BY hotelid
     ) rc ON h.id = rc.hotelid;
-CREATE OR REPLACE VIEW vw_bed_details AS
+CREATE OR REPLACE VIEW vw_bed_details WITH (security_invoker = true) AS
 SELECT r.name AS bed_name,
     COALESCE(b.hotel_count, 0) AS hotel_count
 FROM beds r
@@ -123,7 +123,7 @@ FROM beds r
         FROM hotel_beds hb
         GROUP BY hb.bed_name
     ) b ON r.name = b.bed_name;
-CREATE OR REPLACE VIEW vw_hotel_bed_details AS
+CREATE OR REPLACE VIEW vw_hotel_bed_details WITH (security_invoker = true) AS
 SELECT hb.hotelID,
     hb.bed_name,
     COALESCE(room_sums.sum_qty, 0)::INT as total_qty
@@ -138,7 +138,7 @@ FROM hotel_beds hb
             rb.bed_name
     ) room_sums ON hb.bed_name = room_sums.bed_name
     AND hb.hotelID = room_sums.hotelID;
-CREATE OR REPLACE VIEW vw_amenity_details AS
+CREATE OR REPLACE VIEW vw_amenity_details WITH (security_invoker = true) AS
 SELECT a.name,
     a.icon,
     a.category,
@@ -150,7 +150,7 @@ FROM amenities a
         FROM hotel_amenities ha
         GROUP BY ha.amenity_name
     ) h ON a.name = h.amenity_name;
-CREATE OR REPLACE VIEW vw_hotel_amenity_details AS
+CREATE OR REPLACE VIEW vw_hotel_amenity_details WITH (security_invoker = true) AS
 SELECT ha.hotelID,
     a.name,
     a.icon,
@@ -159,7 +159,7 @@ FROM hotel_amenities ha
     JOIN amenities a ON ha.amenity_name = a.name;
 
 
-CREATE OR REPLACE VIEW vw_room_details AS
+CREATE OR REPLACE VIEW vw_room_details WITH (security_invoker = true) AS
 SELECT
   r.id,
   r.hotelID,
@@ -186,7 +186,7 @@ JOIN roomTypes rt
 -- ==========================================
 -- VIEWS DÀNH CHO PHÒNG & LOẠI PHÒNG (ROOM TYPES, ROOMS)
 -- ==========================================
-CREATE OR REPLACE VIEW vw_room_type_details AS
+CREATE OR REPLACE VIEW vw_room_type_details WITH (security_invoker = true) AS
 SELECT rt.id,
     rt.hotelID,
     rt.name,
@@ -227,7 +227,7 @@ FROM roomTypes rt
     ) a_info ON rt.id = a_info.room_typeID;
 
 
-CREATE OR REPLACE VIEW vw_reserve_details AS
+CREATE OR REPLACE VIEW vw_reserve_details WITH (security_invoker = true) AS
 SELECT 
     r.id,
     CONCAT(g.first_name, ' ', g.last_name) AS guest_full_name,
@@ -261,7 +261,7 @@ GROUP BY
 
 
 
-CREATE OR REPLACE VIEW vw_landmark_lowest_prices AS
+CREATE OR REPLACE VIEW vw_landmark_lowest_prices WITH (security_invoker = true) AS
 SELECT 
     ca.name AS landmark_name,
     c.name AS city_name,
@@ -284,7 +284,7 @@ LEFT JOIN cities c ON c.abbreviation = ca.city_abbreviation
 WHERE ca.type = 'landmarks';
 
 
-CREATE OR REPLACE VIEW searchpage_view AS
+CREATE OR REPLACE VIEW searchpage_view WITH (security_invoker = true) AS
 WITH bed_agg AS (
     -- Combine beds into a readable string and sum total beds
     SELECT room_typeID, 
@@ -368,7 +368,7 @@ LEFT JOIN deals d ON rt.id = d.roomTypeID
     AND CURRENT_DATE BETWEEN d.startDate AND d.endDate;
 
 
-CREATE OR REPLACE VIEW room_details_view AS
+CREATE OR REPLACE VIEW room_details_view WITH (security_invoker = true) AS
 WITH 
 -- 1. Aggregate Amenities for the Room Type
 room_amenities_agg AS (
@@ -456,7 +456,7 @@ LEFT JOIN room_images_agg ri ON rt.id = ri.room_typeID
 LEFT JOIN hotel_policies_agg hp ON h.id = hp.hotelID;
 
 
-CREATE OR REPLACE VIEW hotel_other_rooms_view AS
+CREATE OR REPLACE VIEW hotel_other_rooms_view WITH (security_invoker = true) AS
 WITH 
 -- 1. Aggregate Amenities (top 6 for the carousel display)
 room_amenities_agg AS (

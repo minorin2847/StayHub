@@ -245,32 +245,28 @@ export async function uploadHotelImage(req: Request, res: Response, next: NextFu
       "insert-hotel-image",
       user,
       async (t) => {
-        if (isCover) {
-          await t.none(
-            `UPDATE hotel_images SET is_cover = false WHERE hotelid = $1`,
-            [hotelId]
-          );
-        }
+        // if (isCover) {
+        //   await t.none(
+        //     `UPDATE hotel_images SET is_cover = false WHERE hotelid = $1`,
+        //     [hotelId]
+        //   );
+        // }
 
         const inserted = await t.one(
           `
           INSERT INTO hotel_images (
             hotelid,
             image_hash,
-            image_path,
-            is_cover
+            image_path
           )
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (hotelid, image_hash)
-          DO UPDATE SET is_cover = EXCLUDED.is_cover
+          VALUES ($1, $2, $3)
           RETURNING
             id,
             hotelid,
             image_hash,
-            image_path,
-            is_cover
+            image_path
           `,
-          [hotelId, hash, imagePath, isCover]
+          [hotelId, hash, imagePath]
         );
 
         return {
