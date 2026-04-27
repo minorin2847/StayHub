@@ -1,6 +1,9 @@
 export type ReservedRoom = {
-    roomID: number;
+    roomTypeID: number;
+    roomID: number | null;
     hotelID: number;
+    room_type_name: string;
+    room_name?: string | null;
     confirmation_code: string;
     booking_status: string;
     payment_status: string;

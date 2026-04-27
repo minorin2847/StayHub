@@ -16,8 +16,10 @@ interface RoomCalendarProps {
 
 export default function RoomCalendar({ fromDate, toDate, onChange }: RoomCalendarProps) {
   const [baseMonth, setBaseMonth] = useState(dayjs().startOf("month"));
-  const [start, setStart] = useState<Dayjs | null>(null);
-  const [end, setEnd] = useState<Dayjs | null>(null);
+  const [start, setStart] = useState<Dayjs | null>(fromDate ? dayjs(fromDate) : null);
+  const [end, setEnd] = useState<Dayjs | null>(toDate ? dayjs(toDate) : null);
+  const selectedStart = fromDate ? dayjs(fromDate) : start;
+  const selectedEnd = toDate ? dayjs(toDate) : end;
 
   const disabledDate = (current: Dayjs) => {
     return current && current < dayjs().startOf("day");
@@ -26,26 +28,29 @@ export default function RoomCalendar({ fromDate, toDate, onChange }: RoomCalenda
   const handleDateClick = (date: Dayjs) => {
     if (disabledDate(date)) return;
 
-    if (!start || (start && end)) {
+    if (!selectedStart || (selectedStart && selectedEnd)) {
       setStart(date);
       setEnd(null);
       if (onChange) onChange(date.toDate(), null);
     } else {
-      if (date.isBefore(start)) {
+      if (date.isBefore(selectedStart)) {
         setStart(date);
         setEnd(null);
         if (onChange) onChange(date.toDate(), null);
       } else {
         setEnd(date);
-        if (onChange) onChange(start.toDate(), date.toDate());
+        if (onChange) onChange(selectedStart.toDate(), date.toDate());
       }
     }
   };
 
   const cellRender = (current: Dayjs) => {
-    const isStart = start && current.isSame(start, "day");
-    const isEnd = end && current.isSame(end, "day");
-    const inRange = start && end && current.isBetween(start, end, "day", "[]");
+    const isStart = selectedStart && current.isSame(selectedStart, "day");
+    const isEnd = selectedEnd && current.isSame(selectedEnd, "day");
+    const inRange =
+      selectedStart &&
+      selectedEnd &&
+      current.isBetween(selectedStart, selectedEnd, "day", "[]");
     const isDisabled = disabledDate(current);
 
     return (
@@ -73,14 +78,17 @@ export default function RoomCalendar({ fromDate, toDate, onChange }: RoomCalenda
     if (baseMonth.isAfter(dayjs(), "month")) setBaseMonth(baseMonth.subtract(1, "month"));
   };
 
-  const MonthDisplay = ({ value, showLeftNav, showRightNav }: { value: Dayjs, showLeftNav?: boolean, showRightNav?: boolean }) => (
+  const renderMonthDisplay = (
+    value: Dayjs,
+    options?: { showLeftNav?: boolean; showRightNav?: boolean },
+  ) => (
     <div className="w-full">
       <div className="flex items-center justify-between px-2 mb-4">
-        {showLeftNav ? (
+        {options?.showLeftNav ? (
           <Button type="text" shape="circle" icon={<MdChevronLeft size={24} />} onClick={navPrev} />
         ) : <div className="w-8" />}
         <span className="font-bold text-[18px] text-slate-800">{value.format("MMMM YYYY")}</span>
-        {showRightNav ? (
+        {options?.showRightNav ? (
           <Button type="text" shape="circle" icon={<MdChevronRight size={24} />} onClick={navNext} />
         ) : <div className="w-8" />}
       </div>
@@ -102,13 +110,13 @@ export default function RoomCalendar({ fromDate, toDate, onChange }: RoomCalenda
         <ConfigProvider theme={{ token: { colorPrimary: "#2563eb" } }}>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-0 items-stretch">
             <div className="pr-8">
-              <MonthDisplay value={baseMonth} showLeftNav />
+              {renderMonthDisplay(baseMonth, { showLeftNav: true })}
             </div>
             
             <div className="hidden md:block w-[1px] bg-gray-100 self-stretch my-2" />
             
             <div className="pl-8">
-              <MonthDisplay value={baseMonth.add(1, "month")} showRightNav />
+              {renderMonthDisplay(baseMonth.add(1, "month"), { showRightNav: true })}
             </div>
           </div>
         </ConfigProvider>

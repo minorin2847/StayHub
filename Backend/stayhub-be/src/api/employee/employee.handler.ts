@@ -83,6 +83,11 @@ export function createEmployee(
     branchid,
     salary,
   } = req.body;
+  if (Array.isArray(roles) && roles.includes("MANAGE_HOTEL") && !hotelid) {
+    return res
+      .status(400)
+      .send("MANAGE_HOTEL employees must be assigned to a hotel.");
+  }
   if (!firstname || !username || !email || !password) {
     return res.status(400).json({ message: "Vui lòng nhập đủ thông tin!" });
   }
@@ -147,6 +152,21 @@ export function editEmployee(req: Request, res: Response, next: NextFunction) {
     "update-employee",
     req.user,
     async (t) => {
+      if (Array.isArray(roles) && roles.includes("MANAGE_HOTEL")) {
+        const currentEmployee = await t.oneOrNone(
+          "SELECT hotelid FROM employees WHERE id = $1",
+          [id],
+        );
+        const nextHotelId =
+          employeeData.hotelid !== undefined
+            ? employeeData.hotelid
+            : currentEmployee?.hotelid;
+
+        if (!nextHotelId) {
+          throw new Error("MANAGE_HOTEL employees must be assigned to a hotel.");
+        }
+      }
+
       let updatedRow;
 
       // 1. Update Employee Table (if there is data besides roles)

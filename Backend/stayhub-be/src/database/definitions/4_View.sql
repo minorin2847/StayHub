@@ -243,8 +243,11 @@ SELECT
     jsonb_agg(
         jsonb_build_object(
             'id', rr.id,
+            'roomTypeID', rr.roomTypeID,
             'roomID', rr.roomID,
             'hotelID', rr.hotelID,
+            'room_type_name', rt.name,
+            'room_name', rm.name,
             'confirmation_code', rr.confirmation_code,
             'booking_status', rr.booking_status,
             'payment_status', rr.payment_status,
@@ -256,6 +259,8 @@ SELECT
 FROM reserves r
 LEFT JOIN guests g ON r.guestID = g.id 
 LEFT JOIN reserved_room rr ON r.id = rr.reserveID
+LEFT JOIN roomtypes rt ON rt.id = rr.roomTypeID
+LEFT JOIN rooms rm ON rm.id = rr.roomID
 GROUP BY 
     r.id, g.first_name, g.last_name, r.guestID, r.userID, r.status, r.created_at;
 

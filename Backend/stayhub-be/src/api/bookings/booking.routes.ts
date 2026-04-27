@@ -8,7 +8,8 @@ import {
     addRoomToBooking,
     editRoom,
     deleteRoom,
-    cancelBooking
+    cancelBooking,
+    getRoomStatus
 } from "./booking.handler.js";
 
 const bookingsRoute = Router();
@@ -25,6 +26,9 @@ bookingsRoute.patch("/edit/:id", isLoggedIn, hasPermission(["MANAGE_BOOKING"]), 
 
 // DELETE /employee/bookings/delete/:id - Delete entire booking and all rooms (Cascade)
 bookingsRoute.delete("/delete/:id", isLoggedIn, hasPermission(["MANAGE_BOOKING"]), deleteBooking);
+
+// GET /employee/bookings/room-status - Live room inventory status
+bookingsRoute.get("/room-status", isLoggedIn, hasPermission(["MANAGE_BOOKING"]), getRoomStatus);
 
 
 /** * INDIVIDUAL ROOM ROUTES

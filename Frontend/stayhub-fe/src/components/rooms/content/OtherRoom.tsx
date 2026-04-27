@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import { Spin, Empty } from "antd"; // Added Empty for a nice fallback UI
 import Link from "next/link";
-import { IoBedOutline, IoPersonOutline, IoResizeOutline } from "react-icons/io5";
-import { 
-  Carousel, 
-  CarouselContent, 
-  CarouselItem, 
-  CarouselNext, 
-  CarouselPrevious 
+import {
+  IoBedOutline,
+  IoPersonOutline,
+  IoResizeOutline,
+} from "react-icons/io5";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
 } from "../ui/carousel";
 
 interface OtherRoomProps {
@@ -18,7 +22,11 @@ interface OtherRoomProps {
   currentRoomId: number | string;
 }
 
-export default function OtherRoom({ hotelName, hotelId, currentRoomId }: OtherRoomProps) {
+export default function OtherRoom({
+  hotelName,
+  hotelId,
+  currentRoomId,
+}: OtherRoomProps) {
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +35,7 @@ export default function OtherRoom({ hotelName, hotelId, currentRoomId }: OtherRo
       try {
         setLoading(true);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/hotels/${hotelId}/other-rooms?exclude_id=${currentRoomId}`
+          `${process.env.NEXT_PUBLIC_API_URL}/hotels/${hotelId}/other-rooms?exclude_id=${currentRoomId}`,
         );
         const data = await response.json();
         setRooms(Array.isArray(data) ? data : []);
@@ -77,16 +85,20 @@ export default function OtherRoom({ hotelName, hotelId, currentRoomId }: OtherRo
               <CarouselContent className="-ml-4">
                 {rooms.map((obj) => {
                   const judgement = reviewJudgement(obj.avg_rating);
-                  const firstImage = obj.previewimages?.[0] || '/images/Product-card-1.jpg';
+                  const firstImage =
+                    obj.previewimages?.[0] || "/images/Product-card-1.jpg";
 
                   return (
-                    <CarouselItem key={obj.room_id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/4">
-                      <Link 
-                        href={`/hotels/${hotelId}/rooms/${obj.room_id}`} 
+                    <CarouselItem
+                      key={obj.room_id}
+                      className="pl-4 basis-full sm:basis-1/2 lg:basis-1/4"
+                    >
+                      <Link
+                        href={`/hotels/${hotelId}/rooms/${obj.room_id}`}
                         className="group flex h-full flex-col gap-y-4 rounded-[24px] bg-white p-4 shadow-sm transition-all hover:shadow-md"
                       >
-                        <div 
-                          className="h-[220px] w-full rounded-[20px] bg-cover bg-center bg-neutral-200" 
+                        <div
+                          className="h-[220px] w-full rounded-[20px] bg-cover bg-center bg-neutral-200"
                           style={{ backgroundImage: `url(${firstImage})` }}
                         />
 
@@ -99,12 +111,18 @@ export default function OtherRoom({ hotelName, hotelId, currentRoomId }: OtherRo
                             <div className="flex items-center gap-1">
                               <IoBedOutline size={16} />
                               <span className="text-[14px]">
-                                {obj.beds?.reduce((acc: number, cur: any) => acc + cur.count, 0) || 0} beds
+                                {obj.beds?.reduce(
+                                  (acc: number, cur: any) => acc + cur.count,
+                                  0,
+                                ) || 0}{" "}
+                                beds
                               </span>
                             </div>
                             <div className="flex items-center gap-1">
                               <IoPersonOutline size={16} />
-                              <span className="text-[14px]">{obj.capacity} people</span>
+                              <span className="text-[14px]">
+                                {obj.capacity} people
+                              </span>
                             </div>
                             <div className="flex items-center gap-1">
                               <IoResizeOutline size={16} />
@@ -117,25 +135,42 @@ export default function OtherRoom({ hotelName, hotelId, currentRoomId }: OtherRo
                           </div>
 
                           <div className="grid grid-cols-2 gap-y-1 py-1">
-                            {obj.amenities?.slice(0, 4).map((amenity: any, i: number) => (
-                              <div key={i} className={`flex items-center gap-2 ${i % 2 !== 0 ? 'justify-end' : ''}`}>
-                                <div 
-                                  className="h-3 w-3 bg-cover bg-center opacity-60" 
-                                  style={{ backgroundImage: `url(${amenity.icon})` }}
-                                />
-                                <span className="truncate text-[11px] text-slate-400">{amenity.name}</span>
-                              </div>
-                            ))}
+                            {obj.amenities
+                              ?.slice(0, 4)
+                              .map((amenity: any, i: number) => (
+                                <div
+                                  key={i}
+                                  className={`flex items-center gap-2 ${i % 2 !== 0 ? "justify-end" : ""}`}
+                                >
+                                  <div
+                                    className="h-3 w-3 bg-cover bg-center opacity-60"
+                                    style={{
+                                      backgroundImage: `url(${amenity.icon})`,
+                                    }}
+                                  />
+                                  <span className="truncate text-[11px] text-slate-400">
+                                    {amenity.name}
+                                  </span>
+                                </div>
+                              ))}
                           </div>
 
                           <div className="flex items-center gap-2 border-t border-slate-50 pt-3">
                             <div className="flex h-8 w-10 items-center justify-center rounded-l-[12px] rounded-br-[8px] bg-neutral-100">
-                              <span className="text-[14px] font-bold" style={{ color: judgement.color }}>
-                                {obj.avg_rating > 0 ? Number(obj.avg_rating).toFixed(1) : "-"}
+                              <span
+                                className="text-[14px] font-bold"
+                                style={{ color: judgement.color }}
+                              >
+                                {obj.avg_rating > 0
+                                  ? Number(obj.avg_rating).toFixed(1)
+                                  : "-"}
                               </span>
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-[13px] font-bold leading-none" style={{ color: judgement.color }}>
+                              <span
+                                className="text-[13px] font-bold leading-none"
+                                style={{ color: judgement.color }}
+                              >
                                 {judgement.name}
                               </span>
                               <span className="text-[11px] text-neutral-400">
@@ -157,7 +192,9 @@ export default function OtherRoom({ hotelName, hotelId, currentRoomId }: OtherRo
                             )}
                             <p className="text-[20px] font-black text-blue-600">
                               ${obj.final_price}
-                              <span className="text-[13px] font-medium text-slate-400">/night</span>
+                              <span className="text-[13px] font-medium text-slate-400">
+                                /night
+                              </span>
                             </p>
                           </div>
                         </div>
@@ -169,12 +206,12 @@ export default function OtherRoom({ hotelName, hotelId, currentRoomId }: OtherRo
             </Carousel>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-[32px] border-2 border-dashed border-slate-200 bg-white/50 py-12">
-              <Empty 
+              <Empty
                 description={
                   <span className="text-[18px] font-medium text-slate-400">
                     No other room in {hotelName}
                   </span>
-                } 
+                }
               />
             </div>
           )}

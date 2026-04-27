@@ -66,6 +66,10 @@ export const MENU_CONFIG = {
       name: "Bookings",
       icon: FaFirstOrderAlt,
       path: "/dashboard/bookings",
+      subItems: [
+        { name: "All Bookings", path: "/dashboard/bookings" },
+        { name: "Room Status", path: "/dashboard/bookings/room-status" },
+      ],
     },
     {
       name: "Guests",
@@ -112,7 +116,10 @@ export const MENU_CONFIG = {
       name: "Bookings",
       icon: FaHotel, 
       path: "/dashboard/bookings",
-      subItems: [{ name: "All Bookings", path: "/dashboard/bookings"}],
+      subItems: [
+        { name: "All Bookings", path: "/dashboard/bookings" },
+        { name: "Room Status", path: "/dashboard/bookings/room-status" },
+      ],
     },
     {
       name: "Frontdesk",
@@ -160,7 +167,10 @@ export const MENU_CONFIG = {
       name: "Bookings",
       icon: FaHotel, // change later
       path: "/dashboard/bookings",
-      subItems: [{ name: "Manage Bookings", path: "/dashboard/bookings" }],
+      subItems: [
+        { name: "Manage Bookings", path: "/dashboard/bookings" },
+        { name: "Room Status", path: "/dashboard/bookings/room-status" },
+      ],
     },
         {
       name: "Reserves",

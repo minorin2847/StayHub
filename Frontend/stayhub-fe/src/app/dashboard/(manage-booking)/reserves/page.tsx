@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import GenericTableView from "@/components/ui/GenericTableView";
 import { Tag, Button, message, Modal, Table, Space } from "antd";
-import { CloseCircleOutlined, CheckCircleOutlined, HomeOutlined, EditOutlined, DeleteOutlined, PlusCircleOutlined } from "@ant-design/icons";
+import { CloseCircleOutlined, CheckCircleOutlined, EditOutlined, DeleteOutlined, PlusCircleOutlined } from "@ant-design/icons";
 import { DashboardReserve } from "@/types/Reserve.js"; // Assume you have this type
 import { Room, RoomType } from "@/types/Room";
 import ReserveFilterModal from "./components/FilterModal";
@@ -18,6 +18,8 @@ export type ReserveFilterData = {
     page: string | null;
 };
 
+type ReserveRoomRow = DashboardReserve["rooms"][number];
+
 export default function ReserveView() {
     const [loading, setLoading] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<DashboardReserve | null>(null);
@@ -32,7 +34,7 @@ export default function ReserveView() {
     const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
     const [recordToApprove, setRecordToApprove] = useState<DashboardReserve | null>(null);
 
-    const [currentRoom, setCurrentRoom] = useState<any | null>(null);
+    const [currentRoom, setCurrentRoom] = useState<ReserveRoomRow | null>(null);
     const [isEditRoomOpen, setIsEditRoomOpen] = useState(false);
     const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
     const [targetReserveId, setTargetReserveId] = useState<number | null>(null);
@@ -47,18 +49,18 @@ export default function ReserveView() {
                 ]);
                 if (roomsRes.ok) setRooms(await roomsRes.json());
                 if (typesRes.ok) setRoomTypes(await typesRes.json());
-            } catch (e) {
-                console.error("Failed to fetch room data", e);
+            } catch (error) {
+                console.error("Failed to fetch room data", error);
             }
         };
         fetchRoomsAndTypes();
     }, []);
 
     // --- ROOM LEVEL ACTIONS ---
-    const handleCancelRoom = async (room: any, onRefresh: () => Promise<void>) => {
+    const handleCancelRoom = async (room: ReserveRoomRow, onRefresh: () => Promise<void>) => {
         Modal.confirm({
             title: 'Cancel this reserved room?',
-            content: `Are you sure you want to cancel Room ${room.roomID}?`,
+            content: `Are you sure you want to cancel ${room.room_name || room.room_type_name}?`,
             okText: 'Yes, Cancel',
             okType: 'danger',
             onOk: async () => {
@@ -73,14 +75,14 @@ export default function ReserveView() {
                         message.success("Room cancelled");
                         await onRefresh();
                     }
-                } catch (e) {
+                } catch {
                     message.error("Failed to cancel room");
                 }
             }
         });
     };
 
-    const handleDeleteRoom = async (room: any, onRefresh: () => Promise<void>) => {
+    const handleDeleteRoom = async (room: ReserveRoomRow, onRefresh: () => Promise<void>) => {
         Modal.confirm({
             title: 'Delete Room from Cart?',
             content: 'This will permanently remove this room entry from the reservation.',
@@ -96,15 +98,27 @@ export default function ReserveView() {
                         message.success("Room removed");
                         await onRefresh();
                     }
-                } catch (e) {
+                } catch {
                     message.error("Failed to remove room");
                 }
             }
         });
     };
 
-    const expandedRoomColumns = (onRefresh: () => Promise<void>, onEdit: (room: any) => void) => [
-        { title: "Room ID", dataIndex: "roomID", key: "roomID" },
+    const expandedRoomColumns = (onRefresh: () => Promise<void>, onEdit: (room: ReserveRoomRow) => void) => [
+        { title: "Room Type ID", dataIndex: "roomTypeID", key: "roomTypeID" },
+        {
+            title: "Room Type",
+            dataIndex: "room_type_name",
+            key: "room_type_name",
+            render: (value: string) => value || "-"
+        },
+        {
+            title: "Assigned Room",
+            dataIndex: "room_name",
+            key: "room_name",
+            render: (_value: string, record: ReserveRoomRow) => record.room_name || (record.roomID ? `Room #${record.roomID}` : <Tag color="gold">Unassigned</Tag>)
+        },
         { title: "Conf. Code", dataIndex: "confirmation_code", key: "confirmation_code", className: "font-mono text-xs" },
         {
             title: "Booking Status",
@@ -126,7 +140,7 @@ export default function ReserveView() {
         {
             title: "ACTIONS",
             key: "actions",
-            render: (_: any, record: any) => (
+            render: (_value: unknown, record: ReserveRoomRow) => (
                 <Space size="small">
                     <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
                     {record.booking_status !== 'Cancelled' && record.booking_status !== 'Completed' && (
@@ -153,7 +167,7 @@ export default function ReserveView() {
             } else {
                 message.error(await res.text() || "Failed to cancel reserve.");
             }
-        } catch (e) {
+        } catch {
             message.error("Failed to cancel reserve due to network error.");
         }
     };
@@ -172,14 +186,14 @@ export default function ReserveView() {
             } else {
                 message.error(await res.text() || "Failed to approve reserve.");
             }
-        } catch (e) {
+        } catch {
             message.error("Failed to approve reserve.");
         }
     };
 
     return (
         <>
-            <GenericTableView<any, ReserveFilterData>
+            <GenericTableView<DashboardReserve, ReserveFilterData>
                 resourceName="Online Reserve"
                 searchPlaceholder="Search by guest name or conf code..."
                 tableDataEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/reserves`}
@@ -196,7 +210,7 @@ export default function ReserveView() {
                             <Table
                                 columns={expandedRoomColumns(async () => {
                                     setLoading(true); await fetchData(); setLoading(false);
-                                }, (room: any) => {
+                                }, (room: ReserveRoomRow) => {
                                     setCurrentRoom(room); setIsEditRoomOpen(true);
                                 })}
                                 dataSource={record.rooms}
@@ -211,6 +225,7 @@ export default function ReserveView() {
 
                 customActions={(record, { fetchData, setLoading }) => {
                     const handleRefresh = async () => { setLoading(true); await fetchData(); setLoading(false); };
+                    const allRoomsAssigned = Array.isArray(record.rooms) && record.rooms.every((room) => Boolean(room.roomID));
                     
                     return (
                         <>
@@ -220,13 +235,14 @@ export default function ReserveView() {
                                     type="text"
                                     className="text-emerald-500 hover:text-emerald-700 font-semibold"
                                     icon={<CheckCircleOutlined />}
+                                    disabled={!allRoomsAssigned}
                                     onClick={() => {
                                         setRecordToApprove(record);
                                         setOnSuccess(() => handleRefresh);
                                         setIsApproveModalOpen(true);
                                     }}
                                 >
-                                    Approve
+                                    {allRoomsAssigned ? "Approve" : "Assign room first"}
                                 </Button>
                             )}
 
@@ -241,7 +257,7 @@ export default function ReserveView() {
                                     setIsAddRoomOpen(true);
                                 }}
                             >
-                                Add Room
+                                Add Room Type
                             </Button>
 
                             {/* CANCEL RESERVE ACTION */}
@@ -264,7 +280,7 @@ export default function ReserveView() {
                 tableColumns={[
                     { title: "GUEST", dataIndex: "guest_full_name", key: "guest", className: "font-semibold", render: (name: string) => name },
                     { title: "ROOMS", dataIndex: "total_rooms", key: "rooms", render: (totalRooms: number) => totalRooms },
-                    { title: "TOTAL PRICE", dataIndex: "total_price", key: "price", render: (val) => `$${val}` },
+                    { title: "TOTAL PRICE", dataIndex: "total_price", key: "price", render: (val: number) => `$${val}` },
                     {
                         title: "STATUS", dataIndex: "overall_status", key: "status",
                         render: (status: string) => (
@@ -305,7 +321,7 @@ export default function ReserveView() {
                 ]}
             >
                 <p>Approve the reservation for <b>{recordToApprove?.guest_full_name}</b>?</p>
-                <p className="text-slate-500 text-xs">This will convert the online request into a finalized PMS Booking.</p>
+                <p className="text-slate-500 text-xs">This will convert the reserve into a finalized PMS booking using the assigned physical rooms.</p>
             </Modal>
 
             {/* EDIT ROOM MODAL */}

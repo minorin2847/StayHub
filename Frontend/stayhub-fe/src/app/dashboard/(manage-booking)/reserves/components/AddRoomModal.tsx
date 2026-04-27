@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Modal, Form, Input, Row, Col, message, AutoComplete, InputNumber, DatePicker, Select } from "antd";
+import { Modal, Form, Row, Col, message, InputNumber, DatePicker, Select } from "antd";
 import { HomeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { Room, RoomType } from "@/types/Room";
@@ -14,29 +14,30 @@ interface Props {
     reserveId: number | null; 
 }
 
+type AddReservedRoomFormValues = {
+    roomTypeID: number;
+    checkin_date: dayjs.Dayjs;
+    checkout_date: dayjs.Dayjs;
+    booking_status: string;
+    payment_status: string;
+    final_price: number;
+};
+
 const AddReservedRoomModal = ({ open, onClose, onSuccess, rooms, roomTypes, reserveId }: Props) => {
     const [form] = Form.useForm();
-    const [roomOptions, setRoomOptions] = useState<any[]>([]);
+    const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<number | null>(null);
 
-    const handleRoomSearch = (searchText: string) => {
-        const filtered = rooms
-            .filter((room: Room) => room.name.toLowerCase().includes(searchText.toLowerCase()))
-            .map((room: Room) => ({ label: room.name, value: room.name, id: room.id }));
-        setRoomOptions(filtered);
-    };
+    void rooms;
 
-    const onSelectRoom = (value: string, option: any) => {
-        const roomId = option.id;
-        form.setFieldsValue({ roomID: roomId });
-        
-        const selectedRoomData = rooms.find(r => r.id === roomId);
-        if (selectedRoomData) {
-            const matchingType = roomTypes.find(t => t.id === (selectedRoomData as any).typeid);
-            if (matchingType) form.setFieldsValue({ final_price: matchingType.base_price });
+    const onSelectRoomType = (value: number) => {
+        setSelectedRoomTypeId(value);
+        const selectedType = roomTypes.find((roomType) => roomType.id === value);
+        if (selectedType) {
+            form.setFieldsValue({ final_price: selectedType.base_price });
         }
     };
 
-    const handleFinish = async (values: any) => {
+    const handleFinish = async (values: AddReservedRoomFormValues) => {
         if (!reserveId) return;
 
         try {
@@ -45,7 +46,7 @@ const AddReservedRoomModal = ({ open, onClose, onSuccess, rooms, roomTypes, rese
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    roomID: values.roomID,
+                    roomTypeID: values.roomTypeID,
                     checkin_date: values.checkin_date.format("YYYY-MM-DD"),
                     checkout_date: values.checkout_date.format("YYYY-MM-DD"),
                     booking_status: values.booking_status,
@@ -60,19 +61,19 @@ const AddReservedRoomModal = ({ open, onClose, onSuccess, rooms, roomTypes, rese
             message.success("Room successfully added to cart!");
             onSuccess();
             handleClose();
-        } catch (error: any) {
-            message.error(error.message || "Failed to add room");
+        } catch (error: unknown) {
+            message.error(error instanceof Error ? error.message : "Failed to add room");
         }
     };
 
     const handleClose = () => {
         form.resetFields();
-        setRoomOptions([]);
+        setSelectedRoomTypeId(null);
         onClose();
     };
 
     return (
-        <Modal title={<span><HomeOutlined /> Add Room to Cart</span>} open={open} onCancel={handleClose} onOk={form.submit} width={600}>
+        <Modal title={<span><HomeOutlined /> Add Room Type to Reserve</span>} open={open} onCancel={handleClose} onOk={form.submit} width={600}>
             <Form form={form} layout="vertical" onFinish={handleFinish} initialValues={{ checkin_date: dayjs(), checkout_date: dayjs().add(5, 'day'), booking_status: 'Pending', payment_status: 'Unpaid' }} className="mt-4">
                 <Row gutter={16}>
                     <Col span={12}>
@@ -87,12 +88,25 @@ const AddReservedRoomModal = ({ open, onClose, onSuccess, rooms, roomTypes, rese
                     </Col>
                 </Row>
                 <Row gutter={16}>
-                    <Col span={12}>
-                        <Form.Item label="Select Room" name="room_display" rules={[{required: true}]}>
-                            <AutoComplete options={roomOptions} showSearch={{onSearch:handleRoomSearch}} onSelect={onSelectRoom} />
+                    <Col span={24}>
+                        <Form.Item label="Room Type" name="roomTypeID" rules={[{required: true, message: "Please select a room type"}]}>
+                            <Select
+                                placeholder="Select room type"
+                                onChange={onSelectRoomType}
+                                options={roomTypes.map((roomType) => ({
+                                    label: `${roomType.name} (#${roomType.id})`,
+                                    value: roomType.id,
+                                }))}
+                            />
                         </Form.Item>
-                        <Form.Item name="roomID" hidden><Input /></Form.Item>
+                        {selectedRoomTypeId ? (
+                            <p className="mb-4 text-xs text-slate-500">
+                                Physical room will be assigned later when receptionist approves the reserve.
+                            </p>
+                        ) : null}
                     </Col>
+                </Row>
+                <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item name="final_price" label="Price ($)" rules={[{required: true}]}>
                             <InputNumber className="w-full" precision={2} min={0} />

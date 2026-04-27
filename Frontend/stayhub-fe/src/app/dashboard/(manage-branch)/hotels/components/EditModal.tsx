@@ -132,7 +132,7 @@ const EditModal = ({ open, onClose, onSuccess, current }: EditModalProps) => {
         setExistingImages(safeImages);
         setDeletedImageIds([]);
         setNewFiles([]);
-        setSelectedPreview(safeImages[0]?.signed_url || null);
+        setSelectedPreview(safeImages[0]?.signed_url || safeImages[0]?.image_url || null);
 
         const coverImg = safeImages.find((img: any) => img.is_cover);
         if (coverImg) {
@@ -274,10 +274,15 @@ const EditModal = ({ open, onClose, onSuccess, current }: EditModalProps) => {
 
       if (coverImageKey?.startsWith("existing-")) {
         const id = coverImageKey.split("-")[1];
-        await fetch(`${API_URL}/employee/hotels/${hotelId}/images/${id}/cover`, {
+        const coverRes = await fetch(`${API_URL}/employee/hotels/${hotelId}/images/${id}/cover`, {
           method: "PUT",
           credentials: "include",
         });
+
+        if (!coverRes.ok) {
+          const errorText = await coverRes.text();
+          throw new Error(errorText || "Failed to update cover image");
+        }
       }
 
       message.success({
@@ -335,7 +340,7 @@ const EditModal = ({ open, onClose, onSuccess, current }: EditModalProps) => {
       const safeImages = Array.isArray(images) ? images : [];
 
       setExistingImages(safeImages);
-      setSelectedPreview(safeImages[0]?.signed_url || null);
+      setSelectedPreview(safeImages[0]?.signed_url || safeImages[0]?.image_url || null);
       
       const coverImg = safeImages.find((img: any) => img.is_cover);
       if (coverImg) {

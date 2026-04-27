@@ -1,6 +1,9 @@
 export class ReservedRoom {
-    roomID: number = 0;
+    roomTypeID: number = 0;
+    roomID: number | null = null;
     hotelID: number = 0;
+    room_type_name: string = "";
+    room_name: string | null = null;
     confirmation_code: string = "";
     booking_status: string = "Pending";
     payment_status: string = "Unpaid";
