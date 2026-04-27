@@ -2119,3 +2119,51 @@ BEGIN
     RETURN QUERY EXECUTE v_query;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION create_full_room_type(
+        p_hotelID INT,
+        p_name TEXT,
+        p_size INT,
+        p_capacity INT,
+        p_price INT,
+        p_description TEXT,
+        p_amenities TEXT [],
+        p_beds JSONB
+    ) RETURNS INT AS $$
+DECLARE new_type_id INT;
+bed_record RECORD;
+amenity_name TEXT;
+BEGIN
+INSERT INTO roomTypes (
+        hotelID,
+        name,
+        size,
+        capacity,
+        base_price,
+        description
+    )
+VALUES (
+        p_hotelID,
+        p_name,
+        p_size,
+        p_capacity,
+        p_price,
+        p_description
+    )
+RETURNING id INTO new_type_id;
+IF p_amenities IS NOT NULL THEN FOREACH amenity_name IN ARRAY p_amenities LOOP
+INSERT INTO room_type_amenities (room_typeID, amenity_name)
+VALUES (new_type_id, amenity_name);
+END LOOP;
+END IF;
+IF p_beds IS NOT NULL
+AND jsonb_array_length(p_beds) > 0 THEN FOR bed_record IN
+SELECT *
+FROM jsonb_to_recordset(p_beds) AS x(name TEXT, count INT) LOOP
+INSERT INTO room_type_beds (room_typeID, bed_name, bed_count)
+VALUES (new_type_id, bed_record.name, bed_record.count);
+END LOOP;
+END IF;
+RETURN new_type_id;
+END;
+$$ LANGUAGE plpgsql;

@@ -55,7 +55,7 @@ export default function RoomTypeView() {
             loading={loading}
             setLoading={setLoading}
             renderCreateModal={(injected) => (
-                <CreateModal {...injected} masterAmenities={amenities} masterBeds={beds} />
+                <CreateModal {...injected} amenities={amenities} beds={beds} />
             )}
             renderFilterModal={(injected) => (
                 <FilterModal {...injected} masterAmenities={amenities} masterBeds={beds} />
