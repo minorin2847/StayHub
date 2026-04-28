@@ -357,17 +357,8 @@ ALTER TABLE users_reserves
 ADD CONSTRAINT fk_ur_res FOREIGN KEY (reserves_userID) REFERENCES reserves (id) ON DELETE CASCADE;
 END IF;
 END IF;
--- Reviews Junctions
-IF to_regclass('users_reviews') IS NOT NULL
-AND NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint
-    WHERE conname = 'fk_uw_user'
-        AND conrelid = 'users_reviews'::regclass
-) THEN
-ALTER TABLE users_reviews
-ADD CONSTRAINT fk_uw_user FOREIGN KEY (users_id) REFERENCES users (id) ON DELETE CASCADE;
-END IF;
+
+
 -- Hotel Assets
 IF to_regclass('hotel_amenities') IS NOT NULL THEN IF NOT EXISTS (
     SELECT 1
@@ -419,6 +410,30 @@ ALTER TABLE hotel_beds
 ADD CONSTRAINT fk_hb_beds FOREIGN KEY (bed_name) REFERENCES beds (name) ON DELETE CASCADE;
 END IF;
 END IF;
+
+IF to_regclass('hotel_policies') IS NOT NULL THEN IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'fk_hp_hotel'
+        AND conrelid = 'hotel_policies'::regclass
+) THEN
+ALTER TABLE hotel_policies
+ADD CONSTRAINT fk_hp_hotel FOREIGN KEY (hotelID) REFERENCES hotels (id) ON DELETE CASCADE;
+END IF;
+END IF;
+
+IF to_regclass('hotel_policies') IS NOT NULL THEN IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'fk_hp_policy'
+        AND conrelid = 'hotel_policies'::regclass
+) THEN
+ALTER TABLE hotel_policies
+ADD CONSTRAINT fk_hp_policy FOREIGN KEY (policy_name) REFERENCES policies (name) ON DELETE CASCADE;
+END IF;
+END IF;
+
+
 -- RoomType Assets
 IF to_regclass('room_type_amenities') IS NOT NULL THEN IF NOT EXISTS (
     SELECT 1

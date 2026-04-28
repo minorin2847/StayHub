@@ -251,16 +251,7 @@ CREATE TABLE IF NOT EXISTS rooms_reserves (
   reserves_roomID int,
   PRIMARY KEY (rooms_id, reserves_roomID)
 );
-CREATE TABLE IF NOT EXISTS users_reviews (
-  users_id int,
-  reviews_userID int,
-  PRIMARY KEY (users_id, reviews_userID)
-);
-CREATE TABLE IF NOT EXISTS rooms_reviews (
-  id int,
-  reviews_roomID int,
-  PRIMARY KEY (rooms_id, reviews_roomID)
-);
+
 -- Hotel Relationship Tables
 CREATE TABLE IF NOT EXISTS hotel_amenities (
   hotelID int NOT NULL,
