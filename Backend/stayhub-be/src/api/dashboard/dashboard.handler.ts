@@ -94,9 +94,9 @@ export async function getEmployeeAccounts(
       res.status(200).json(
         result.length > 0
           ? {
-              hasNext: result[0].hasNext,
-              response: result.map((i) => new Employee(i)),
-            }
+            hasNext: result[0].hasNext,
+            response: result.map((i) => new Employee(i)),
+          }
           : [],
       );
     },
@@ -131,9 +131,9 @@ export async function getBranches(
       res.status(200).json(
         result.length > 0
           ? {
-              hasNext: result[0].hasNext,
-              response: result.map((i) => i as BranchTable),
-            }
+            hasNext: result[0].hasNext,
+            response: result.map((i) => i as BranchTable),
+          }
           : [],
       );
     },
@@ -167,9 +167,9 @@ export async function getRoles(
       res.status(200).json(
         result.length > 0
           ? {
-              hasNext: result[0].hasNext,
-              response: result.map((i) => i as RoleTableData),
-            }
+            hasNext: result[0].hasNext,
+            response: result.map((i) => i as RoleTableData),
+          }
           : [],
       );
     },
@@ -238,9 +238,9 @@ export async function getDashboardHotels(
       res.status(200).json(
         result.length > 0
           ? {
-              hasNext,
-              response: result,
-            }
+            hasNext,
+            response: result,
+          }
           : [],
       );
     },

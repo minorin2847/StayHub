@@ -314,16 +314,6 @@ ALTER TABLE works
 ADD CONSTRAINT fk_work_serv FOREIGN KEY (serviceID) REFERENCES services (id) ON DELETE CASCADE;
 END IF;
 END IF;
-IF to_regclass('shifts') IS NOT NULL
-AND NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint
-    WHERE conname = 'fk_shift_emp'
-        AND conrelid = 'shifts'::regclass
-) THEN
-ALTER TABLE shifts
-ADD CONSTRAINT fk_shift_emp FOREIGN KEY (employeeID) REFERENCES employees (id) ON DELETE CASCADE;
-END IF;
 IF to_regclass('city_activity') IS NOT NULL THEN IF NOT EXISTS (
     SELECT 1
     FROM pg_constraint
