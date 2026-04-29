@@ -31,24 +31,24 @@ dashboardRoute.get("/hotels", isLoggedIn,
 dashboardRoute.get("/beds", isLoggedIn, getDashboardBeds);
 
 // GET /employee/dashboard/hotels/beds
-dashboardRoute.get("/hotels/beds", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardHotelBeds);
+dashboardRoute.get("/hotels/beds", isLoggedIn, hasPermission(["MANAGE_HOTEL", "ADMINISTRATOR"]), getDashboardHotelBeds);
 
 // GET /employee/dashboard/services
-dashboardRoute.get("/services", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardServices);
+dashboardRoute.get("/services", isLoggedIn, hasPermission(["MANAGE_HOTEL", "ADMINISTRATOR"]), getDashboardServices);
 
 // GET /employee/dashboard/rooms/types
-dashboardRoute.get("/rooms/types", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardRoomTypes);
+dashboardRoute.get("/rooms/types", isLoggedIn, hasPermission(["MANAGE_HOTEL", "ADMINISTRATOR"]), getDashboardRoomTypes);
 
 // GET /employee/dashboard/rooms
-dashboardRoute.get("/rooms", isLoggedIn, hasPermission(["MANAGE_HOTEL"]), getDashboardRooms);
+dashboardRoute.get("/rooms", isLoggedIn, hasPermission(["MANAGE_HOTEL", "ADMINISTRATOR"]), getDashboardRooms);
 
 // GET /employee/dashboard/guests
-dashboardRoute.get("/guests", isLoggedIn, hasPermission(["MANAGE_HOTEL", "MANAGE_BOOKING"]), getDashboardGuests);
+dashboardRoute.get("/guests", isLoggedIn, hasPermission(["MANAGE_HOTEL", "MANAGE_BOOKING", "ADMINISTRATOR"]), getDashboardGuests);
 
 // GET /employee/dashboard/bookings
-dashboardRoute.get("/bookings", isLoggedIn, hasPermission(["MANAGE_BOOKING"]), getDashboardBookings);
+dashboardRoute.get("/bookings", isLoggedIn, hasPermission(["MANAGE_BOOKING", "ADMINISTRATOR"]), getDashboardBookings);
 
 // GET /employee/dashboard/reserves
-dashboardRoute.get("/reserves", isLoggedIn, hasPermission(["MANAGE_BOOKING"]), getDashboardReserves);
+dashboardRoute.get("/reserves", isLoggedIn, hasPermission(["MANAGE_BOOKING", "ADMINISTRATOR"]), getDashboardReserves);
 
 export default dashboardRoute;
