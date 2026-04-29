@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds, getDashboardServices, getDashboardRoomTypes, getDashboardGuests, getDashboardBookings, getDashboardReserves } from "./dashboard.handler.js";
+import { getBranches, getEmployee, getEmployeeAccounts, getRoles, hasPermission, getDashboardHotels, getDashboardRooms, getDashboardBeds, getDashboardHotelBeds, getDashboardServices, getDashboardRoomTypes, getDashboardGuests, getDashboardBookings, getDashboardReserves, refreshDashboardViews } from "./dashboard.handler.js";
 import { isLoggedIn } from "@/api/auth/auth.handler.js";
 
 const dashboardRoute = Router();
@@ -50,5 +50,8 @@ dashboardRoute.get("/bookings", isLoggedIn, hasPermission(["MANAGE_BOOKING", "AD
 
 // GET /employee/dashboard/reserves
 dashboardRoute.get("/reserves", isLoggedIn, hasPermission(["MANAGE_BOOKING", "ADMINISTRATOR"]), getDashboardReserves);
+
+// POST /employee/dashboard/refresh-views
+dashboardRoute.post("/refresh-views", isLoggedIn, hasPermission(["ADMINISTRATOR"]), refreshDashboardViews);
 
 export default dashboardRoute;

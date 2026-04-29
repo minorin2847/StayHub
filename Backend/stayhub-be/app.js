@@ -3,7 +3,7 @@ const express = require("express");
 const db = require("./db");
 const app = express();
 const port = process.env.PORT;
-
+const cron = require('node-cron');
 /* CORS */
 const cors = require("cors");
 
@@ -37,3 +37,18 @@ app.post('/hello', async (req, res) => {
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 })
+
+cron.schedule('*/5 * * * *', async () => {
+    try {
+        console.log('Bắt đầu cập nhật Materialized Views...');
+        
+        await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY vw_reserve_details;');
+        await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY searchpage_view;');
+        await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY room_details_view;');
+        await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY hotel_other_rooms_view;');
+        
+        console.log('Cập nhật Materialized Views thành công!');
+    } catch (error) {
+        console.error('Lỗi khi cập nhật Materialized Views:', error);
+    }
+});

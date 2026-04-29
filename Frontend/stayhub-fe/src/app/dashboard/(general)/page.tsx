@@ -14,6 +14,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
 import {
   ResponsiveContainer,
@@ -67,6 +68,22 @@ export default function AdminDashboard() {
   
   const [loadingData, setLoadingData] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [syncingDB, setSyncingDB] = useState(false);
+
+  const handleSyncDB = async () => {
+    setSyncingDB(true);
+    try {
+      const fetchOpts = { method: "POST", credentials: "include" as RequestCredentials };
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/refresh-views`, fetchOpts);
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSyncingDB(false);
+    }
+  };
 
   const fetchData = () => {
     setLoadingData(true);
@@ -415,7 +432,6 @@ export default function AdminDashboard() {
         </div>
         
         <div className="flex flex-col items-center gap-3">
-          
           <Button 
             type="primary" 
             icon={<ReloadOutlined />} 
@@ -426,9 +442,9 @@ export default function AdminDashboard() {
             Refresh Data
           </Button>
           {lastUpdated && (
-            <span className="text-sm text-slate-500 font-medium bg-white px-4 py-2 flex items-center">
+            <span className="text-sm text-slate-500 font-small bg-white px-4 py-2 flex items-center h-10">
               <ClockCircleOutlined className="mr-2 text-indigo-500" /> 
-              Updated at {lastUpdated.toLocaleTimeString()}
+              Updated {lastUpdated.toLocaleTimeString()}
             </span>
           )}
         </div>

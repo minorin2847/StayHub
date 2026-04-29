@@ -754,3 +754,19 @@ export async function getDashboardReserves(
     },
   );
 }
+
+export async function refreshDashboardViews(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY vw_reserve_details;');
+    await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY searchpage_view;');
+    await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY room_details_view;');
+    await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY hotel_other_rooms_view;');
+    res.status(200).json({ message: "Dashboard views refreshed successfully" });
+  } catch (error) {
+    next(error);
+  }
+}
