@@ -69,19 +69,26 @@ export default function AdminDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [syncingDB, setSyncingDB] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "success" | "error">("idle");
 
   const handleSyncDB = async () => {
     setSyncingDB(true);
+    setSyncStatus("idle");
     try {
       const fetchOpts = { method: "POST", credentials: "include" as RequestCredentials };
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employee/dashboard/refresh-views`, fetchOpts);
       if (res.ok) {
+        setSyncStatus("success");
         fetchData();
+      } else {
+        setSyncStatus("error");
       }
     } catch (e) {
       console.error(e);
+      setSyncStatus("error");
     } finally {
       setSyncingDB(false);
+      setTimeout(() => setSyncStatus("idle"), 4000);
     }
   };
 
@@ -431,22 +438,49 @@ export default function AdminDashboard() {
           </p>
         </div>
         
-        <div className="flex flex-col items-center gap-3">
-          <Button 
-            type="primary" 
-            icon={<ReloadOutlined />} 
-            onClick={fetchData} 
-            loading={loadingData}
-            className="bg-indigo-600 hover:bg-indigo-700 shadow-sm rounded-full px-5 h-10 font-medium flex items-center"
-          >
-            Refresh Data
-          </Button>
-          {lastUpdated && (
-            <span className="text-sm text-slate-500 font-small bg-white px-4 py-2 flex items-center h-10">
-              <ClockCircleOutlined className="mr-2 text-indigo-500" /> 
-              Updated {lastUpdated.toLocaleTimeString()}
-            </span>
-          )}
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex items-center gap-3">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={fetchData}
+              loading={loadingData}
+              className="rounded-full px-5 h-10 font-medium flex items-center border-slate-300 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+            >
+              Refresh Data
+            </Button>
+            <Button
+              type="primary"
+              icon={<SyncOutlined spin={syncingDB} />}
+              onClick={handleSyncDB}
+              loading={syncingDB}
+              disabled={syncingDB}
+              className="rounded-full px-5 h-10 font-semibold flex items-center shadow-sm"
+              style={{
+                background: syncingDB ? undefined : "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                borderColor: "#d97706",
+              }}
+            >
+              Force Sync DB
+            </Button>
+          </div>
+          <div className="flex items-center gap-3 h-7">
+            {lastUpdated && (
+              <span className="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-100 flex items-center gap-1.5">
+                <ClockCircleOutlined className="text-indigo-400" />
+                Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
+            {syncStatus === "success" && (
+              <span className="text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 animate-in fade-in duration-300">
+                ✓ Materialized views refreshed
+              </span>
+            )}
+            {syncStatus === "error" && (
+              <span className="text-sm font-medium text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full flex items-center gap-1.5 animate-in fade-in duration-300">
+                ✗ Sync failed — check server logs
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
