@@ -6,6 +6,7 @@ import {
   initializeUserSession,
   initializeEmployeeSession,
 } from "@/utils/initializeSession.js";
+import { initCronJobs } from "@/utils/cron.js";
 /* Express */
 const app = express();
 const port = process.env.PORT;
@@ -90,6 +91,7 @@ app.use("/things", thingsRouter);
 app.use("/homeGuests", homeGuestsRouter);
 const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  initCronJobs(); // Initialize background cron jobs
 });
 
 // Create table if not exists, quit server when failed
