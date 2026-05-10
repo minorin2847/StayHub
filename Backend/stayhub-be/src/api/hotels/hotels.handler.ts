@@ -335,7 +335,6 @@ export async function getHotelImages(
             image_path: row.image_path,
             image_url: data.publicUrl,
             signed_url: data.publicUrl,
-            is_cover: index === 0,
           };
         });
       },
@@ -465,7 +464,6 @@ export async function setCoverImage(
         await t.none(
           `
           UPDATE hotel_images
-          SET is_cover = false
           WHERE hotelid = $1
           `,
           [hotelId]
@@ -474,13 +472,11 @@ export async function setCoverImage(
         const updatedImage = await t.one(
           `
           UPDATE hotel_images
-          SET is_cover = true
           WHERE id = $1 AND hotelid = $2
           RETURNING
             id,
             hotelid,
             image_path,
-            is_cover
           `,
           [imageId, hotelId]
         );
@@ -505,7 +501,137 @@ export async function setCoverImage(
 
 
 /**
- * Fetches other room types available in the same hotel,
+ * PUBLIC: Get a single room type's full detail for the public-facing page.
+ * Route: GET /hotels/:hotel_id/rooms/:room_id
+ * Queries the room_details_view materialized view and computes live availability.
+ */
+export async function getPublicRoomDetail(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const hotelId  = Number(req.params.hotel_id);
+  const roomId   = Number(req.params.room_id);
+  const checkin  = String(req.query.checkin  ?? "").trim() || null;
+  const checkout = String(req.query.checkout ?? "").trim() || null;
+
+  if (Number.isNaN(hotelId) || hotelId <= 0) {
+    return res.status(400).json({ message: "Invalid hotel_id" });
+  }
+  if (Number.isNaN(roomId) || roomId <= 0) {
+    return res.status(400).json({ message: "Invalid room_id" });
+  }
+
+  try {
+    // 1. Fetch base room detail from the materialized view
+    const roomRow = await db.oneOrNone(
+      `SELECT * FROM room_details_view WHERE room_id = $1 AND hotel_id = $2`,
+      [roomId, hotelId],
+    );
+
+    if (!roomRow) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // 2. Resolve all image URLs via Supabase storage
+    const rawImages: string[] = Array.isArray(roomRow.previewimages)
+      ? roomRow.previewimages
+      : [];
+
+    const resolvedImages = rawImages.map((p: string) => {
+      if (/^https?:\/\//i.test(p) || p.startsWith("/")) return p;
+      const { data } = supabaseAdmin.storage
+        .from("room-type-images")
+        .getPublicUrl(p);
+      return data.publicUrl;
+    });
+
+    // 3. Compute live availability if a date range is provided
+    let availableRoomCount: number | null = null;
+
+    if (checkin && checkout && checkin < checkout) {
+      const ACTIVE_BOOKING  = ["Reserved", "Checked-In"];
+      const ACTIVE_RESERVE  = ["Pending", "Awaiting Confirmation", "Confirmed", "Partial Confirmed"];
+
+      const availRow = await db.oneOrNone(
+        `
+        SELECT
+          COUNT(DISTINCT r.id)::int AS total_rooms,
+          COALESCE((
+              SELECT COUNT(*)
+              FROM booked_room br
+              JOIN rooms booked_r ON booked_r.id = br.roomid
+              WHERE booked_r.hotelid = $(hotelId)
+                AND booked_r.typeid  = $(roomId)
+                AND br.room_status   IN ($(activeBooking:csv))
+                AND br.checkin_date  < $(checkout)
+                AND br.checkout_date > $(checkin)
+          ), 0)::int AS booked_count,
+          COALESCE((
+              SELECT COUNT(*)
+              FROM reserved_room rr
+              WHERE rr.hotelid         = $(hotelId)
+                AND rr.roomtypeid      = $(roomId)
+                AND rr.booking_status  IN ($(activeReserve:csv))
+                AND rr.checkin_date    < $(checkout)
+                AND rr.checkout_date   > $(checkin)
+          ), 0)::int AS reserved_count
+        FROM rooms r
+        WHERE r.hotelid = $(hotelId)
+          AND r.typeid  = $(roomId)
+        `,
+        {
+          hotelId,
+          roomId,
+          checkin,
+          checkout,
+          activeBooking: ACTIVE_BOOKING,
+          activeReserve: ACTIVE_RESERVE,
+        },
+      );
+
+      if (availRow) {
+        availableRoomCount =
+          Number(availRow.total_rooms) -
+          Number(availRow.booked_count) -
+          Number(availRow.reserved_count);
+      }
+    }
+
+    // 4. Build the response
+    const response = {
+      id:                  roomRow.room_id,
+      hotelId:             roomRow.hotel_id,
+      hotelName:           roomRow.hotel_name,
+      hotelLocation:       roomRow.hotel_location,
+      hotelClassification: roomRow.hotel_classification,
+      hotelRating:         Number(roomRow.avg_rating ?? 0),
+      name:                roomRow.room_type,
+      size:                roomRow.size,
+      capacity:            roomRow.capacity,
+      price:               Number(roomRow.price),
+      description:         roomRow.room_description,
+      beds:                roomRow.room_beds     ?? [],
+      amenities:           roomRow.room_amenities ?? [],
+      images:              resolvedImages,
+      image:               resolvedImages[0] ?? "/images/hotel1.png",
+      policies:            roomRow.hotel_policies ?? [],
+      availableRoomCount:  availableRoomCount,
+      reviews:             [],                         // Loaded separately if needed
+      stay:
+        checkin && checkout
+          ? { checkin, checkout }
+          : null,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PUBLIC: Fetches other room types available in the same hotel,
  * excluding the one currently being viewed.
  */
 export async function getOtherRoomsInHotel(req: Request, res: Response, next: NextFunction) {
@@ -533,6 +659,190 @@ export async function getOtherRoomsInHotel(req: Request, res: Response, next: Ne
     res.status(500).json({
       message: "Internal server error while retrieving related rooms",
     });
+    next(error);
+  }
+}
+
+/**
+ * PUBLIC: Get full hotel detail including room types and live availability.
+ * Route: GET /hotels/:id
+ */
+export async function getPublicHotelDetail(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const hotelId = Number(req.params.id);
+  const checkin  = String(req.query.checkin  ?? "").trim() || null;
+  const checkout = String(req.query.checkout ?? "").trim() || null;
+  const adults   = Number(req.query.adults);
+  const children = Number(req.query.children);
+
+  if (Number.isNaN(hotelId) || hotelId <= 0) {
+    return res.status(400).json({ message: "Invalid hotel_id" });
+  }
+
+  try {
+    const result = await db.tx(async (t) => {
+      // 1. Hotel info
+      const hotelRow = await t.oneOrNone(
+        `SELECT h.*, 
+          COALESCE((SELECT AVG(rating) FROM reviews r JOIN rooms rm ON r.roomid = rm.id WHERE rm.hotelid = h.id), 0) AS rating,
+          (SELECT COUNT(*) FROM reviews r JOIN rooms rm ON r.roomid = rm.id WHERE rm.hotelid = h.id) AS review_count
+         FROM hotels h WHERE h.id = $1`,
+        [hotelId]
+      );
+
+      if (!hotelRow) return null;
+
+      // 2. Images
+      const images = await t.manyOrNone(
+        `SELECT image_path FROM hotel_images WHERE hotelid = $1 ORDER BY is_cover DESC, id ASC`,
+        [hotelId]
+      );
+      
+      const resolvedImages = images.map((img) => {
+        const p = img.image_path;
+        if (/^https?:\/\//i.test(p) || p.startsWith("/")) return p;
+        const { data } = supabaseAdmin.storage.from("hotel-images").getPublicUrl(p);
+        return data.publicUrl;
+      });
+
+      // 3. Amenities & Policies
+      const amenities = await t.manyOrNone(
+        `SELECT a.name, a.icon, a.category 
+         FROM hotel_amenities ha JOIN amenities a ON ha.amenity_name = a.name 
+         WHERE ha.hotelid = $1`,
+        [hotelId]
+      );
+
+      const policies = await t.manyOrNone(
+        `SELECT p.name, p.icon, p.description 
+         FROM hotel_policies hp JOIN policies p ON hp.policy_name = p.name 
+         WHERE hp.hotelid = $1`,
+        [hotelId]
+      );
+
+      // 4. Room Types (using materialized view)
+      const roomTypesRaw = await t.manyOrNone(
+        `SELECT * FROM hotel_other_rooms_view WHERE hotel_id = $1`,
+        [hotelId]
+      );
+
+      // Add availability
+      const roomTypes = await Promise.all(
+        roomTypesRaw.map(async (rt) => {
+          let availableCount = null;
+          let totalCount = 0;
+
+          if (checkin && checkout && checkin < checkout) {
+            const ACTIVE_BOOKING  = ["Reserved", "Checked-In"];
+            const ACTIVE_RESERVE  = ["Pending", "Awaiting Confirmation", "Confirmed", "Partial Confirmed"];
+      
+            const availRow = await t.oneOrNone(
+              `
+              SELECT
+                COUNT(DISTINCT r.id)::int AS total_rooms,
+                COALESCE((
+                    SELECT COUNT(*)
+                    FROM booked_room br
+                    JOIN rooms booked_r ON booked_r.id = br.roomid
+                    WHERE booked_r.hotelid = $(hotelId)
+                      AND booked_r.typeid  = $(roomId)
+                      AND br.room_status   IN ($(activeBooking:csv))
+                      AND br.checkin_date  < $(checkout)
+                      AND br.checkout_date > $(checkin)
+                ), 0)::int AS booked_count,
+                COALESCE((
+                    SELECT COUNT(*)
+                    FROM reserved_room rr
+                    WHERE rr.hotelid         = $(hotelId)
+                      AND rr.roomtypeid      = $(roomId)
+                      AND rr.booking_status  IN ($(activeReserve:csv))
+                      AND rr.checkin_date    < $(checkout)
+                      AND rr.checkout_date   > $(checkin)
+                ), 0)::int AS reserved_count
+              FROM rooms r
+              WHERE r.hotelid = $(hotelId)
+                AND r.typeid  = $(roomId)
+              `,
+              {
+                hotelId,
+                roomId: rt.room_id,
+                checkin,
+                checkout,
+                activeBooking: ACTIVE_BOOKING,
+                activeReserve: ACTIVE_RESERVE,
+              }
+            );
+            if (availRow) {
+              totalCount = Number(availRow.total_rooms);
+              availableCount = totalCount - Number(availRow.booked_count) - Number(availRow.reserved_count);
+            }
+          } else {
+             // Just get total physical rooms if no dates given
+             const availRow = await t.oneOrNone(
+               `SELECT COUNT(DISTINCT id)::int AS total_rooms FROM rooms WHERE hotelid = $1 AND typeid = $2`,
+               [hotelId, rt.room_id]
+             );
+             totalCount = availRow ? Number(availRow.total_rooms) : 0;
+          }
+
+          const rtResolvedImages = (rt.previewimages || []).map((p: string) => {
+            if (/^https?:\/\//i.test(p) || p.startsWith("/")) return p;
+            const { data } = supabaseAdmin.storage.from("room-type-images").getPublicUrl(p);
+            return data.publicUrl;
+          });
+
+          return {
+            id: rt.room_id,
+            hotelId: rt.hotel_id,
+            name: rt.room_type,
+            size: rt.size,
+            capacity: rt.capacity,
+            price: Number(rt.price),
+            description: rt.room_description,
+            beds: rt.beds || [],
+            totalBeds: (rt.beds || []).reduce((acc: number, b: any) => acc + (b.count || 0), 0),
+            amenities: rt.amenities || [],
+            image: rtResolvedImages[0] || "/images/hotel1.png",
+            images: rtResolvedImages,
+            totalRoomCount: totalCount,
+            availableRoomCount: availableCount !== null ? availableCount : totalCount, // Fallback if no dates
+          };
+        })
+      );
+
+      const rating = Number(hotelRow.rating);
+
+      return {
+        id: hotelRow.id,
+        name: hotelRow.name,
+        classification: hotelRow.classification,
+        cityAbbreviation: hotelRow.city_abbreviation,
+        location: hotelRow.location,
+        description: hotelRow.description,
+        contactEmail: hotelRow.contact_email,
+        contactPhone: hotelRow.contact_phone,
+        image: resolvedImages[0] || "/images/hotel1.png",
+        images: resolvedImages,
+        rating: rating,
+        ratingLabel: rating >= 4.5 ? "Excellent" : rating >= 4.0 ? "Very Good" : rating >= 3.0 ? "Good" : "Okay",
+        reviewCount: Number(hotelRow.review_count),
+        amenities: amenities,
+        policies: policies,
+        roomTypes: roomTypes,
+        reviews: [],
+        stay: checkin && checkout ? { checkin, checkout } : null,
+      };
+    });
+
+    if (!result) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
     next(error);
   }
 }

@@ -761,7 +761,6 @@ export async function refreshDashboardViews(
   next: NextFunction,
 ) {
   try {
-    await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY vw_reserve_details;');
     await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY searchpage_view;');
     await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY room_details_view;');
     await db.none('REFRESH MATERIALIZED VIEW CONCURRENTLY hotel_other_rooms_view;');
