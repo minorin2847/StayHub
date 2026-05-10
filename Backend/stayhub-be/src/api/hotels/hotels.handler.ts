@@ -375,8 +375,7 @@ export async function deleteHotelImage(
           SELECT
             id,
             hotelid,
-            image_path,
-            is_cover
+            image_path
           FROM hotel_images
           WHERE id = $1 AND hotelid = $2
           `,
@@ -462,21 +461,23 @@ export async function setCoverImage(
         await t.none(
           `
           UPDATE hotel_images
+          SET is_cover = false
           WHERE hotelid = $1
           `,
-          [hotelId],
+          [hotelId]
         );
 
         const updatedImage = await t.one(
           `
           UPDATE hotel_images
+          SET is_cover = true
           WHERE id = $1 AND hotelid = $2
           RETURNING
             id,
             hotelid,
-            image_path,
+            image_path
           `,
-          [imageId, hotelId],
+          [imageId, hotelId]
         );
 
         return updatedImage;
@@ -699,7 +700,7 @@ export async function getPublicHotelDetail(
 
       // 2. Images
       const images = await t.manyOrNone(
-        `SELECT image_path FROM hotel_images WHERE hotelid = $1 ORDER BY is_cover DESC, id ASC`,
+        `SELECT image_path FROM hotel_images WHERE hotelid = $1 ORDER BY id ASC`,
         [hotelId],
       );
 
