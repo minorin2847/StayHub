@@ -49,7 +49,7 @@ dashboardRoute.get("/guests", isLoggedIn, hasPermission(["MANAGE_HOTEL", "MANAGE
 dashboardRoute.get("/bookings", isLoggedIn, hasPermission(["MANAGE_BOOKING", "ADMINISTRATOR"]), getDashboardBookings);
 
 // GET /employee/dashboard/reserves
-dashboardRoute.get("/reserves", isLoggedIn, hasPermission(["MANAGE_BOOKING", "ADMINISTRATOR"]), getDashboardReserves);
+dashboardRoute.get("/reserves", isLoggedIn, hasPermission(["MANAGE_BOOKING", "MANAGE_HOTEL", "ADMINISTRATOR"]), getDashboardReserves);
 
 // POST /employee/dashboard/refresh-views
 dashboardRoute.post("/refresh-views", isLoggedIn, hasPermission(["ADMINISTRATOR"]), refreshDashboardViews);
