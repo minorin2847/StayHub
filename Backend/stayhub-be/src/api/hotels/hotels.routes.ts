@@ -6,6 +6,8 @@ import {
   deleteHotel,
   getOtherRoomsInHotel,
   setCoverImage,
+  getPublicRoomDetail,
+  getPublicHotelDetail,
 } from "./hotels.handler.js";
 import { isLoggedIn } from "../auth/auth.handler.js";
 import { hasPermission } from "../dashboard/dashboard.handler.js";
@@ -50,6 +52,13 @@ hotelsRoute.put(
   setCoverImage
 );
 
+// GET /hotels/:id - full hotel details with room availability
+publicHotelRoute.get("/:id", getPublicHotelDetail);
+
+// GET /hotels/:hotel_id/rooms/:room_id  — full room detail with availability
+publicHotelRoute.get("/:hotel_id/rooms/:room_id", getPublicRoomDetail);
+
+// GET /hotels/:hotel_id/other-rooms  — carousel of other room types
 publicHotelRoute.get("/:hotel_id/other-rooms", getOtherRoomsInHotel);
 
 export default hotelsRoute;

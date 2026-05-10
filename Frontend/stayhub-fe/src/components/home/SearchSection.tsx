@@ -8,6 +8,11 @@ import type { Dayjs } from "dayjs";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { City } from "@/types/City";
 
+type CityOption = {
+  value: string;
+  label: string;
+};
+
 const SearchSection = () => {
   const router = useRouter();
 
@@ -33,8 +38,8 @@ const SearchSection = () => {
           `${process.env.NEXT_PUBLIC_API_URL}/cities`,
         );
         if (response.ok) {
-          const data = await response.json();
-          setCities(data.map((cityData: any) => cityData as City));
+          const data = (await response.json()) as City[];
+          setCities(data);
         }
       } catch (error) {
         console.error("Failed to fetch cities:", error);
@@ -45,7 +50,7 @@ const SearchSection = () => {
   }, []);
 
   // --- AutoComplete Handlers ---
-  const handleSelectCity = (value: string, option: any) => {
+  const handleSelectCity = (value: string, option: CityOption) => {
     setSelectedAbbreviation(value); // Store the abbreviation
     setSearchValue(option.label); // Display the city name
   };
@@ -58,7 +63,7 @@ const SearchSection = () => {
     }
   };
 
-  const cityOptions = cities.map((city) => ({
+  const cityOptions: CityOption[] = cities.map((city) => ({
     value: city.abbreviation,
     label: city.name,
   }));
@@ -135,6 +140,7 @@ const SearchSection = () => {
 
     if (checkIn) params.append("checkin", checkIn.format("YYYY-MM-DD"));
     if (checkOut) params.append("checkout", checkOut.format("YYYY-MM-DD"));
+    params.append("rooms", rooms.toString());
     params.append("adults", adults.toString());
     params.append("children", children.toString());
 

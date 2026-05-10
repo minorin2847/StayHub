@@ -52,7 +52,7 @@ export async function getHotelById(
   next: NextFunction,
 ) {
   const { id } = req.params;
-  
+
   rlsWrapper(
     "get-hotel-by-id",
     req.user,
@@ -89,7 +89,9 @@ export async function createHotel(
   } = req.body;
 
   if (!name || !location) {
-    return res.status(400).json({ message: "Please fill in all required fields!" });
+    return res
+      .status(400)
+      .json({ message: "Please fill in all required fields!" });
   }
 
   const user = (req as any).user;
@@ -115,17 +117,17 @@ export async function createHotel(
           [
             name,
             classification || 0,
-            description || '',
+            description || "",
             effectiveBranchId,
             location,
             contact_email || null,
             contact_phone || null,
-          ]
+          ],
         );
       },
       (hotel) => {
         res.status(200).json({ message: "Created successfully", hotel });
-      }
+      },
     );
   } catch (error) {
     next(error);
@@ -201,8 +203,11 @@ export async function deleteHotel(
   }
 }
 
-
-export async function uploadHotelImage(req: Request, res: Response, next: NextFunction) {
+export async function uploadHotelImage(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   let uploadedPath: string | null = null;
 
   try {
@@ -245,13 +250,6 @@ export async function uploadHotelImage(req: Request, res: Response, next: NextFu
       "insert-hotel-image",
       user,
       async (t) => {
-        // if (isCover) {
-        //   await t.none(
-        //     `UPDATE hotel_images SET is_cover = false WHERE hotelid = $1`,
-        //     [hotelId]
-        //   );
-        // }
-
         const inserted = await t.one(
           `
           INSERT INTO hotel_images (
@@ -266,7 +264,7 @@ export async function uploadHotelImage(req: Request, res: Response, next: NextFu
             image_hash,
             image_path
           `,
-          [hotelId, hash, imagePath]
+          [hotelId, hash, imagePath],
         );
 
         return {
@@ -281,7 +279,7 @@ export async function uploadHotelImage(req: Request, res: Response, next: NextFu
             : "Upload image successfully",
           image: row,
         });
-      }
+      },
     );
   } catch (error) {
     if (uploadedPath) {
@@ -295,7 +293,7 @@ export async function uploadHotelImage(req: Request, res: Response, next: NextFu
 export async function getHotelImages(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const user = (req as any).user;
@@ -322,7 +320,7 @@ export async function getHotelImages(
           WHERE hotelid = $1
           ORDER BY id ASC
           `,
-          [hotelId]
+          [hotelId],
         );
 
         return rows.map((row, index) => {
@@ -340,7 +338,7 @@ export async function getHotelImages(
       },
       (rows) => {
         res.status(200).json(rows);
-      }
+      },
     );
   } catch (error) {
     next(error);
@@ -350,7 +348,7 @@ export async function getHotelImages(
 export async function deleteHotelImage(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const user = (req as any).user;
@@ -382,7 +380,7 @@ export async function deleteHotelImage(
           FROM hotel_images
           WHERE id = $1 AND hotelid = $2
           `,
-          [imageId, hotelId]
+          [imageId, hotelId],
         );
 
         if (!image) {
@@ -402,7 +400,7 @@ export async function deleteHotelImage(
           DELETE FROM hotel_images
           WHERE id = $1 AND hotelid = $2
           `,
-          [imageId, hotelId]
+          [imageId, hotelId],
         );
 
         return image;
@@ -416,7 +414,7 @@ export async function deleteHotelImage(
           message: "Image deleted successfully",
           image: deletedImage,
         });
-      }
+      },
     );
   } catch (error) {
     next(error);
@@ -426,7 +424,7 @@ export async function deleteHotelImage(
 export async function setCoverImage(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const user = (req as any).user;
@@ -454,7 +452,7 @@ export async function setCoverImage(
           FROM hotel_images
           WHERE id = $1 AND hotelid = $2
           `,
-          [imageId, hotelId]
+          [imageId, hotelId],
         );
 
         if (!image) {
@@ -466,7 +464,7 @@ export async function setCoverImage(
           UPDATE hotel_images
           WHERE hotelid = $1
           `,
-          [hotelId]
+          [hotelId],
         );
 
         const updatedImage = await t.one(
@@ -478,7 +476,7 @@ export async function setCoverImage(
             hotelid,
             image_path,
           `,
-          [imageId, hotelId]
+          [imageId, hotelId],
         );
 
         return updatedImage;
@@ -492,13 +490,12 @@ export async function setCoverImage(
           message: "Cover image updated successfully",
           image: updatedImage,
         });
-      }
+      },
     );
   } catch (error) {
     next(error);
   }
 }
-
 
 /**
  * PUBLIC: Get a single room type's full detail for the public-facing page.
@@ -510,9 +507,9 @@ export async function getPublicRoomDetail(
   res: Response,
   next: NextFunction,
 ) {
-  const hotelId  = Number(req.params.hotel_id);
-  const roomId   = Number(req.params.room_id);
-  const checkin  = String(req.query.checkin  ?? "").trim() || null;
+  const hotelId = Number(req.params.hotel_id);
+  const roomId = Number(req.params.room_id);
+  const checkin = String(req.query.checkin ?? "").trim() || null;
   const checkout = String(req.query.checkout ?? "").trim() || null;
 
   if (Number.isNaN(hotelId) || hotelId <= 0) {
@@ -550,8 +547,13 @@ export async function getPublicRoomDetail(
     let availableRoomCount: number | null = null;
 
     if (checkin && checkout && checkin < checkout) {
-      const ACTIVE_BOOKING  = ["Reserved", "Checked-In"];
-      const ACTIVE_RESERVE  = ["Pending", "Awaiting Confirmation", "Confirmed", "Partial Confirmed"];
+      const ACTIVE_BOOKING = ["Reserved", "Checked-In"];
+      const ACTIVE_RESERVE = [
+        "Pending",
+        "Awaiting Confirmation",
+        "Confirmed",
+        "Partial Confirmed",
+      ];
 
       const availRow = await db.oneOrNone(
         `
@@ -600,28 +602,25 @@ export async function getPublicRoomDetail(
 
     // 4. Build the response
     const response = {
-      id:                  roomRow.room_id,
-      hotelId:             roomRow.hotel_id,
-      hotelName:           roomRow.hotel_name,
-      hotelLocation:       roomRow.hotel_location,
+      id: roomRow.room_id,
+      hotelId: roomRow.hotel_id,
+      hotelName: roomRow.hotel_name,
+      hotelLocation: roomRow.hotel_location,
       hotelClassification: roomRow.hotel_classification,
-      hotelRating:         Number(roomRow.avg_rating ?? 0),
-      name:                roomRow.room_type,
-      size:                roomRow.size,
-      capacity:            roomRow.capacity,
-      price:               Number(roomRow.price),
-      description:         roomRow.room_description,
-      beds:                roomRow.room_beds     ?? [],
-      amenities:           roomRow.room_amenities ?? [],
-      images:              resolvedImages,
-      image:               resolvedImages[0] ?? "/images/hotel1.png",
-      policies:            roomRow.hotel_policies ?? [],
-      availableRoomCount:  availableRoomCount,
-      reviews:             [],                         // Loaded separately if needed
-      stay:
-        checkin && checkout
-          ? { checkin, checkout }
-          : null,
+      hotelRating: Number(roomRow.avg_rating ?? 0),
+      name: roomRow.room_type,
+      size: roomRow.size,
+      capacity: roomRow.capacity,
+      price: Number(roomRow.price),
+      description: roomRow.room_description,
+      beds: roomRow.room_beds ?? [],
+      amenities: roomRow.room_amenities ?? [],
+      images: resolvedImages,
+      image: resolvedImages[0] ?? "/images/hotel1.png",
+      policies: roomRow.hotel_policies ?? [],
+      availableRoomCount: availableRoomCount,
+      reviews: [], // Loaded separately if needed
+      stay: checkin && checkout ? { checkin, checkout } : null,
     };
 
     res.status(200).json(response);
@@ -634,7 +633,11 @@ export async function getPublicRoomDetail(
  * PUBLIC: Fetches other room types available in the same hotel,
  * excluding the one currently being viewed.
  */
-export async function getOtherRoomsInHotel(req: Request, res: Response, next: NextFunction) {
+export async function getOtherRoomsInHotel(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   // hotel_id: current hotel context
   // exclude_id: the current room type ID to omit from the results
   const { hotel_id } = req.params;
@@ -647,13 +650,12 @@ export async function getOtherRoomsInHotel(req: Request, res: Response, next: Ne
        WHERE hotel_id = $1 AND room_id != $2
        ORDER BY final_price ASC
        LIMIT 10`,
-      [hotel_id, exclude_id || 0] // Default to 0 if no exclude_id provided
+      [hotel_id, exclude_id || 0], // Default to 0 if no exclude_id provided
     );
 
-    // Note: We return an empty array if none found (200 OK), 
+    // Note: We return an empty array if none found (200 OK),
     // as it's a valid state for a carousel.
     res.status(200).json(otherRooms);
-
   } catch (error) {
     console.error("Error fetching other rooms in hotel:", error);
     res.status(500).json({
@@ -673,9 +675,9 @@ export async function getPublicHotelDetail(
   next: NextFunction,
 ) {
   const hotelId = Number(req.params.id);
-  const checkin  = String(req.query.checkin  ?? "").trim() || null;
+  const checkin = String(req.query.checkin ?? "").trim() || null;
   const checkout = String(req.query.checkout ?? "").trim() || null;
-  const adults   = Number(req.query.adults);
+  const adults = Number(req.query.adults);
   const children = Number(req.query.children);
 
   if (Number.isNaN(hotelId) || hotelId <= 0) {
@@ -690,7 +692,7 @@ export async function getPublicHotelDetail(
           COALESCE((SELECT AVG(rating) FROM reviews r JOIN rooms rm ON r.roomid = rm.id WHERE rm.hotelid = h.id), 0) AS rating,
           (SELECT COUNT(*) FROM reviews r JOIN rooms rm ON r.roomid = rm.id WHERE rm.hotelid = h.id) AS review_count
          FROM hotels h WHERE h.id = $1`,
-        [hotelId]
+        [hotelId],
       );
 
       if (!hotelRow) return null;
@@ -698,13 +700,15 @@ export async function getPublicHotelDetail(
       // 2. Images
       const images = await t.manyOrNone(
         `SELECT image_path FROM hotel_images WHERE hotelid = $1 ORDER BY is_cover DESC, id ASC`,
-        [hotelId]
+        [hotelId],
       );
-      
+
       const resolvedImages = images.map((img) => {
         const p = img.image_path;
         if (/^https?:\/\//i.test(p) || p.startsWith("/")) return p;
-        const { data } = supabaseAdmin.storage.from("hotel-images").getPublicUrl(p);
+        const { data } = supabaseAdmin.storage
+          .from("hotel-images")
+          .getPublicUrl(p);
         return data.publicUrl;
       });
 
@@ -713,20 +717,20 @@ export async function getPublicHotelDetail(
         `SELECT a.name, a.icon, a.category 
          FROM hotel_amenities ha JOIN amenities a ON ha.amenity_name = a.name 
          WHERE ha.hotelid = $1`,
-        [hotelId]
+        [hotelId],
       );
 
       const policies = await t.manyOrNone(
         `SELECT p.name, p.icon, p.description 
          FROM hotel_policies hp JOIN policies p ON hp.policy_name = p.name 
          WHERE hp.hotelid = $1`,
-        [hotelId]
+        [hotelId],
       );
 
       // 4. Room Types (using materialized view)
       const roomTypesRaw = await t.manyOrNone(
         `SELECT * FROM hotel_other_rooms_view WHERE hotel_id = $1`,
-        [hotelId]
+        [hotelId],
       );
 
       // Add availability
@@ -736,9 +740,14 @@ export async function getPublicHotelDetail(
           let totalCount = 0;
 
           if (checkin && checkout && checkin < checkout) {
-            const ACTIVE_BOOKING  = ["Reserved", "Checked-In"];
-            const ACTIVE_RESERVE  = ["Pending", "Awaiting Confirmation", "Confirmed", "Partial Confirmed"];
-      
+            const ACTIVE_BOOKING = ["Reserved", "Checked-In"];
+            const ACTIVE_RESERVE = [
+              "Pending",
+              "Awaiting Confirmation",
+              "Confirmed",
+              "Partial Confirmed",
+            ];
+
             const availRow = await t.oneOrNone(
               `
               SELECT
@@ -773,24 +782,29 @@ export async function getPublicHotelDetail(
                 checkout,
                 activeBooking: ACTIVE_BOOKING,
                 activeReserve: ACTIVE_RESERVE,
-              }
+              },
             );
             if (availRow) {
               totalCount = Number(availRow.total_rooms);
-              availableCount = totalCount - Number(availRow.booked_count) - Number(availRow.reserved_count);
+              availableCount =
+                totalCount -
+                Number(availRow.booked_count) -
+                Number(availRow.reserved_count);
             }
           } else {
-             // Just get total physical rooms if no dates given
-             const availRow = await t.oneOrNone(
-               `SELECT COUNT(DISTINCT id)::int AS total_rooms FROM rooms WHERE hotelid = $1 AND typeid = $2`,
-               [hotelId, rt.room_id]
-             );
-             totalCount = availRow ? Number(availRow.total_rooms) : 0;
+            // Just get total physical rooms if no dates given
+            const availRow = await t.oneOrNone(
+              `SELECT COUNT(DISTINCT id)::int AS total_rooms FROM rooms WHERE hotelid = $1 AND typeid = $2`,
+              [hotelId, rt.room_id],
+            );
+            totalCount = availRow ? Number(availRow.total_rooms) : 0;
           }
 
           const rtResolvedImages = (rt.previewimages || []).map((p: string) => {
             if (/^https?:\/\//i.test(p) || p.startsWith("/")) return p;
-            const { data } = supabaseAdmin.storage.from("room-type-images").getPublicUrl(p);
+            const { data } = supabaseAdmin.storage
+              .from("room-type-images")
+              .getPublicUrl(p);
             return data.publicUrl;
           });
 
@@ -803,14 +817,18 @@ export async function getPublicHotelDetail(
             price: Number(rt.price),
             description: rt.room_description,
             beds: rt.beds || [],
-            totalBeds: (rt.beds || []).reduce((acc: number, b: any) => acc + (b.count || 0), 0),
+            totalBeds: (rt.beds || []).reduce(
+              (acc: number, b: any) => acc + (b.count || 0),
+              0,
+            ),
             amenities: rt.amenities || [],
             image: rtResolvedImages[0] || "/images/hotel1.png",
             images: rtResolvedImages,
             totalRoomCount: totalCount,
-            availableRoomCount: availableCount !== null ? availableCount : totalCount, // Fallback if no dates
+            availableRoomCount:
+              availableCount !== null ? availableCount : totalCount, // Fallback if no dates
           };
-        })
+        }),
       );
 
       const rating = Number(hotelRow.rating);
@@ -827,7 +845,14 @@ export async function getPublicHotelDetail(
         image: resolvedImages[0] || "/images/hotel1.png",
         images: resolvedImages,
         rating: rating,
-        ratingLabel: rating >= 4.5 ? "Excellent" : rating >= 4.0 ? "Very Good" : rating >= 3.0 ? "Good" : "Okay",
+        ratingLabel:
+          rating >= 4.5
+            ? "Excellent"
+            : rating >= 4.0
+              ? "Very Good"
+              : rating >= 3.0
+                ? "Good"
+                : "Okay",
         reviewCount: Number(hotelRow.review_count),
         amenities: amenities,
         policies: policies,
