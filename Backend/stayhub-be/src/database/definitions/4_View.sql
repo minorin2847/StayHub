@@ -226,7 +226,7 @@ FROM roomTypes rt
         GROUP BY rta.room_typeID
     ) a_info ON rt.id = a_info.room_typeID;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS vw_reserve_details AS
+CREATE OR REPLACE VIEW vw_reserve_details AS
 SELECT 
     r.id,
     CONCAT(g.first_name, ' ', g.last_name) AS guest_full_name,
@@ -263,7 +263,7 @@ LEFT JOIN rooms rm ON rm.id = rr.roomID
 GROUP BY 
     r.id, g.first_name, g.last_name, r.guestID, r.userID, r.status, r.created_at;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_vw_reserve_details_unique ON vw_reserve_details (id);
+
 
 
 CREATE OR REPLACE VIEW vw_landmark_lowest_prices WITH (security_invoker = true) AS
