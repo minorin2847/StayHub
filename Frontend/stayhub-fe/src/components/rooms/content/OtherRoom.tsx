@@ -61,7 +61,7 @@ export default function OtherRoom({
 
   return (
     <div className="bg-neutral-100/50 py-16">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-y-8 px-5 md:px-[104px]">
+      <Carousel opts={{ align: "start" }} className="mx-auto flex w-full max-w-[1440px] flex-col gap-y-8 px-5 md:px-[104px]">
         <div className="flex items-center justify-between">
           <h2 className="text-[32px] font-bold tracking-tight text-slate-900 md:text-[40px]">
             {`Other Rooms in ${hotelName}`}
@@ -81,7 +81,6 @@ export default function OtherRoom({
               <Spin size="large" description="Loading more options..." />
             </div>
           ) : rooms.length > 0 ? (
-            <Carousel opts={{ align: "start" }}>
               <CarouselContent className="-ml-4">
                 {rooms.map((obj) => {
                   const judgement = reviewJudgement(obj.avg_rating);
@@ -203,7 +202,6 @@ export default function OtherRoom({
                   );
                 })}
               </CarouselContent>
-            </Carousel>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-[32px] border-2 border-dashed border-slate-200 bg-white/50 py-12">
               <Empty
@@ -216,7 +214,7 @@ export default function OtherRoom({
             </div>
           )}
         </div>
-      </div>
+      </Carousel>
     </div>
   );
 }

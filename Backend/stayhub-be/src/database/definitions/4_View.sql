@@ -226,8 +226,7 @@ FROM roomTypes rt
         GROUP BY rta.room_typeID
     ) a_info ON rt.id = a_info.room_typeID;
 
-DROP MATERIALIZED VIEW IF EXISTS vw_reserve_details;
-CREATE MATERIALIZED VIEW vw_reserve_details AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS vw_reserve_details AS
 SELECT 
     r.id,
     CONCAT(g.first_name, ' ', g.last_name) AS guest_full_name,
@@ -289,8 +288,7 @@ FROM city_activity ca
 LEFT JOIN cities c ON c.abbreviation = ca.city_abbreviation
 WHERE ca.type = 'landmarks';
 
-DROP MATERIALIZED VIEW IF EXISTS searchpage_view;
-CREATE MATERIALIZED VIEW searchpage_view AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS searchpage_view AS
 WITH bed_agg AS (
     -- Combine beds into a readable string and sum total beds
     SELECT room_typeID, 
@@ -373,11 +371,10 @@ LEFT JOIN amenity_agg am ON rt.id = am.room_typeID
 LEFT JOIN deals d ON rt.id = d.roomTypeID 
     AND CURRENT_DATE BETWEEN d.startDate AND d.endDate;
 
-CREATE UNIQUE INDEX idx_searchpage_view_unique ON searchpage_view (hotelid, roomtypeid);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_searchpage_view_unique ON searchpage_view (hotelid, roomtypeid);
 
 
-DROP MATERIALIZED VIEW IF EXISTS room_details_view;
-CREATE MATERIALIZED VIEW room_details_view AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS room_details_view AS
 WITH 
 -- 1. Aggregate Amenities for the Room Type
 room_amenities_agg AS (
@@ -464,11 +461,10 @@ LEFT JOIN room_beds_agg rb ON rt.id = rb.room_typeID
 LEFT JOIN room_images_agg ri ON rt.id = ri.room_typeID
 LEFT JOIN hotel_policies_agg hp ON h.id = hp.hotelID;
 
-CREATE UNIQUE INDEX idx_room_details_view_unique ON room_details_view (room_id, hotel_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_room_details_view_unique ON room_details_view (room_id, hotel_id);
 
 
-DROP MATERIALIZED VIEW IF EXISTS hotel_other_rooms_view;
-CREATE MATERIALIZED VIEW hotel_other_rooms_view AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS hotel_other_rooms_view AS
 WITH 
 -- 1. Aggregate Amenities (top 6 for the carousel display)
 room_amenities_agg AS (
